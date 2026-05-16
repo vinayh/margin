@@ -3,6 +3,14 @@ import { createElement, Trash2 } from "lucide";
 import { detectAndPersistBrowserQuirks } from "../../utils/browser-detect.ts";
 import type { Message, MessageResponse } from "../../utils/messages.ts";
 import { DEFAULT_BACKEND_URL, type ProjectListEntry } from "../../utils/types.ts";
+import {
+  PROJECT_ROW_CONTAINER_CLASS,
+  PROJECT_ROW_META_CLASS,
+  PROJECT_ROW_NAME_CLASS,
+  formatProjectMeta,
+  projectRowLabel,
+  sortProjectsByLastSync,
+} from "../../ui/project-row.ts";
 
 // Detect native-sidebar support (rules out Arc and other Chromium derivatives
 // that silently no-op `chrome.sidePanel`). Result is cached in
@@ -74,12 +82,7 @@ async function fillDocs(): Promise<void> {
     | MessageResponse
     | undefined;
   if (r?.kind !== "projects/list" || !r.projects) return;
-  // Most recently active first; never-synced trailing.
-  const sorted = [...r.projects].sort((a, b) => {
-    const av = a.lastSyncedAt ?? -1;
-    const bv = b.lastSyncedAt ?? -1;
-    return bv - av;
-  });
+  const sorted = sortProjectsByLastSync(r.projects);
   docsCountEl.textContent = sorted.length === 0 ? "" : String(sorted.length);
   docsEmptyEl.hidden = sorted.length > 0;
   docListEl.replaceChildren(...sorted.map(renderDocRow));
@@ -87,22 +90,18 @@ async function fillDocs(): Promise<void> {
 
 function renderDocRow(p: ProjectListEntry): HTMLLIElement {
   const li = document.createElement("li");
-  li.className =
-    "flex items-baseline gap-3 px-[0.7rem] py-[0.55rem] border border-rule rounded bg-cream";
+  li.className = PROJECT_ROW_CONTAINER_CLASS;
 
   const link = document.createElement("a");
   link.href = `https://docs.google.com/document/d/${encodeURIComponent(p.parentDocId)}/edit`;
   link.target = "_blank";
   link.rel = "noreferrer";
-  link.className = "flex-1 min-w-0 font-medium [overflow-wrap:anywhere]";
-  link.textContent = p.name ?? "Untitled project";
+  link.className = PROJECT_ROW_NAME_CLASS;
+  link.textContent = projectRowLabel(p);
 
   const meta = document.createElement("span");
-  meta.className = "text-muted font-mono text-[11px] whitespace-nowrap";
-  const versionLabel =
-    p.versionCount === 1 ? "1 version" : `${p.versionCount} versions`;
-  const synced = formatRelative(p.lastSyncedAt);
-  meta.textContent = `${versionLabel} · last sync ${synced}`;
+  meta.className = PROJECT_ROW_META_CLASS;
+  meta.textContent = formatProjectMeta(p);
 
   const del = document.createElement("button");
   del.type = "button";
@@ -148,20 +147,6 @@ async function confirmAndDelete(
     setStatus(err instanceof Error ? err.message : String(err), "error");
     button.disabled = false;
   }
-}
-
-function formatRelative(ts: number | null): string {
-  if (!ts) return "never";
-  const diff = Date.now() - ts;
-  if (diff < 0) return "just now";
-  const sec = Math.round(diff / 1000);
-  if (sec < 60) return `${sec}s ago`;
-  const min = Math.round(sec / 60);
-  if (min < 60) return `${min}m ago`;
-  const hr = Math.round(min / 60);
-  if (hr < 24) return `${hr}h ago`;
-  const day = Math.round(hr / 24);
-  return `${day}d ago`;
 }
 
 signInBtn.addEventListener("click", async () => {

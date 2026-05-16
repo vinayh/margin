@@ -77,8 +77,8 @@ export function Dashboard({
 
   return (
     <>
-      <p class="title">{current.project.name ?? "Untitled project"}</p>
-      <div class="actions">
+      <div class="project-header">
+        <p class="title">{current.project.name ?? "Untitled project"}</p>
         <button
           type="button"
           class="icon-button"

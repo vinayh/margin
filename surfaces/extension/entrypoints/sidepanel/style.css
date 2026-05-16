@@ -25,6 +25,12 @@
   .title {
     @apply text-[22px] tracking-[-0.01em] leading-[1.15] overflow-visible text-clip whitespace-normal;
   }
+  .project-header {
+    @apply flex items-center gap-2;
+    & .title {
+      @apply flex-1 min-w-0;
+    }
+  }
   .subtitle {
     @apply [overflow-wrap:anywhere];
   }
@@ -51,19 +57,6 @@
 
   .snapshot-control {
     @apply inline-flex items-center gap-[0.4rem];
-  }
-
-  .project-picker {
-    @apply list-none p-0 m-0 mt-[0.6rem] flex flex-col gap-[0.35rem];
-    & > li > button {
-      @apply w-full text-left px-[0.7rem] py-[0.55rem] border border-rule rounded-[4px] bg-cream-2 text-ink;
-      &:hover:not(:disabled) {
-        @apply border-ink bg-cream-2;
-      }
-    }
-  }
-  .project-picker-doc {
-    @apply font-mono text-[11px] text-muted break-all;
   }
 
   .review-request-form {
@@ -260,5 +253,24 @@
   }
   .settings-actions {
     @apply flex gap-2 mt-2;
+  }
+
+  .danger-zone {
+    @apply mt-[1.2rem] pt-[0.8rem] border-t border-rule flex flex-col gap-2;
+    & button.danger {
+      @apply self-start inline-flex items-center gap-2 text-bad border-bad bg-bad-bg;
+      & svg {
+        width: 14px;
+        height: 14px;
+        stroke: currentColor;
+        stroke-width: 1.6;
+        fill: none;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+      }
+      &:hover:not(:disabled) {
+        @apply bg-bad text-cream border-bad;
+      }
+    }
   }
 }

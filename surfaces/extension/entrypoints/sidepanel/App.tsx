@@ -1,7 +1,16 @@
-import { useEffect, useRef, useState } from "preact/hooks";
+import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import { browser } from "wxt/browser";
 import { parseDocIdFromUrl } from "../../utils/ids.ts";
 import { Header } from "../../ui/Header.tsx";
+import {
+  PROJECT_LIST_CLASS,
+  PROJECT_ROW_CONTAINER_CLASS,
+  PROJECT_ROW_META_CLASS,
+  PROJECT_ROW_NAME_CLASS,
+  formatProjectMeta,
+  projectRowLabel,
+  sortProjectsByLastSync,
+} from "../../ui/project-row.ts";
 import { getSettings, sendMessage } from "../../ui/sendMessage.ts";
 import type {
   DocState,
@@ -46,12 +55,12 @@ export function App() {
   // pointing at a stale doc.
   const bootGen = useRef(0);
 
-  useEffect(() => {
-    const runBoot = (): void => {
-      const gen = ++bootGen.current;
-      void boot(setView, () => gen === bootGen.current);
-    };
+  const runBoot = useCallback((): void => {
+    const gen = ++bootGen.current;
+    void boot(setView, () => gen === bootGen.current);
+  }, []);
 
+  useEffect(() => {
     runBoot();
     void (async () => {
       const r = await sendMessage({ kind: "auth/whoami" });
@@ -108,19 +117,27 @@ export function App() {
       if (bootTimer.current) clearTimeout(bootTimer.current);
       port?.disconnect();
     };
-  }, []);
+  }, [runBoot]);
 
   return (
     <>
       <Header email={email} />
       <main id="main">
-        <Body view={view} setView={setView} />
+        <Body view={view} setView={setView} onReboot={runBoot} />
       </main>
     </>
   );
 }
 
-function Body({ view, setView }: { view: View; setView: (v: View) => void }) {
+function Body({
+  view,
+  setView,
+  onReboot,
+}: {
+  view: View;
+  setView: (v: View) => void;
+  onReboot: () => void;
+}) {
   switch (view.kind) {
     case "loading":
       return <p class="muted">Loading…</p>;
@@ -157,8 +174,12 @@ function Body({ view, setView }: { view: View; setView: (v: View) => void }) {
         />
       );
     case "loaded":
+      // Key on project id: Dashboard seeds `current` from props once via
+      // useState, so prop-only changes (boot resolving a new project)
+      // don't reseed without a remount.
       return (
         <Dashboard
+          key={view.detail.project.id}
           detail={view.detail}
           onOpenDiff={(fromVersionId, toVersionId) =>
             setView({
@@ -201,7 +222,12 @@ function Body({ view, setView }: { view: View; setView: (v: View) => void }) {
       return (
         <Settings
           projectId={view.detail.project.id}
+          projectName={view.detail.project.name}
           onClose={() => setView({ kind: "loaded", detail: view.detail })}
+          onDeleted={() => {
+            setView({ kind: "loading" });
+            onReboot();
+          }}
         />
       );
     case "error":
@@ -311,6 +337,7 @@ function ProjectPicker({
       </>
     );
   }
+  const sorted = sortProjectsByLastSync(projects);
   return (
     <>
       <p class="title">Your projects</p>
@@ -318,20 +345,20 @@ function ProjectPicker({
         Open a tracked Google Doc to jump straight to its dashboard, or pick
         from your existing projects:
       </p>
-      <ul class="project-picker">
-        {projects.map((p) => (
+      <ul class={`mt-[0.6rem] ${PROJECT_LIST_CLASS}`}>
+        {sorted.map((p) => (
           <li key={p.id}>
-            <button type="button" onClick={() => onPick(p)}>
-              <span class="project-picker-doc">{p.parentDocId}</span>
-              <span class="muted"> · added {formatDate(p.createdAt)}</span>
+            <button
+              type="button"
+              class={`${PROJECT_ROW_CONTAINER_CLASS} w-full text-left cursor-pointer hover:bg-cream-2`}
+              onClick={() => onPick(p)}
+            >
+              <span class={PROJECT_ROW_NAME_CLASS}>{projectRowLabel(p)}</span>
+              <span class={PROJECT_ROW_META_CLASS}>{formatProjectMeta(p)}</span>
             </button>
           </li>
         ))}
       </ul>
     </>
   );
-}
-
-function formatDate(ts: number): string {
-  return new Date(ts).toLocaleDateString();
 }

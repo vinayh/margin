@@ -1,11 +1,14 @@
 import { useEffect, useState } from "preact/hooks";
+import { Trash2 } from "lucide-preact";
 import { sendMessage } from "../../../ui/sendMessage.ts";
 import { parseEmails } from "../../../utils/emails.ts";
 import type { ProjectSettingsView } from "../../../utils/types.ts";
 
 interface Props {
   projectId: string;
+  projectName: string | null;
   onClose: () => void;
+  onDeleted: () => void;
 }
 
 type State =
@@ -20,9 +23,10 @@ type State =
  * a `patch` shaped like the diff between the current form state and the
  * last-loaded server state; missing keys keep their stored value.
  */
-export function Settings({ projectId, onClose }: Props) {
+export function Settings({ projectId, projectName, onClose, onDeleted }: Props) {
   const [state, setState] = useState<State>({ kind: "loading" });
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState<ProjectSettingsView | null>(null);
   // The reviewer-emails textarea is stored as the raw string the user typed,
@@ -64,6 +68,23 @@ export function Settings({ projectId, onClose }: Props) {
       cancelled = true;
     };
   }, [projectId]);
+
+  async function onDelete(): Promise<void> {
+    const label = projectName ?? "this project";
+    if (!window.confirm(`Delete "${label}"? This cannot be undone.`)) return;
+    setError(null);
+    setDeleting(true);
+    try {
+      const r = await sendMessage({ kind: "project/delete", projectId });
+      if (r?.kind !== "project/delete" || !r.deleted) {
+        throw new Error(r?.error ?? "delete failed");
+      }
+      onDeleted();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
+      setDeleting(false);
+    }
+  }
 
   async function onSave(): Promise<void> {
     if (state.kind !== "loaded" || !form) return;
@@ -203,6 +224,21 @@ export function Settings({ projectId, onClose }: Props) {
             Reset
           </button>
         </div>
+      </div>
+
+      <div class="danger-zone">
+        <p class="muted text-[12px]">
+          Removes the project from Margin (versions, comments, review
+          requests). Your Google Doc isn't touched.
+        </p>
+        <button
+          type="button"
+          class="danger"
+          disabled={deleting}
+          onClick={() => void onDelete()}
+        >
+          <Trash2 /> {deleting ? "Deleting…" : "Delete project"}
+        </button>
       </div>
     </section>
   );

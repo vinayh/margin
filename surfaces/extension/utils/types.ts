@@ -63,6 +63,7 @@ export interface ProjectDetail {
   project: {
     id: string;
     parentDocId: string;
+    name: string | null;
     ownerEmail: string | null;
     createdAt: number;
   };

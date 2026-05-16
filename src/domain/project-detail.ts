@@ -29,6 +29,7 @@ export interface ProjectDetail {
   project: {
     id: string;
     parentDocId: string;
+    name: string | null;
     ownerEmail: string | null;
     createdAt: number;
   };
@@ -96,6 +97,7 @@ export async function getProjectDetail(opts: {
     project: {
       id: proj.id,
       parentDocId: proj.parentDocId,
+      name: proj.name,
       ownerEmail,
       createdAt: proj.createdAt.getTime(),
     },
