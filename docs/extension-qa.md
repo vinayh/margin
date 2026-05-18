@@ -1,4 +1,4 @@
-# Extension QA — manual test plan
+# Extension QA: manual test plan
 
 End-to-end checklist for the browser extension + the backend routes it depends on.
 Walk through top to bottom; each step is self-contained so you can stop and resume.
@@ -17,7 +17,7 @@ Firefox (`dist/firefox-mv3`) and Edge.
 3. Confirm the **Options** page opens in a tab (not a popup) automatically
    on install. If it doesn't, right-click the icon → **Options**.
 
-## 2. Options — backend URL
+## 2. Options: backend URL
 
 1. Enter `http://localhost:8787` in the Backend URL field.
 2. Click **Test connection**. Chrome should prompt to grant the origin;
@@ -29,7 +29,7 @@ Firefox (`dist/firefox-mv3`) and Edge.
 6. Enter an unreachable URL (`http://localhost:9999`) → **Test connection**
    surfaces a clear error, no save.
 
-## 3. Options — sign in / sign out
+## 3. Options: sign in / sign out
 
 1. Click **Sign in with Google**. A top-level tab opens at
    `/api/auth/ext/launch-tab?ext=<extension-id>`.
@@ -41,7 +41,7 @@ Firefox (`dist/firefox-mv3`) and Edge.
 5. Click **Sign out** → state returns to **Signed out**.
 6. Sign back in for the rest of the run.
 
-## 4. Popup — pre-tracking states
+## 4. Popup: pre-tracking states
 
 1. Activate a tab that is **not** a Google Doc (e.g. `https://google.com`).
    Click the toolbar icon → expect **NoDoc** view.
@@ -71,10 +71,10 @@ Firefox (`dist/firefox-mv3`) and Edge.
 7. (If you have a second user account) Sign in as user B, try to register
    user A's already-tracked Doc → expect rejection or separate project.
 
-## 6. Popup — Tracked view
+## 6. Popup: Tracked view
 
 1. Return to the Docs tab you just tracked.
-2. Click the icon. Expect the **side panel** to open (not the popup) —
+2. Click the icon. Expect the **side panel** to open (not the popup);
    see §8 for routing details.
 3. If the side panel doesn't open and the popup does instead, that's a
    routing bug. Note and continue.

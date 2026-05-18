@@ -135,12 +135,10 @@ The Picker is the only mechanism that grants `drive.file` access to a doc the OA
 
 ## Test the browser extension
 
-The MV3 extension lives in [`surfaces/extension/`](../surfaces/extension/); its [README](../surfaces/extension/README.md) covers build, layout, popup state machine, and OAuth/Picker mechanics. End-to-end smoke test:
+The MV3 extension lives in [`surfaces/extension/`](../surfaces/extension/). Build, load, configure, and sign-in steps are in its [README](../surfaces/extension/README.md). End-to-end smoke test after that:
 
 1. Start the backend: `bun margin serve` (defaults to `http://localhost:8787`).
-2. Build and load the extension:
-   - **Chrome / Edge:** `bun run ext:build` → `chrome://extensions` → Developer Mode → **Load unpacked** → `surfaces/extension/dist/chrome-mv3`.
-   - **Firefox:** `bun run ext:build:firefox` → `about:debugging#/runtime/this-firefox` → **Load Temporary Add-on** → any file inside `surfaces/extension/dist/firefox-mv3` (e.g. `manifest.json`).
-3. Open the extension's **Options** page, enter the backend URL, click **Test connection** (Chrome will prompt for the backend origin; approve), then **Save backend URL**.
-4. Click **Sign in with Google**. The Options page opens a top-level tab at `/api/auth/ext/launch-tab`; after Google's consent screen, the bridge page hands the session token to the SW and closes itself.
-5. Open a Google Doc, click the toolbar icon → **Add to Margin**. The Picker tab opens; pick the doc and the page registers it as a project. `bun margin comments list <project-id>` will show ingested comments after the first webhook fires (or `bun margin watcher poll` to force-pull).
+2. Open a Google Doc, click the toolbar icon, click **Add to Margin**. The Picker tab opens; pick the doc and the page registers it as a project.
+3. `bun margin comments list <project-id>` shows ingested comments after the first webhook fires (or `bun margin watcher poll` to force-pull).
+
+For the manual test checklist covering popup states, toolbar routing, review flow, CORS, and cross-browser, see [`extension-qa.md`](./extension-qa.md).

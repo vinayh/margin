@@ -1,4 +1,4 @@
-# Project Spec: Margin — Research Doc Review & Versioning
+# Project Spec: Margin (Research Doc Review & Versioning)
 
 ## 1. Objective
 
@@ -12,22 +12,22 @@ Margin helps research teams run structured review of Google Docs across drafts, 
 
 ## 2. Core concepts
 
-- **Project** — long-lived workspace tied to one canonical Google Doc (the *parent*). Owns versions, comments, overlays, reviews.
-- **Version (snapshot)** — frozen Drive copy of the parent at a point in time. Real Google Doc + DB row with parent→child link.
-- **Overlay** — named, ordered list of content-addressed edit ops (redact / replace / insert / append) applied to a parent to produce a derivative.
-- **Canonical comment** — Margin's own comment-thread representation. Anchored by quoted text + structural context. Projected into Doc versions as native comments. Carries status (open / addressed / wontfix / superseded), origin metadata, history.
-- **Review request** — bundle of frozen version + reviewers + deadline + status + Slack/web thread. The unit users interact with.
-- **Participant** — Margin user, authed via Google OAuth (light scope) or other. Distinct from *doc owner* (the participant whose Drive token authorizes Margin's operations on a project).
+- **Project.** Long-lived workspace tied to one canonical Google Doc (the *parent*). Owns versions, comments, overlays, reviews.
+- **Version (snapshot).** Frozen Drive copy of the parent at a point in time. Real Google Doc + DB row with parent→child link.
+- **Overlay.** Named, ordered list of content-addressed edit ops (redact / replace / insert / append) applied to a parent to produce a derivative.
+- **Canonical comment.** Margin's own comment-thread representation. Anchored by quoted text + structural context. Projected into Doc versions as native comments. Carries status (open / addressed / wontfix / superseded), origin metadata, history.
+- **Review request.** Bundle of frozen version + reviewers + deadline + status + Slack/web thread. The unit users interact with.
+- **Participant.** Margin user, authed via Google OAuth (light scope) or other. Distinct from *doc owner* (the participant whose Drive token authorizes Margin's operations on a project).
 
 ## 3. Architecture overview
 
 Three layers:
 
-- **Backend** — single source of truth. Owns DB, reanchoring engine, Drive OAuth tokens, watch/poll loop, REST API.
-- **Surfaces** — read/write views: Slack bot, browser extension (rich UI; in-canvas overlays planned in Phase 6), Workspace add-on (in-doc Cards), web shell (OAuth + Picker + magic links + landing).
-- **Google integration layer** — Drive/Docs REST wrappers, OAuth token manager, push-notification subscriptions; lives inside the backend.
+- **Backend.** Single source of truth. Owns DB, reanchoring engine, Drive OAuth tokens, watch/poll loop, REST API.
+- **Surfaces.** Read/write views: Slack bot, browser extension (rich UI; in-canvas overlays planned in Phase 6), Workspace add-on (in-doc Cards), web shell (OAuth + Picker + magic links + landing).
+- **Google integration layer.** Drive/Docs REST wrappers, OAuth token manager, push-notification subscriptions; lives inside the backend.
 
-**Architectural rule:** *all state lives in the backend.* A comment, version, or overlay is real because the backend says so — not because Google or Slack says so.
+**Architectural rule:** *all state lives in the backend.* A comment, version, or overlay is real because the backend says so, not because Google or Slack says so.
 
 ## 4. Data model
 
@@ -35,7 +35,7 @@ Three layers:
 
 | Table | Purpose |
 |---|---|
-| `project` | parent_doc_id, owner_user_id, name (Drive title at register time), settings (default reviewers, default overlay). Project identity is **not** bound to parent_doc_id — the parent can be swapped over a project's lifetime. `createProject`'s "already tracked" pre-check is an application-layer hint, not a DB constraint. |
+| `project` | parent_doc_id, owner_user_id, name (Drive title at register time), settings (default reviewers, default overlay). Project identity is **not** bound to parent_doc_id; the parent can be swapped over a project's lifetime. `createProject`'s "already tracked" pre-check is an application-layer hint, not a DB constraint. |
 | `version` | google_doc_id, parent_version_id, label, name (Drive title), snapshot_content_hash, status. Every project starts with a `label = "main"` row whose `google_doc_id` is the parent doc; subsequent snapshots are v1, v2, … (`pickNextLabel` skips non-`v\d+` labels). |
 | `overlay` | name, ordered ops (JSON), project |
 | `overlay_operation` | type, anchor (quoted text + context), payload, confidence_threshold |
@@ -44,7 +44,7 @@ Three layers:
 | `comment_projection` | canonical_comment_id, version_id, google_comment_id, anchor_match_confidence, projection_status, last_synced_at |
 | `review_request` | project, version, status, deadline, slack_thread_ref |
 | `review_assignment` | review_request, user, status, responded_at |
-| `user` | email, name, email_verified, image — Better Auth-shaped |
+| `user` | email, name, email_verified, image (Better Auth-shaped) |
 | `account` | Better Auth's provider-credential row. `provider_id="google"` holds the per-doc-owner Drive refresh token, envelope-encrypted in `refresh_token` |
 | `session` | Better Auth session: token (sent as `Authorization: Bearer …` from the extension), userId, expiry |
 | `verification` | Better Auth's identifier/value table (unused today; required by the adapter) |
@@ -56,10 +56,10 @@ The anchor schema is rich enough to resolve to on-screen coordinates without Goo
 
 ## 5. Backend services
 
-- **Doc-watcher.** `drive.files.watch` per project + active forks; channel-renewer cron + polling fallback (§9.3). On event → re-export the doc as `.docx` (Drive `files.export`) and parse OOXML for comments, suggestions, and suggestion-thread replies (§9.8). `comments.list` is queried alongside, used only to recover author identity (`me` + `photoLink`) that docx drops.
-- **Reanchoring engine.** Given an anchor + target version: exact text match (high) → fuzzy within paragraph (medium, edit distance + structural context) → orphan. Returns confidence; thresholds drive auto-project vs. surface-for-review. Margin owns anchoring end-to-end; Google's kix anchor is one input, never authoritative (§9.1).
-- **Comment projection.** Native comments authored by Margin are unanchored from Google's view (§9.1). Body is prefixed `Re: "<quoted snippet>" — <body>`. The add-on layers named ranges for "comments at this paragraph"; the extension layers on-canvas overlays.
-- **Overlay applier.** Translates ops to `documents.batchUpdate` (mapping in §9.7). Anchor → index resolution happens upstream. Below-threshold ops surface for review, not silent skip.
+- **Doc-watcher.** `drive.files.watch` per project + active forks; channel-renewer cron + polling fallback (§9.3). On event, re-export the doc as `.docx` (Drive `files.export`) and parse OOXML for comments, suggestions, and suggestion-thread replies (§9.8). `comments.list` is queried alongside, used only to recover author identity (`me` + `photoLink`) that docx drops.
+- **Reanchoring engine.** Given an anchor + target version: exact text match (high), fuzzy within paragraph (medium, edit distance + structural context), or orphan. Returns confidence; thresholds drive auto-project vs. surface-for-review. Margin owns anchoring end-to-end; Google's kix anchor is one input, never authoritative (§9.1).
+- **Comment projection.** Native comments authored by Margin are unanchored from Google's view (§9.1). Body is prefixed `Re: "<quoted snippet>": <body>`. The add-on layers named ranges for "comments at this paragraph"; the extension layers on-canvas overlays.
+- **Overlay applier.** Translates ops to `documents.batchUpdate` (mapping in §9.7). Anchor-to-index resolution happens upstream. Below-threshold ops surface for review, not silent skip.
 - **Review orchestrator.** Lifecycle: create fork, share with reviewers, post Slack thread, notify, aggregate status, close + pull comments back.
 - **Notification dispatcher.** Routes events to Slack / add-on / web / email.
 - **Auth service.** Better Auth (Google provider + bearer plugin); refresh tokens envelope-encrypted in `account.refresh_token` via a Better Auth `databaseHooks.account` write hook; per-user `TokenProvider` refreshes Drive access tokens directly against Google.
@@ -72,41 +72,40 @@ Primary chat surface for review coordination.
 
 - **Slash commands:** `/review-request <doc-url> @reviewers [--overlay …] [--deadline …] [--audience …]`, `/review-status [project|reviewer]`, `/review-close <id>`.
 - **Interactive elements:** review-thread message (version label, reviewer status icons, comment count, deadline, action buttons); home tab ("Reviews waiting on you" / "Your open requests" / activity); DMs for assignment / new comments / reviewer responses.
-- **Cross-org:** Slack Connect when both orgs use it; magic-link assignment emails otherwise — comment in the doc, click a link to mark reviewed. Comment content rendered in the Slack thread regardless of authoring path.
+- **Cross-org.** Slack Connect when both orgs use it; magic-link assignment emails otherwise (comment in the doc, click a link to mark reviewed). Comment content rendered in the Slack thread regardless of authoring path.
 - **Drive scope.** Bot must direct user through per-file authorization (add-on or Picker) before backend touches a doc (§9.2).
 
 ### 6.2 Workspace add-on
 
-**Deferred.** The popup project surface (§6.4, Phase 3) covers the affordances that were originally targeted at the add-on — tracked-state lookup, sync trigger, first-time onboarding via Picker. The add-on stays in scope for users who can't install the extension (managed devices, contexts where extension installs are blocked) but is off the MVP critical path. When it ships, it's a Unified Workspace Add-on (CardService; *not* the legacy Editor add-on) covering:
+**Deferred.** The popup project surface (§6.4) covers the affordances originally targeted at the add-on (tracked-state lookup, sync trigger, first-time onboarding via Picker). The add-on stays in scope for users who can't install the extension (managed devices, blocked extension installs) but is off the MVP critical path. When it ships, it's a Unified Workspace Add-on (CardService; *not* the legacy Editor add-on) covering:
 
 - **On project parent:** version list + status per version, active reviews, pending reanchorings, buttons (Request review / Checkpoint / Open in extension).
 - **On fork:** banner ("This is v2 of [project] for [audience]" or "Author is editing v3 in [link]"), reviewer status, buttons (Mark reviewed / Open Slack thread / Back to parent).
-- **On unknown doc:** onboarding card. Granting scope here triggers `onFileScopeGranted` → Margin gains `drive.file` for that doc (§9.2).
+- **On unknown doc:** onboarding card. Granting scope here triggers `onFileScopeGranted`, which gives Margin `drive.file` for that doc (§9.2).
 - **Auth.** Apps Script identity token verified backend-side; Drive scope held by Margin OAuth client (per §8).
-- **Constraints.** CardService widgets only — no HTML/JS, no selection access (§9.4, §9.5).
+- **Constraints.** CardService widgets only: no HTML/JS, no selection access (§9.4, §9.5).
 - **Comment visualization.** Side panel renders canonical threads + projection status + reply chains. Cross-references named ranges to render per-section comment counts and "jump to next."
 
 ### 6.3 Web entry points
 
-Deliberately minimal — the rich UI is in the extension.
+Deliberately minimal; the rich UI is in the extension.
 
-- **`/api/auth/**`** — Better Auth's catch-all (sign-in, Google OAuth callback, get-session, sign-out). Extension sign-in opens `/api/auth/ext/launch-tab?ext=<chrome.runtime.id>` in a normal browser tab; after Google → Better Auth's social callback, `/api/auth/ext/success` hands the session token to the SW (Chromium: `chrome.runtime.sendMessage` gated by `externally_connectable.matches`; Firefox: `location.hash` picked up by `tabs.onUpdated`).
-- **`/api/picker/page`** — backend-hosted Drive Picker. Cookie-authenticated top-level navigation; mints a Drive access token, runs the Picker, POSTs to `/api/picker/register-doc` same-origin on pick, and closes itself.
-- **Magic-link handlers** — `/r/<token>?action=<kind>` style, one-click state changes for external reviewers; rendered confirmation page (chooser page when `action` is missing or unrecognized). Distinct from Better Auth sessions: review-action tokens authorize state transitions scoped to one assignment, not an authenticated session. Multi-use until `expires_at` so reviewers can change their response by clicking a different action link.
-- **Public landing page** — marketing/explainer with install CTAs.
+- **`/api/auth/**`.** Better Auth's catch-all (sign-in, Google OAuth callback, get-session, sign-out). Extension sign-in opens `/api/auth/ext/launch-tab?ext=<chrome.runtime.id>` in a normal browser tab; after the Google consent flow lands on Better Auth's social callback, `/api/auth/ext/success` hands the session token to the SW (Chromium: `chrome.runtime.sendMessage` gated by `externally_connectable.matches`; Firefox: `location.hash` picked up by `tabs.onUpdated`).
+- **`/api/picker/page`.** Backend-hosted Drive Picker. Cookie-authenticated top-level navigation; mints a Drive access token, runs the Picker, POSTs to `/api/picker/register-doc` same-origin on pick, and closes itself.
+- **Magic-link handlers.** `/r/<token>?action=<kind>` style, one-click state changes for external reviewers; rendered confirmation page (chooser page when `action` is missing or unrecognized). Distinct from Better Auth sessions: review-action tokens authorize state transitions scoped to one assignment, not an authenticated session. Multi-use until `expires_at` so reviewers can change their response by clicking a different action link.
+- **Public landing page.** Marketing/explainer with install CTAs.
 
-Project dashboards, diff viewer, reconciliation UI, overlay editor, settings live in the extension (§6.4), not on the web.
+Project dashboards, diff viewer, reconciliation UI, overlay editor, and settings live in the extension (§6.4), not on the web.
 
 **Mobile is out of scope.** Slack mobile covers review actions; mobile-authored comments ingest through Drive.
 
 ### 6.4 Browser extension
 
-Chrome / Firefox / Edge extension — popup + options + side panel. The extension is a **pure UI surface**: ingestion happens server-side via docx export (§9.8), so the manifest has no content script and no `host_permissions` on `docs.google.com`. Roles across phases:
+Chrome / Firefox / Edge extension: popup + options + side panel. The extension is a **pure UI surface**. Ingestion happens server-side via docx export (§9.8), so the manifest has no content script and no `host_permissions` on `docs.google.com`. Roles:
 
-- **Project surface (Phase 3 — shipped).** The popup is the primary "is this doc tracked, what state is it in, sync it now, add it as a new project" surface. Reads `tab.title` (stripped of the locale `" - Google Docs"` suffix) → backend `/api/extension/doc-state`, branches into onboarding / tracked views. "Add to Margin" opens `/api/picker/page` (§6.3) in a new tab; on pick, the page registers the doc and closes. "Sync now" calls `/api/extension/doc-sync` to re-ingest comments. Works on Chromium and Firefox. No Workspace add-on required.
-- **Rich UI (Phase 4 — shipped).** Preact app in the side panel: project dashboard (versions, derivatives, review history, reviewer participation), structured side-by-side version diff, comment reconciliation list. Talks to backend with the user's Better Auth session token (acquired via §6.3) sent as `Authorization: Bearer …` from the SW.
-- **Visualization (Phase 6).** Highlights overlaid on the doc body, gutter markers, hover previews, right-click "comment on selection," native-comment-rail integration. Doc body is `<canvas>` (§9.6) — needs accessibility-DOM mirror or selection-event hooks. **This is the only future role that touches the doc page**; if it ships, it will reintroduce `host_permissions` on `docs.google.com/*` and a content script, but only to read selection events / a11y-mirror coordinates — never comment data.
-- **Capture (Phase 2 — retired).** Originally scraped suggestion-thread replies from the discussion sidebar (the public Drive/Docs APIs didn't surface them). The docx-export ingest path (§9.8) recovers the same data server-side with exact anchors and ISO timestamps, so the `MutationObserver`, SW capture queue, `/api/extension/captures` endpoint, and the `host_permissions` on `docs.google.com/*` were all removed in Phase 4.
+- **Project surface (popup).** The popup is the primary "is this doc tracked, what state is it in, sync it now, add it as a new project" surface. Reads `tab.title` (stripped of the locale `" - Google Docs"` suffix), calls backend `/api/extension/doc-state`, branches into onboarding / tracked views. "Add to Margin" opens `/api/picker/page` (§6.3) in a new tab; on pick, the page registers the doc and closes. "Sync now" calls `/api/extension/doc-sync` to re-ingest comments.
+- **Rich UI (side panel).** Preact app: project dashboard (versions, derivatives, review history, reviewer participation), structured side-by-side version diff, comment reconciliation list. Talks to backend with the user's Better Auth session token (acquired via §6.3) sent as `Authorization: Bearer …` from the SW.
+- **Visualization (Phase 6).** Highlights overlaid on the doc body, gutter markers, hover previews, right-click "comment on selection," native-comment-rail integration. Doc body is `<canvas>` (§9.6), so this needs the accessibility-DOM mirror or selection-event hooks. This is the only future role that touches the doc page; if it ships, it will reintroduce `host_permissions` on `docs.google.com/*` and a content script, but only to read selection events / a11y-mirror coordinates, never comment data.
 
 Implementation detail (popup state machine, tab-based OAuth bridge, backend-hosted Picker mechanics, manifest permissions, cross-browser shim) lives in [`surfaces/extension/README.md`](../surfaces/extension/README.md). Conventions for working on this surface: [`AGENTS.md`](../AGENTS.md#browser-extension-surfacesextension).
 
@@ -134,16 +133,16 @@ Same as 7.1, with:
 ### 7.3 Derivative with overlay
 1. Author defines overlay ops in extension or add-on.
 2. Save + name + assign to project.
-3. Run "Create derivative" → backend copies parent, applies overlay via `documents.batchUpdate`, records derivative.
+3. Run "Create derivative": backend copies parent, applies overlay via `documents.batchUpdate`, records derivative.
 4. Share derivative with audience.
-5. On parent update: "Refork" → re-copy + re-apply; non-matching ops surface for review.
+5. On parent update, "Refork" re-copies + re-applies; non-matching ops surface for review.
 
 ### 7.4 Multi-version review cycle
 1. v1 reviewed; canonical comments anchored to v1.
 2. Author edits parent.
-3. Author requests v2 review. v1 comments project onto v2: clean → "still open from v1"; changed → "likely addressed — confirm?"; deleted-text → "previous-version context" (sidebar only, not a native comment).
+3. Author requests v2 review. v1 comments project onto v2: clean ("still open from v1"), changed ("likely addressed, confirm?"), or deleted-text ("previous-version context", sidebar only, not a native comment).
 4. v2 reviewers comment.
-5. Author marks v1 comments addressed. Replies on v2 link to canonical comments by ID — reply chains compose across versions.
+5. Author marks v1 comments addressed. Replies on v2 link to canonical comments by ID, so reply chains compose across versions.
 6. v3 review repeats.
 
 ## 8. Authentication and authorization
@@ -151,19 +150,19 @@ Same as 7.1, with:
 | Role | Mechanism |
 |---|---|
 | Doc owner | Better Auth Google provider, scope `drive.file` (per-file, §9.2); refresh token envelope-encrypted in `account.refresh_token` |
-| Participant | Better Auth Google provider (identity-only) / SSO (SAML, OIDC, future) / `review_action_token` magic links for email-only reviewers (scoped to one assignment, multi-use until expiry) |
+| Participant | Better Auth Google provider (identity-only), SSO (SAML, OIDC, future), or `review_action_token` magic links for email-only reviewers (scoped to one assignment, multi-use until expiry) |
 | Slack identity | Slack OAuth (future Better Auth `genericOAuth` provider) + email match against `user.email` |
 
 **Authorization model.** Project-scoped roles: owner / collaborator / reviewer / observer. External reviewers added per-review-request, scoped to that version.
 
-**Data isolation.** Projects belong to a tenant (org). Cross-org review = invite users from other tenants to a specific request.
+**Data isolation.** Projects belong to a tenant (org). Cross-org review means inviting users from other tenants to a specific request.
 
 ## 9. Google Workspace API constraints
 
 ### 9.1 Anchored comments cannot be authored via API
 Drive `comments.create` accepts `anchor`, but for Docs editor files anchored comments authored via the API are not supported. Apps Script `DocumentApp` has no comment-creation method. The kix anchor blob is unstable.
 
-**Implications:** Margin owns anchoring. Native comments produced by Margin are unanchored from Google's view; quoted snippet inlined in the body. Reading anchored comments authored in the UI works fully — only the outbound projection path is constrained.
+**Implications:** Margin owns anchoring. Native comments produced by Margin are unanchored from Google's view; quoted snippet inlined in the body. Reading anchored comments authored in the UI works fully; only the outbound projection path is constrained.
 
 ### 9.2 `drive.file` scope semantics
 Per-file. Granted only via files Margin created OR explicit Picker / Workspace Add-on file-scope flow. Typing a URL into Slack does not grant access.
@@ -172,10 +171,10 @@ Per-file. Granted only via files Margin created OR explicit Picker / Workspace A
 
 ### 9.3 Drive push-notification requirements
 - HTTPS endpoint, domain verified in Search Console.
-- Channel TTL 1–24h (max ~7 days); can drop without notice.
+- Channel TTL 1 to 24h (max ~7 days); can drop without notice.
 - Push payload is empty (`X-Goog-Resource-State` + channel ID); re-fetch on event.
 
-**Implications:** doc-watcher needs public infra + channel-renewer cron + polling fallback. Only reliable "doc changed" signal — Docs has no `onEdit` analog.
+**Implications:** doc-watcher needs public infra + channel-renewer cron + polling fallback. Only reliable "doc changed" signal; Docs has no `onEdit` analog.
 
 ### 9.4 Workspace Add-on UI is Card-only
 Unified Workspace Add-on framework renders only via CardService. No arbitrary HTML/CSS/JS. Do not adopt the legacy Editor add-on.
@@ -205,35 +204,27 @@ Drive `files.export?mimeType=…wordprocessingml.document` returns the doc as OO
 
 | Signal | `comments.list` | `documents.get` | docx export |
 |---|---|---|---|
-| Plain comment + body | ✅ | — | ✅ |
-| Exact anchor coords | ❌ (opaque `kix.*`) | — | ✅ via `<w:commentRangeStart/End>` at run boundaries |
-| Disjoint multi-range comment | ❌ (only first span) | — | ✅ as N `<w:comment>` rows sharing `(w:author, w:date, body)` |
-| Multi-paragraph contiguous range | ✅ (quoted spans `\n`) | — | ✅ range crosses paragraphs |
-| Suggested insert/delete content | — | ✅ | ✅ via `<w:ins>` / `<w:del>` |
-| Suggestion author + timestamp | — | ❌ (deferred to `revisions.list`) | ✅ on `<w:ins>` / `<w:del>` |
+| Plain comment + body | ✅ | n/a | ✅ |
+| Exact anchor coords | ❌ (opaque `kix.*`) | n/a | ✅ via `<w:commentRangeStart/End>` at run boundaries |
+| Disjoint multi-range comment | ❌ (only first span) | n/a | ✅ as N `<w:comment>` rows sharing `(w:author, w:date, body)` |
+| Multi-paragraph contiguous range | ✅ (quoted spans `\n`) | n/a | ✅ range crosses paragraphs |
+| Suggested insert/delete content | n/a | ✅ | ✅ via `<w:ins>` / `<w:del>` |
+| Suggestion author + timestamp | n/a | ❌ (deferred to `revisions.list`) | ✅ on `<w:ins>` / `<w:del>` |
 | **Suggestion-thread replies** | ❌ | ❌ | ✅ as `<w:comment>` whose range overlaps the `<w:ins>`/`<w:del>` |
-| Author identity discriminator | ✅ via `me` + `photoLink` | — | ❌ display-name only |
-| Parent-reply linkage | ✅ nested `replies[]` | — | ❌ flat; reconstruct by same-anchor + `w:date` |
+| Author identity discriminator | ✅ via `me` + `photoLink` | n/a | ❌ display-name only |
+| Parent-reply linkage | ✅ nested `replies[]` | n/a | ❌ flat; reconstruct by same-anchor + `w:date` |
 
-**Implication.** Ingest is docx-driven; `comments.list` is queried alongside purely to recover `me` + `photoLink` for author disambiguation (two users with the same display name are indistinguishable in OOXML). The extension's Phase-2 capture role becomes redundant and is retired in Phase 4. §9.1 still holds — Margin authors unanchored comments outbound; the docx path is inbound only.
+**Implication.** Ingest is docx-driven; `comments.list` is queried alongside purely to recover `me` + `photoLink` for author disambiguation (two users with the same display name are indistinguishable in OOXML). §9.1 still holds: Margin authors unanchored comments outbound; the docx path is inbound only.
 
-**Reply-on-suggestion detection rule.** A `<w:comment>` whose `commentRangeStart`/`End` interval overlaps a `<w:del>` or `<w:ins>` element is a reply on that suggestion's thread. No `paraIdParent` or equivalent in Google's export — linkage is purely positional.
+**Reply-on-suggestion detection rule.** A `<w:comment>` whose `commentRangeStart`/`End` interval overlaps a `<w:del>` or `<w:ins>` element is a reply on that suggestion's thread. No `paraIdParent` or equivalent in Google's export; linkage is purely positional.
 
 ### 9.9 Docx round-trip on Drive upload (V2 validation)
 
-Question: if Margin uploads a `.docx` with anchored comments + tracked-change suggestions and tells Drive to convert it to a Google Doc, do the annotations survive? If yes, the "derivative Doc with materialized comments" path becomes viable for cross-org reviewers and side-steps canvas visualization for that cohort (SPEC §12 Phase 6 V2).
+Question: if Margin uploads a `.docx` with anchored comments + tracked-change suggestions and tells Drive to convert it to a Google Doc, do the annotations survive? If yes, the "derivative Doc with materialized comments" path becomes viable for cross-org reviewers and side-steps canvas visualization for that cohort (Phase 6 V2 in §12).
 
 **How to run.** `bun margin v2-check` uploads a probe doc with three known anchors (start-of-paragraph, mid-paragraph, disjoint multi-range) plus one `<w:ins>` + one `<w:del>` suggestion to the operator's Drive, re-exports the converted Doc as `.docx`, and prints a structured observation report covering: (a) anchors landed at the right positions, (b) `w:author` preserved vs. rewritten, (c) `w:date` preserved vs. rewritten, (d) disjoint multi-range preserved / fragmented / lost, (e) suggestions round-trip as suggesting-mode edits.
 
-**Findings.** _Pending — operator to run `bun margin v2-check` against a dev Drive account and fill in below._
-
-- (a) anchors landed: _todo_
-- (b) author preserved: _todo_
-- (c) timestamp preserved: _todo_
-- (d) disjoint multi-range: _todo_
-- (e) suggestions round-trip: _todo_
-
-**Implication.** _Pending — fill in once findings are recorded above. If anchors survive cleanly, document the derivative-Doc-with-materialized-comments path here and re-scope Phase 6's visualization gating accordingly._
+**Findings.** Not yet recorded. Operator runs `bun margin v2-check` against a dev Drive account; once findings land, document them here and re-scope Phase 6 visualization gating accordingly.
 
 ## 10. Privacy and security
 
@@ -248,73 +239,66 @@ Question: if Margin uploads a `.docx` with anchored comments + tracked-change su
 
 - Real-time merge of edits across versions (only comments + overlays reconcile).
 - Image- / table-anchored comment reanchoring (orphans, manual placement).
-- Deep suggesting-mode integration. v1 ingests insert/delete suggestions as `canonical_comment` rows tagged `kind=suggestion_*`, anchored on affected text. Walks all regions (body, headers, footers, footnotes). Style-only suggestions (`suggestedTextStyleChanges`) deferred to Phase 6. Suggestion **author/timestamp** and **suggestion-thread replies** ingest via the docx export path (§9.8); the `revisions.list` cross-reference originally planned for these is no longer needed.
+- Deep suggesting-mode integration. v1 ingests insert/delete suggestions as `canonical_comment` rows tagged `kind=suggestion_*`, anchored on affected text. Walks all regions (body, headers, footers, footnotes). Style-only suggestions (`suggestedTextStyleChanges`) deferred to Phase 6. Suggestion **author/timestamp** and **suggestion-thread replies** ingest via the docx export path (§9.8).
 - Authoring **anchored** native Google Docs comments.
 - Native mobile UI / responsive web.
 - Public Workspace Marketplace listing (private/domain install only at v1).
 
 ## 12. Build sequence
 
-Phases 1–4 = MVP. Phase 5 adds Slack. Phase 6 = cross-org polish + extension visualization. Phase 7 = Workspace add-on + marketplace + advanced. Each phase has a `Status:` line — keep it current as work lands.
+Phases 1 to 4 are the MVP. Phase 5 adds Slack. Phase 6 covers cross-org polish + extension visualization. Phase 7 is the Workspace add-on + marketplace + advanced overlay primitives. Each phase has a `Status:` line; keep it current as work lands.
 
-### Phase 1 — Core engine
+### Phase 1: Core engine
 **Status: shipped.** ✅
 
-Headless backend + CLI. Drizzle schema (16 tables, Better Auth-shaped) on `bun:sqlite` WAL; envelope-encrypted refresh tokens stored in `account.refresh_token`; Better Auth Google provider + per-user `TokenProvider`; Drive/Docs REST wrappers; domain primitives (`createProject`, `createVersion`); canonical comment ingest; reanchoring engine with confidence scoring; overlay applier; doc-watcher with channel renewer + polling fallback; `bun margin <subcommand>` CLI dispatcher.
+Headless backend + CLI. Drizzle schema on `bun:sqlite` WAL; envelope-encrypted refresh tokens stored in `account.refresh_token`; Better Auth Google provider + per-user `TokenProvider`; Drive/Docs REST wrappers; domain primitives (`createProject`, `createVersion`); canonical comment ingest; reanchoring engine with confidence scoring; overlay applier; doc-watcher with channel renewer + polling fallback; `bun margin <subcommand>` CLI dispatcher.
 
-### Phase 2 — Backend HTTP API + browser extension (capture) + minimal web entry points
-**Status: shipped; capture role removed in Phase 4 (replaced by §9.8 docx ingest).** ✅
-
-Fly.io deploy + GitHub Actions auto-deploy on `main`. `bun margin serve` HTTP host: `/healthz`, `/api/auth/**` (Better Auth + tab-based OAuth bridge, §6.3), `/webhooks/drive`, `/api/picker/{page,register-doc}` (backend-hosted Drive Picker + register endpoint, §6.3). Better Auth sessions over the bearer plugin (`Authorization: Bearer <sessionToken>`). MV3 extension (Chrome / Edge / Firefox). Auto-subscribe of Drive `files.watch` per new version + in-process renew + polling loops, gated on `MARGIN_PUBLIC_BASE_URL`.
-
-The original capture-role components — `/api/extension/captures`, `domain/capture.ts`, sidebar scraper + `MutationObserver`, SW capture queue + flush alarm, the `canonical_comment.{kix_discussion_id, external_id}` columns, and the `host_permissions: ["https://docs.google.com/*"]` manifest entry — were all deleted in Phase 4 once the docx-export ingest path (§9.8) was running. The extension is now a pure UI surface; ingestion lives entirely in the backend.
-
-### Phase 3 — Extension popup as project surface
+### Phase 2: Backend HTTP API + minimal web entry points
 **Status: shipped.** ✅
 
-Replaces the Workspace add-on as the lightweight "I'm in a doc, what does Margin know about it?" surface (§6.4). Same affordances, no Apps Script / CardService dependency, no separate install. The Workspace add-on is deferred to Phase 7 as a managed-device fallback.
+Fly.io deploy + GitHub Actions auto-deploy on `main`. `bun margin serve` HTTP host: `/healthz`, `/api/auth/**` (Better Auth + tab-based OAuth bridge, §6.3), `/webhooks/drive`, `/api/picker/{page,register-doc}` (backend-hosted Drive Picker + register endpoint, §6.3). Better Auth sessions over the bearer plugin (`Authorization: Bearer <sessionToken>`). MV3 extension scaffolded (Chrome / Edge / Firefox). Auto-subscribe of Drive `files.watch` per new version + in-process renew + polling loops, gated on `MARGIN_PUBLIC_BASE_URL`.
 
-New backend routes:
+The extension originally carried a client-side capture role (sidebar `MutationObserver` scraping suggestion-thread replies). That whole pipeline was removed in Phase 4 once the docx-export ingest path (§9.8) covered the same data server-side with exact anchors and ISO timestamps. The extension is now a pure UI surface.
 
-- `POST /api/extension/doc-state` — tracked? state for the open doc. Owner-scoped (cross-user reads return `tracked: false`).
-- `POST /api/extension/doc-sync` — "Sync now" — re-runs `ingestVersionComments` on the relevant version and returns refreshed state.
-- `GET /api/picker/page` — backend-hosted Drive Picker (cookie-auth, top-level navigation).
-- `POST /api/picker/register-doc` — resolves caller (cookie or bearer) → `createProject(ownerUserId, parentDocUrlOrId)`.
-- CORS allow-list covers chromium / firefox extension origins + localhost on `/api/extension/*` and `/api/picker/register-doc`. Requests carrying a non-allow-listed `Origin` are rejected server-side with 403 (`disallowedOriginResponse` in `src/api/cors.ts`); requests with no `Origin` header (curl / CI / cron) pass through, since bearer-token confidentiality is the access boundary there.
-
-Popup state machine + OAuth/Picker mechanics live in [`surfaces/extension/README.md`](../surfaces/extension/README.md). The popup never holds the session token — everything routes through the SW.
-
-**Delivers:** the popup owns the entire "track → check state → sync now" loop. New users never see a Margin-hosted page after OAuth.
-
-### Phase 4 — Extension rich UI + docx-export ingest + magic-link action handlers
+### Phase 3: Extension popup as project surface
 **Status: shipped.** ✅
 
-**Phase 4.5 follow-up (shipped, 2026-05-13).** Side panel now covers the full §7.4 review cycle end-to-end without dropping to the CLI: "Snapshot new version" on the dashboard (`POST /api/extension/version/create`), per-version "Request review" form with inline magic-link rendering (`POST /api/extension/review/request` + new `createReviewRequest` domain helper + Drive `permissions.create`), expand-in-place review-row drill-in showing per-assignee status + magic-link URLs, and a project-picker fallback for when the active tab isn't a tracked Doc (`POST /api/extension/projects`). Email transport is still log-only — magic links surface inline so they can be redeemed manually until Phase 5 wires Slack/email. Empirical V2 check tooling shipped as `bun margin v2-check` (see [§9.9](#99-docx-round-trip-on-drive-upload-v2-validation)).
+Replaces the Workspace add-on as the lightweight "I'm in a doc, what does Margin know about it?" surface (§6.4). The Workspace add-on is deferred to Phase 7 as a managed-device fallback.
 
-Builds on the Phase-3 popup project surface. The popup retains the lightweight read-only view; the side-panel / options page hosts the rich React app.
+Routes:
+
+- `POST /api/extension/doc-state`: tracked-state for the open doc. Owner-scoped (cross-user reads return `tracked: false`).
+- `POST /api/extension/doc-sync`: "Sync now". Re-runs `ingestVersionComments` and returns refreshed state.
+- `GET /api/picker/page`: backend-hosted Drive Picker (cookie-auth, top-level navigation).
+- `POST /api/picker/register-doc`: resolves caller (cookie or bearer) and calls `createProject`.
+- CORS allow-list covers Chromium / Firefox extension origins + localhost on `/api/extension/*` and `/api/picker/register-doc`. Requests carrying a non-allow-listed `Origin` are rejected server-side with 403; requests with no `Origin` (curl / CI / cron) pass through, since bearer-token confidentiality is the access boundary there.
+
+Popup state machine + OAuth/Picker mechanics live in [`surfaces/extension/README.md`](../surfaces/extension/README.md). The popup never holds the session token; everything routes through the SW.
+
+### Phase 4: Extension rich UI + docx-export ingest + magic-link action handlers
+**Status: shipped.** ✅
+
+The popup retains the lightweight view; the side panel hosts the rich Preact app. Side panel covers the full §7.4 review cycle end-to-end without dropping to the CLI.
 
 Shipped:
 
-- Preact side-panel scaffold + project dashboard (`POST /api/extension/project`).
-- Structured side-by-side version diff (`POST /api/extension/version-diff`): client renders against `documents.get` structural content (paragraphs + runs + `textStyle` + `namedStyleType` + bullet/table). Two-pass diff: (1) paragraph-level alignment keyed by `(hash(plaintext), namedStyleType)`, (2) intra-paragraph run diff preserving style boundaries; style-only changes render distinctly.
-- Read-only comment reconciliation list (`POST /api/extension/version-comments`).
-- **Docx-export ingest (§9.8).** `ingestVersionComments` exports the doc as `.docx`, parses OOXML via `src/google/docx.ts` (fflate + fast-xml-parser, `preserveOrder: true`), and writes canonical_comment / comment_projection rows directly from the parsed annotations. Recovers disjoint multi-range comments (collapsed by `(author, date, body)` onto `anchor.additionalRanges`), exact anchor coordinates, suggestion-thread replies (linked via `parent_comment_id` to the canonical suggestion row), and suggestion author + timestamp. `comments.list` retained alongside *only* to (a) reconstruct plain-comment reply trees that OOXML flattens and (b) recover `me` + `photoLink` for author-identity disambig (stored as `canonical_comment.origin_photo_hash`).
-- **Extension capture-role retirement.** The capture pipeline was deleted end-to-end: `/api/extension/captures`, `src/domain/capture.ts`, the sidebar `MutationObserver` + scraper, the SW capture queue + `chrome.alarms` flush loop, the `canonical_comment.{kix_discussion_id, external_id}` columns, the docs.google.com `host_permissions`, the `alarms` permission, the per-doc title cache, and `src/domain/suggestions.ts`. Migrations 0000–0005 collapsed to a single fresh schema. The doc-watcher's webhook handler re-runs `ingestVersionComments` on `files.watch` events. Since most comments now arrive with exact coordinates, the reanchoring engine's fuzzy / orphan paths matter only for cross-version projection — first-version ingest is clean by construction.
-
-Shipped in Phase 4 round 2:
-
-- **Comment reconciliation actions.** `POST /api/extension/comment-action` for `accept_projection`, `reanchor`, `mark_resolved`, `mark_wontfix`, `reopen`. Side-panel action menu on each row applies results in place. Audit-logged via `audit_log` rows tagged `canonical_comment.*` / `comment_projection.*`.
-- **Settings.** `POST /api/extension/settings` (load + patch) over `project.settings`. Side-panel Settings view covers notification prefs, default reviewer emails, Slack workspace linking (free-form placeholder until Phase 5 wires the bot). Patches are diff-applied; `audit_log` records the before/after JSON.
-- **Magic-link `/r/<token>` handlers.** `review_action_token` table keyed by `(reviewRequestId, assigneeUserId)`; columns `tokenHash`, `issuedAt`, `expiresAt`, `lastUsedAt`. `GET /r/<token>?action=<kind>` on the secured (non-CORS) side of the API renders an HTML confirmation and transitions the matching `review_assignment.status`; missing or unknown `action` renders a chooser page listing the four buttons. Multi-use until `expiresAt` — reviewers can change their response by re-clicking a different action. Expired tokens render a friendly error page. Actions: `mark_reviewed`, `decline`, `request_changes`, `accept_reconciliation`.
+- **Side-panel scaffold + project dashboard** (`POST /api/extension/project`), with "Snapshot new version" on the dashboard (`POST /api/extension/version/create`) and a project-picker fallback for when the active tab isn't a tracked Doc (`POST /api/extension/projects`).
+- **Structured side-by-side version diff** (`POST /api/extension/version-diff`): client renders against `documents.get` structural content. Two-pass: paragraph-level alignment keyed by `(hash(plaintext), namedStyleType)`, then intra-paragraph run diff preserving style boundaries. Style-only changes render distinctly.
+- **Comment reconciliation list** (`POST /api/extension/version-comments`) with per-row actions (`POST /api/extension/comment-action`): `accept_projection`, `reanchor`, `mark_resolved`, `mark_wontfix`, `reopen`. Audit-logged.
+- **Docx-export ingest** (§9.8). `ingestVersionComments` exports the doc as `.docx`, parses OOXML via `src/google/docx.ts` (fflate + fast-xml-parser, `preserveOrder: true`), and writes canonical_comment / comment_projection rows. Recovers disjoint multi-range comments (collapsed by `(author, date, body)` onto `anchor.additionalRanges`), exact anchor coordinates, suggestion-thread replies, and suggestion author + timestamp. `comments.list` retained alongside only to reconstruct plain-comment reply trees that OOXML flattens and to recover `me` + `photoLink` for author-identity disambig.
+- **Per-version "Request review"** (`POST /api/extension/review/request`): mints magic-link tokens, runs Drive `permissions.create`, renders the URLs inline. Email transport is log-only until Phase 5 wires Slack/email; magic links surface inline so they can be redeemed manually.
+- **Magic-link `/r/<token>` handlers.** `review_action_token` table keyed by `(reviewRequestId, assigneeUserId)`. `GET /r/<token>?action=<kind>` renders an HTML confirmation and transitions the matching `review_assignment.status`; missing or unknown `action` renders a chooser page. Multi-use until `expiresAt` so reviewers can change their response. Actions: `mark_reviewed`, `decline`, `request_changes`, `accept_reconciliation`.
+- **Settings** (`POST /api/extension/settings`, load + patch over `project.settings`). Side-panel Settings view covers notification prefs, default reviewer emails, Slack workspace linking (free-form placeholder until Phase 5 wires the bot). Patches are diff-applied; `audit_log` records before/after JSON.
+- **V2 validation tooling.** `bun margin v2-check` (see [§9.9](#99-docx-round-trip-on-drive-upload-v2-validation)).
 
 The overlay applier + domain helpers stay shipped (§5, `src/domain/overlay.ts`); the editor surface is stretch (§13.3).
 
-**Delivers:** MVP. Cross-org workflows become possible via one-click email actions; the extension stops being a data pipe and is purely a UI surface.
+**Delivers:** MVP. Cross-org workflows possible via one-click email actions; the extension is purely a UI surface.
 
-### Phase 5 — Slack bot
+### Phase 5: Slack bot
 **Status: not started.**
 
-- Event subscriptions, slash commands, interactive payloads against Phase-2 API.
+- Event subscriptions, slash commands, interactive payloads.
 - Slack OAuth + workspace-linking flow.
 - `notification_dispatcher` Slack channel.
 - Identity link `user.email` ↔ Slack `user.profile.email`.
@@ -322,23 +306,23 @@ The overlay applier + domain helpers stay shipped (§5, `src/domain/overlay.ts`)
 
 **Delivers:** `/review-request`, `/review-status`, `/review-close` (§6.1); per-reviewer DMs; thread updates; home-tab dashboards.
 
-### Phase 6 — Cross-org polish + extension visualization
+### Phase 6: Cross-org polish + extension visualization
 **Status: not started. Visualization gated on the two empirical validation tasks below.**
 
 - Slack Connect for shared review channels across orgs.
 - External-reviewer onboarding via magic-link auth + identity verification (OAuth `sub`/email vs. share list).
 - Friendly errors when org policy blocks third-party app access (§10).
-- Extension visualization: in-canvas highlights / gutter markers (accessibility-DOM mirror or selection-event hooks; §9.6); hover previews; right-click "comment on selection"; native-comment-rail integration. The content script returns here — but reading selection events / a11y coords, not comment data.
+- Extension visualization: in-canvas highlights / gutter markers (accessibility-DOM mirror or selection-event hooks; §9.6); hover previews; right-click "comment on selection"; native-comment-rail integration. The content script returns here, but reading selection events / a11y coords, not comment data.
 
-**Pre-work / empirical validation.** Two assumptions underlying the visualization design need a 15–30 minute manual check before any code lands; both shape the architecture rather than informing one detail.
+**Pre-work / empirical validation.** Two assumptions underlying the visualization design need a 15-30 minute manual check before code lands; both shape architecture, not detail.
 
-- **V1: a11y-DOM mirror availability without the toggle.** Open a Google Doc in Chrome, DevTools → Elements, search for `aria-label` / `role="paragraph"` / equivalent paragraph-level nodes *before* toggling Tools → Accessibility → "Turn on screen reader support." Toggle on, re-inspect. Scroll. Confirm whether the mirror covers the full visible body or only the caret neighborhood. Outcome decides whether Phase 6 needs an onboarding nudge asking users to enable screen reader support (likely yes), or whether the default tree is enough for gutter markers.
-- **V2: `.docx` upload preserves anchored comments.** Build a `.docx` with three known anchors (start-of-paragraph, mid-paragraph, multi-range disjoint) using the `makeDocx` pattern from `src/google/docx.test.ts`, or download one from any existing Google Doc with comments. Upload to Drive with "Convert uploaded files to Docs editor format" on. Open the resulting Doc and verify: (a) anchors land at the right positions, (b) original `w:author` vs. uploading account in the comment metadata, (c) `createdTime` vs. original `w:date`, (d) disjoint multi-range preserved or fragmented, (e) suggestions round-trip as suggesting-mode edits. If anchors survive, this opens a "derivative Doc with materialized comments" path that sidesteps canvas overlay entirely for the review-only cohort (magic-link reviewers, mobile) — see [§9.7](#97-documentsbatchupdate-is-sufficient-for-overlays) for the existing derivative infrastructure.
+- **V1: a11y-DOM mirror availability without the toggle.** Open a Google Doc in Chrome, DevTools → Elements, search for `aria-label` / `role="paragraph"` / equivalent paragraph-level nodes *before* toggling Tools → Accessibility → "Turn on screen reader support." Toggle on, re-inspect. Scroll. Confirm whether the mirror covers the full visible body or only the caret neighborhood. Outcome decides whether Phase 6 needs an onboarding nudge asking users to enable screen reader support, or whether the default tree is enough for gutter markers.
+- **V2: `.docx` upload preserves anchored comments.** Run via `bun margin v2-check` (§9.9). If anchors survive, this opens a "derivative Doc with materialized comments" path that sidesteps canvas overlay entirely for the review-only cohort (magic-link reviewers, mobile); see [§9.7](#97-documentsbatchupdate-is-sufficient-for-overlays) for the existing derivative infrastructure.
 
-### Phase 7 — Workspace add-on, marketplace listings, advanced features
+### Phase 7: Workspace add-on, marketplace listings, advanced features
 **Status: not started.**
 
-- **Workspace add-on (deferred from earlier MVP plan).** Unified Workspace Add-on (CardService UI; §9.4) covering the same affordances as the Phase-3 popup, for users on managed devices or in environments that block extension installs. `onFileScopeGranted` integrates per-file `drive.file` with Margin's token store (§9.2). Apps Script identity-token verification on the backend. Named-range bookkeeping in the overlay applier — powers add-on "comments at this paragraph" affordances.
+- **Workspace add-on.** Unified Workspace Add-on (CardService UI; §9.4) covering the same affordances as the Phase-3 popup, for users on managed devices or in environments that block extension installs. `onFileScopeGranted` integrates per-file `drive.file` with Margin's token store (§9.2). Apps Script identity-token verification on the backend. Named-range bookkeeping in the overlay applier powers add-on "comments at this paragraph" affordances.
 - Workspace Marketplace listing (OAuth verification + security assessment).
 - Slack App Directory listing.
 - Browser-extension store listings (Chrome Web Store, Firefox Add-ons, Edge Add-ons).
@@ -355,7 +339,7 @@ Scoped, versioned, read-mostly HTTPS API over canonical comments + projections +
 
 - `GET /api/v1/projects`
 - `GET /api/v1/projects/:id/comments?version=&status=&since=`
-- `GET /api/v1/projects/:id/versions/:vid/diff` — plaintext + comment anchors
+- `GET /api/v1/projects/:id/versions/:vid/diff`: plaintext + comment anchors
 - `POST /api/v1/projects/:id/comments/:cid/status`
 - Webhooks per project: `comment.created`, `comment.replied`, `projection.resolved`, `review_request.closed`. Stable cursor for downtime backfill.
 
@@ -379,9 +363,9 @@ Phase 7's advanced overlay primitives (conditional ops, parameterized snippets, 
 ### 13.4 In-browser AI tools
 Extension side-panel chat with the canonical store wired in as live context (via §13.2 MCP, or directly via the Phase-4 React app's API client).
 
-- **Triage assist** — "which v2 comments are addressed by the v2→v3 diff?"
-- **Reply drafting** — LLM drafts a reply grounded in surrounding doc text + prior thread; user edits before posting back as a regular Drive comment.
-- **Author co-review** — flag passages likely to draw the same kinds of comments past reviewers left on this project.
-- **"Explain this comment in context"** — pulls parent suggestion + surrounding paragraph + cross-version replies into a single summary.
+- **Triage assist.** "Which v2 comments are addressed by the v2→v3 diff?"
+- **Reply drafting.** LLM drafts a reply grounded in surrounding doc text + prior thread; user edits before posting back as a regular Drive comment.
+- **Author co-review.** Flag passages likely to draw the same kinds of comments past reviewers left on this project.
+- **"Explain this comment in context".** Pulls parent suggestion + surrounding paragraph + cross-version replies into a single summary.
 
 Privacy: LLM only sees what the calling user can already see. Doc body fetched fresh per turn through Margin's `drive.file`-scoped credentials. Provider choice (Claude / OpenAI / local) in extension settings; default "ask before sending."

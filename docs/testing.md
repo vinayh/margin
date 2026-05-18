@@ -54,4 +54,4 @@ The token is long-lived as long as the CI account stays in **Test users** and th
 
 Drop additional `*.integration.test.ts` files anywhere under `test/`, wrap each test body with `integrationTest()` from `test/integration.ts`, and update `package.json`'s `test:integration` script to widen the path glob if it grows beyond the current single file. They run in the same nightly job and contribute to the `integration` codecov flag.
 
-The split is intentional. Tier 1 unit tests (transport-faked, temp-DB-backed) catch *our own* logic regressions on every push; tier 3 integration tests catch *Google-side* drift on a cadence we control. Mocked-fetch tests for Google response shapes (a notional "tier 2") were considered and rejected: fixtures rot silently, and the live integration suite already covers the same ground.
+The split is intentional: unit tests (transport-faked, temp-DB-backed) catch our own logic regressions on every push; integration tests catch Google-side drift on a cadence we control.
