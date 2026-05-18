@@ -183,6 +183,28 @@ export async function tokenProviderForProject(projectId: string): Promise<TokenP
 }
 
 /**
+ * Owner-scoped project rename. Trims to a non-empty string, updates
+ * `project.name`, returns the fresh row (or null when no row matched —
+ * same no-info-leak posture as deleteOwnedProject). Does NOT propagate to
+ * Drive — the underlying Google Doc's name stays as-is; `project.name`
+ * is the display label for the dashboard.
+ */
+export async function renameOwnedProject(
+  projectId: string,
+  userId: string,
+  rawName: string,
+): Promise<Project | null> {
+  const name = rawName.trim();
+  if (name.length === 0) return null;
+  const rows = await db
+    .update(project)
+    .set({ name })
+    .where(and(eq(project.id, projectId), eq(project.ownerUserId, userId)))
+    .returning();
+  return rows[0] ?? null;
+}
+
+/**
  * Owner-scoped project deletion. Returns true when a row was deleted, false
  * when nothing matched (either the project doesn't exist or the caller isn't
  * the owner — same no-info-leak posture as the read paths). All descendants

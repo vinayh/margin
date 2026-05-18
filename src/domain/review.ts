@@ -1,21 +1,23 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "../db/client.ts";
 import {
-  auditLog,
   reviewAssignment,
   reviewRequest,
   user,
   type ReviewActionKind,
   type ReviewAssignmentStatus,
 } from "../db/schema.ts";
+import { writeAudit } from "../db/audit.ts";
 import { tokenProviderForUser } from "../auth/credentials.ts";
 import { createPermission } from "../google/drive.ts";
 import { config } from "../config.ts";
 import { getEmailTransport, type EmailTransport } from "../notify/email.ts";
+import { getSlackTransport, type SlackTransport } from "../notify/slack.ts";
 import { requireProject } from "./project.ts";
 import { loadOwnedVersion } from "./version.ts";
 import { getOrCreateUserByEmail, userEmailById } from "./user.ts";
 import { issueReviewActionToken } from "./review-action.ts";
+import { createNotification } from "./notification.ts";
 
 export type ReviewRequest = typeof reviewRequest.$inferSelect;
 
@@ -66,6 +68,9 @@ export async function createReviewRequest(opts: {
   // Test seam — defaults to the env-configured transport (log-only unless
   // MARGIN_EMAIL_TRANSPORT is set).
   emailTransport?: EmailTransport;
+  // Test seam — defaults to the env-configured Slack transport (log-only
+  // unless MARGIN_SLACK_WEBHOOK_URL is set).
+  slackTransport?: SlackTransport;
 }): Promise<CreateReviewRequestResult> {
   const ver = await loadOwnedVersion(opts.versionId, opts.ownerUserId);
   if (!ver) throw new ReviewRequestNotFoundError(opts.versionId);
@@ -133,10 +138,9 @@ export async function createReviewRequest(opts: {
     ),
   );
 
-  await db.insert(auditLog).values({
+  await writeAudit({
     actorUserId: opts.ownerUserId,
     action: "review_request.create",
-    targetType: "review_request",
     targetId: reviewRequestId,
     before: null,
     after: {
@@ -146,7 +150,60 @@ export async function createReviewRequest(opts: {
     },
   });
 
+  // In-app notification for each assignee (excluding self-assign). The email
+  // is the primary delivery channel; this surfaces the request in the side
+  // panel when the assignee is also a Margin user.
+  await Promise.all(
+    out
+      .filter((a) => a.userId !== opts.ownerUserId)
+      .map((a) =>
+        createNotification({
+          userId: a.userId,
+          kind: "review_assigned",
+          payload: {
+            reviewRequestId,
+            projectId: proj.id,
+            projectName: proj.name,
+            requesterEmail,
+          },
+        }),
+      ),
+  );
+
+  // Best-effort Slack notification. Webhook is channel-scoped at creation
+  // time, so we post one summary per request, not per assignee. Failure here
+  // is logged and swallowed — it must never sink the request response, which
+  // already succeeded by this point.
+  const slack = opts.slackTransport ?? getSlackTransport();
+  try {
+    await slack.send({
+      text: renderSlackSummary({
+        requesterEmail,
+        googleDocId: ver.googleDocId,
+        assignees: out,
+        deadline: opts.deadline ?? null,
+      }),
+    });
+  } catch (err) {
+    console.warn(
+      `[review] slack notify failed: ${err instanceof Error ? err.message : String(err)}`,
+    );
+  }
+
   return { reviewRequestId, versionId: ver.id, assignees: out };
+}
+
+function renderSlackSummary(opts: {
+  requesterEmail: string | null;
+  googleDocId: string;
+  assignees: AssigneeMagicLinks[];
+  deadline: Date | null;
+}): string {
+  const docUrl = `https://docs.google.com/document/d/${encodeURIComponent(opts.googleDocId)}/edit`;
+  const who = opts.requesterEmail ?? "Someone";
+  const reviewers = opts.assignees.map((a) => a.email).join(", ");
+  const deadline = opts.deadline ? ` (due ${opts.deadline.toISOString()})` : "";
+  return `${who} requested a review${deadline}\nReviewers: ${reviewers}\nDoc: ${docUrl}`;
 }
 
 interface FanOutArgs {

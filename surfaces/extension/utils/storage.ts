@@ -40,10 +40,6 @@ export async function getBackendUrl(): Promise<string | null> {
   return s?.backendUrl?.trim() || null;
 }
 
-export async function setSettings(s: Settings): Promise<void> {
-  await set(KEY_SETTINGS, s);
-}
-
 /**
  * Partial-update of the persisted settings. Used by the SW's sign-in /
  * sign-out flow to flip `sessionToken` without disturbing `backendUrl`,

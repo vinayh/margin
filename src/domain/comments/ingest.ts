@@ -1,6 +1,12 @@
-import { eq } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import { db } from "../../db/client.ts";
-import { version, type AnchorRange, type CommentAnchor } from "../../db/schema.ts";
+import {
+  canonicalComment,
+  commentProjection,
+  version,
+  type AnchorRange,
+  type CommentAnchor,
+} from "../../db/schema.ts";
 import { listComments, exportDocx } from "../../google/drive.ts";
 import {
   parseDocx,
@@ -23,6 +29,16 @@ import { ingestSuggestions } from "./suggestions.ts";
 import { upsertCanonical } from "./upsert.ts";
 import { hashShort, type IngestResult } from "./types.ts";
 
+// In-flight ingests per versionId. The webhook can fire concurrently with the
+// poller (and other webhook deliveries) for the same version. Two concurrent
+// ingests that fetched Drive at slightly different moments will populate their
+// own `seenExternalIds` sets from different snapshots, and the later
+// `reapDeletedCanonicals` pass can mark live comments deleted (the newer
+// ingest sees a comment the older one's fetch missed). Self-healing on the
+// next run, but transient deletions are still wrong. Coalesce here so any
+// number of concurrent triggers share one ingest.
+const inFlight = new Map<string, Promise<IngestResult>>();
+
 /**
  * Pull every annotation from a version's doc and normalize into canonical_comment +
  * comment_projection. Idempotent: existing projections short-circuit via google_comment_id.
@@ -32,7 +48,19 @@ import { hashShort, type IngestResult } from "./types.ts";
  * comments.list runs in parallel only to (a) recover the author email for `me === true` (OOXML
  * drops it) and (b) reconstruct reply chains (OOXML flattens replies).
  */
-export async function ingestVersionComments(versionId: string): Promise<IngestResult> {
+export function ingestVersionComments(versionId: string): Promise<IngestResult> {
+  const existing = inFlight.get(versionId);
+  if (existing) return existing;
+  const p = runIngest(versionId).finally(() => {
+    // Only clear if we're still the registered run — a paranoid guard in case
+    // the same versionId got re-keyed mid-flight.
+    if (inFlight.get(versionId) === p) inFlight.delete(versionId);
+  });
+  inFlight.set(versionId, p);
+  return p;
+}
+
+async function runIngest(versionId: string): Promise<IngestResult> {
   const ver = await requireVersion(versionId);
   const tp = await tokenProviderForProject(ver.projectId);
 
@@ -43,6 +71,8 @@ export async function ingestVersionComments(versionId: string): Promise<IngestRe
     alreadyPresent: 0,
     skippedOrphanMetadata: 0,
     suggestionsInserted: 0,
+    markedDeleted: 0,
+    restored: 0,
   };
 
   const [docxBytes, driveComments] = await Promise.all([
@@ -53,6 +83,12 @@ export async function ingestVersionComments(versionId: string): Promise<IngestRe
   const authorIndex = buildAuthorIndex(driveComments);
   const driveIndex = buildDriveIndex(driveComments);
 
+  // Set of external comment / suggestion ids encountered during this ingest.
+  // After ingest, any canonical_comment row originating on this version whose
+  // projection.googleCommentId is NOT in this set has been removed upstream
+  // (Drive delete, suggestion accepted/rejected), and gets marked deleted.
+  const seenExternalIds = new Set<string>();
+
   // Suggestions first — comments that reply on a suggestion's thread point at
   // these canonical rows via `parent_comment_id`, so they need to exist when
   // the comment-ingest phase runs.
@@ -62,6 +98,7 @@ export async function ingestVersionComments(versionId: string): Promise<IngestRe
     suggestions: annotations.suggestions,
     authorIndex,
     result,
+    seenExternalIds,
   });
 
   await ingestComments({
@@ -71,6 +108,13 @@ export async function ingestVersionComments(versionId: string): Promise<IngestRe
     suggestionByOoxmlId,
     authorIndex,
     driveIndex,
+    result,
+    seenExternalIds,
+  });
+
+  await reapDeletedCanonicals({
+    versionId,
+    seenExternalIds,
     result,
   });
 
@@ -85,6 +129,75 @@ export async function ingestVersionComments(versionId: string): Promise<IngestRe
   return result;
 }
 
+/**
+ * Mark canonical_comments originating on this version whose upstream id is
+ * absent from this ingest. Symmetric: if an id reappears (rare: Drive
+ * undelete, manual re-add), clear `deleted_at`. The projection row stays;
+ * we filter on canonical_comment.deletedAt at read time so cross-version
+ * projections preserve audit history.
+ */
+async function reapDeletedCanonicals(args: {
+  versionId: string;
+  seenExternalIds: Set<string>;
+  result: IngestResult;
+}): Promise<void> {
+  // Pull every projection on this version that carries a googleCommentId —
+  // those are the rows whose origin doc IS this version's doc, since
+  // `commentProjection.googleCommentId` is only set at upsert time on the
+  // origin pair.
+  const projections = await db
+    .select({
+      canonicalId: commentProjection.canonicalCommentId,
+      googleCommentId: commentProjection.googleCommentId,
+    })
+    .from(commentProjection)
+    .where(
+      and(
+        eq(commentProjection.versionId, args.versionId),
+        isNotNull(commentProjection.googleCommentId),
+      ),
+    );
+
+  const missingCanonicalIds: string[] = [];
+  const presentCanonicalIds: string[] = [];
+  for (const p of projections) {
+    if (!p.googleCommentId) continue;
+    if (args.seenExternalIds.has(p.googleCommentId)) {
+      presentCanonicalIds.push(p.canonicalId);
+    } else {
+      missingCanonicalIds.push(p.canonicalId);
+    }
+  }
+
+  if (missingCanonicalIds.length > 0) {
+    const stamped = await db
+      .update(canonicalComment)
+      .set({ deletedAt: new Date() })
+      .where(
+        and(
+          inArray(canonicalComment.id, missingCanonicalIds),
+          isNull(canonicalComment.deletedAt),
+        ),
+      )
+      .returning({ id: canonicalComment.id });
+    args.result.markedDeleted += stamped.length;
+  }
+
+  if (presentCanonicalIds.length > 0) {
+    const restored = await db
+      .update(canonicalComment)
+      .set({ deletedAt: null })
+      .where(
+        and(
+          inArray(canonicalComment.id, presentCanonicalIds),
+          isNotNull(canonicalComment.deletedAt),
+        ),
+      )
+      .returning({ id: canonicalComment.id });
+    args.result.restored += restored.length;
+  }
+}
+
 interface CommentIngestArgs {
   projectId: string;
   versionId: string;
@@ -94,6 +207,7 @@ interface CommentIngestArgs {
   authorIndex: AuthorIndex;
   driveIndex: DriveIndex;
   result: IngestResult;
+  seenExternalIds: Set<string>;
 }
 
 async function ingestComments(args: CommentIngestArgs): Promise<void> {
@@ -162,6 +276,7 @@ async function ingestOneComment(
     anchor: anchorFromDocxComment(c),
     parentCommentId,
     result: args.result,
+    seenExternalIds: args.seenExternalIds,
   });
 }
 

@@ -44,11 +44,6 @@ export type DocState =
       openReviewCount: number;
     };
 
-// `kind: "registered"` covers both fresh registration (200) and already-tracked (409).
-export type RegisterDocResult =
-  | { kind: "registered"; projectId: string; parentDocId: string; alreadyExisted: boolean }
-  | { kind: "error"; message: string };
-
 export interface ProjectListEntry {
   id: string;
   parentDocId: string;

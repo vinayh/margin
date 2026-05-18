@@ -11,6 +11,12 @@ export interface SuggestionIngestArgs {
   suggestions: DocxSuggestion[];
   authorIndex: AuthorIndex;
   result: IngestResult;
+  /**
+   * Optional from this entry point so unit tests can call ingestSuggestions
+   * without scaffolding the parent ingest's reap-bookkeeping. Production
+   * callers (`ingestVersionComments`) always pass it.
+   */
+  seenExternalIds?: Set<string>;
 }
 
 /**
@@ -40,6 +46,7 @@ export async function ingestSuggestions(
       anchor: suggestionAnchor(s),
       parentCommentId: null,
       result: args.result,
+      seenExternalIds: args.seenExternalIds,
     });
     byOoxmlId.set(s.id, id);
     if (args.result.inserted > insertedBefore) args.result.suggestionsInserted++;

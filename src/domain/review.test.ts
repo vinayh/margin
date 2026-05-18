@@ -10,6 +10,7 @@ import { db } from "../db/client.ts";
 import {
   account,
   auditLog,
+  notification,
   reviewAssignment,
   reviewRequest,
   reviewActionToken,
@@ -271,6 +272,36 @@ describe("createReviewRequest", () => {
       expect(m.text).toContain("docs.google.com/document/d/doc-v1");
     }
     for (const a of result.assignees) expect(a.emailError).toBeNull();
+  });
+
+  test("fans out review_assigned notifications to assignees but not the requester", async () => {
+    const owner = await seedUser({ email: "owner-notif@example.com" });
+    await seedDriveCredential(owner.id);
+    const proj = await seedProject({ ownerUserId: owner.id, name: "Notif Proj" });
+    const ver = await seedVersion({
+      projectId: proj.id,
+      createdByUserId: owner.id,
+    });
+
+    stubGoogle();
+    const result = await createReviewRequest({
+      versionId: ver.id,
+      ownerUserId: owner.id,
+      // Include the requester's own email — self-assigns shouldn't self-notify.
+      assigneeEmails: ["alice@example.com", "owner-notif@example.com"],
+    });
+
+    const rows = await db
+      .select()
+      .from(notification)
+      .where(eq(notification.kind, "review_assigned"));
+    expect(rows).toHaveLength(1);
+    const alice = result.assignees.find((a) => a.email === "alice@example.com")!;
+    expect(rows[0]!.userId).toBe(alice.userId);
+    expect(rows[0]!.payload.reviewRequestId).toBe(result.reviewRequestId);
+    expect(rows[0]!.payload.projectId).toBe(proj.id);
+    expect(rows[0]!.payload.projectName).toBe("Notif Proj");
+    expect(rows[0]!.payload.requesterEmail).toBe("owner-notif@example.com");
   });
 
   test("records emailError when transport throws; magic links still issued", async () => {

@@ -1,4 +1,4 @@
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { db } from "../db/client.ts";
 import {
   canonicalComment,
@@ -75,7 +75,15 @@ export async function getVersionCommentsPayload(opts: {
       eq(canonicalComment.id, commentProjection.canonicalCommentId),
     )
     .innerJoin(version, eq(version.id, canonicalComment.originVersionId))
-    .where(eq(commentProjection.versionId, opts.versionId))
+    .where(
+      and(
+        eq(commentProjection.versionId, opts.versionId),
+        // Hide rows whose upstream comment / suggestion has been deleted in
+        // the Doc. The row is preserved for audit; the reconciliation UI just
+        // doesn't surface it.
+        isNull(canonicalComment.deletedAt),
+      ),
+    )
     .orderBy(desc(canonicalComment.originTimestamp));
 
   return {

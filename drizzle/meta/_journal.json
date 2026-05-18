@@ -50,6 +50,20 @@
       "when": 1779100300000,
       "tag": "0006_rare_gunslinger",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "6",
+      "when": 1779100400000,
+      "tag": "0007_robust_genesis",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1779100500000,
+      "tag": "0008_uneven_baron_strucker",
+      "breakpoints": true
     }
   ]
 }

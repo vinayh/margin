@@ -1,7 +1,8 @@
 import { useState } from "preact/hooks";
 import { sendMessage } from "../../../ui/sendMessage.ts";
-import { MessageSquare, RefreshCw, Send, Settings } from "lucide-preact";
-import { parseEmails } from "../../../utils/emails.ts";
+import { ArrowLeftRight, MessageSquare, RefreshCw, Send, Settings } from "lucide-preact";
+import { validateEmails } from "../../../utils/emails.ts";
+import { formatDate, formatRelative } from "../../../ui/format-time.ts";
 import type {
   ProjectDerivativeDetail,
   ProjectDetail,
@@ -16,6 +17,7 @@ interface Props {
   onOpenDiff: (fromVersionId: string, toVersionId: string) => void;
   onOpenComments: (versionId: string, versionLabel: string) => void;
   onOpenSettings: () => void;
+  onSwitchProject: () => void;
 }
 
 /**
@@ -30,6 +32,7 @@ export function Dashboard({
   onOpenDiff,
   onOpenComments,
   onOpenSettings,
+  onSwitchProject,
 }: Props) {
   const [current, setCurrent] = useState<ProjectDetail>(detail);
 
@@ -82,6 +85,15 @@ export function Dashboard({
         <button
           type="button"
           class="icon-button"
+          title="Switch project"
+          aria-label="Switch project"
+          onClick={onSwitchProject}
+        >
+          <ArrowLeftRight />
+        </button>
+        <button
+          type="button"
+          class="icon-button"
           title="Refresh"
           aria-label="Refresh"
           onClick={() => void refreshAll()}
@@ -107,8 +119,8 @@ export function Dashboard({
         onOpenDiff={onOpenDiff}
         onOpenComments={onOpenComments}
       />
-      <DerivativesSection derivatives={current.derivatives} />
       <ReviewsSection reviews={current.reviewRequests} issuedLinks={issuedLinks} />
+      <DerivativesSection derivatives={current.derivatives} />
     </>
   );
 }
@@ -128,6 +140,11 @@ function VersionsSection({
   onOpenDiff: (fromVersionId: string, toVersionId: string) => void;
   onOpenComments: (versionId: string, versionLabel: string) => void;
 }) {
+  const [filter, setFilter] = useState("");
+  const trimmed = filter.trim().toLowerCase();
+  const shown = trimmed === ""
+    ? versions
+    : versions.filter((v) => v.label.toLowerCase().includes(trimmed));
   return (
     <section class="panel-section">
       <div class="section-heading-row">
@@ -137,8 +154,19 @@ function VersionsSection({
         <SnapshotVersionButton onSnapshot={onSnapshot} />
       </div>
       {versions.length === 0 ? (
-        <p class="muted">No versions yet.</p>
+        <EmptyVersions />
       ) : (
+        <>
+        {versions.length > 3 ? (
+          <input
+            type="search"
+            class="filter-input"
+            placeholder="Filter versions by label…"
+            value={filter}
+            onInput={(e) => setFilter((e.target as HTMLInputElement).value)}
+          />
+        ) : null}
+        <div class="table-scroll">
         <table class="data">
           <thead>
             <tr>
@@ -150,7 +178,10 @@ function VersionsSection({
             </tr>
           </thead>
           <tbody>
-            {versions.map((v) => (
+            {shown.length === 0 ? (
+              <tr><td colspan={5}><p class="muted">No versions match.</p></td></tr>
+            ) : null}
+            {shown.map((v) => (
               <tr key={v.id}>
                 <td>
                   <a href={docUrl(v.googleDocId)} target="_blank" rel="noreferrer">
@@ -190,8 +221,22 @@ function VersionsSection({
             ))}
           </tbody>
         </table>
+        </div>
+        </>
       )}
     </section>
+  );
+}
+
+function EmptyVersions() {
+  return (
+    <div class="empty-state">
+      <p class="empty-state-title">No versions yet.</p>
+      <p class="empty-state-body">
+        Take a snapshot to start tracking comments, suggestions, and reviews on
+        this doc.
+      </p>
+    </div>
   );
 }
 
@@ -236,15 +281,19 @@ function RequestReviewButton({
   const [error, setError] = useState<string | null>(null);
 
   async function submit(): Promise<void> {
-    const parsed = parseEmails(emails);
-    if (parsed.length === 0) {
+    const { valid, invalid } = validateEmails(emails);
+    if (valid.length === 0 && invalid.length === 0) {
       setError("enter at least one email");
+      return;
+    }
+    if (invalid.length > 0) {
+      setError(`Invalid: ${invalid.join(", ")}`);
       return;
     }
     setBusy(true);
     setError(null);
     try {
-      await onSubmit(versionId, parsed);
+      await onSubmit(versionId, valid);
       setOpen(false);
       setEmails("");
     } catch (err) {
@@ -333,12 +382,18 @@ function DerivativesSection({
   derivatives: ProjectDerivativeDetail[];
 }) {
   return (
-    <section class="panel-section">
+    <section class="panel-section panel-section-pending">
       <h2 class="section-heading">
         Derivatives <span class="count">{derivatives.length}</span>
+        <span class="pending-tag">Coming soon</span>
       </h2>
       {derivatives.length === 0 ? (
-        <p class="muted">No derivatives yet.</p>
+        <div class="empty-state">
+          <p class="empty-state-body">
+            Audience-specific copies generated by applying an overlay to a
+            version.
+          </p>
+        </div>
       ) : (
         <ul class="rows">
           {derivatives.map((d) => (
@@ -368,7 +423,13 @@ function ReviewsSection({
         Open reviews <span class="count">{reviews.length}</span>
       </h2>
       {reviews.length === 0 ? (
-        <p class="muted">No open review requests.</p>
+        <div class="empty-state">
+          <p class="empty-state-title">No open review requests.</p>
+          <p class="empty-state-body">
+            Use the Request review action on a version to send magic-link
+            review invitations.
+          </p>
+        </div>
       ) : (
         <ul class="rows">
           {reviews.map((r) => (
@@ -482,21 +543,4 @@ function docUrl(googleDocId: string): string {
   return `https://docs.google.com/document/d/${encodeURIComponent(googleDocId)}/edit`;
 }
 
-function formatDate(ts: number): string {
-  return new Date(ts).toLocaleDateString();
-}
-
-function formatRelative(ts: number | null): string {
-  if (!ts) return "never";
-  const diff = Date.now() - ts;
-  if (diff < 0) return "just now";
-  const sec = Math.round(diff / 1000);
-  if (sec < 60) return `${sec}s ago`;
-  const min = Math.round(sec / 60);
-  if (min < 60) return `${min}m ago`;
-  const hr = Math.round(min / 60);
-  if (hr < 24) return `${hr}h ago`;
-  const day = Math.round(hr / 24);
-  return `${day}d ago`;
-}
 

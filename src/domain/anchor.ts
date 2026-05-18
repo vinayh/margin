@@ -3,9 +3,14 @@ import type { CommentAnchor, DocRegion } from "../db/schema.ts";
 
 export const CONTEXT_CHARS = 32;
 
-export function paragraphHash(text: string): string {
+export function sha256Hex(text: string): string {
   return new Bun.CryptoHasher("sha256").update(text).digest("hex");
 }
+
+// Anchor-shaped alias kept so callers that hash a paragraph for the
+// `paragraphHash` anchor field read self-consistently. Non-anchor call
+// sites should import `sha256Hex` instead.
+export const paragraphHash = sha256Hex;
 
 /**
  * Single source of truth for "build a CommentAnchor at paragraph + offset".

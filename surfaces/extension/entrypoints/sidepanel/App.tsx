@@ -19,6 +19,7 @@ import type {
 } from "../../utils/types.ts";
 import { Comments } from "./views/Comments.tsx";
 import { Dashboard } from "./views/Dashboard.tsx";
+import { NotificationsBell } from "./views/NotificationsBell.tsx";
 import { Settings } from "./views/Settings.tsx";
 import { VersionDiff } from "./views/VersionDiff.tsx";
 
@@ -62,10 +63,12 @@ export function App() {
 
   useEffect(() => {
     runBoot();
-    void (async () => {
+    const refreshWhoami = async (): Promise<void> => {
       const r = await sendMessage({ kind: "auth/whoami" });
       if (r?.kind === "auth/whoami" && !r.error) setEmail(r.email);
-    })();
+      else setEmail(null);
+    };
+    void refreshWhoami();
 
     // Re-resolve when the user navigates the active tab so the panel
     // follows the doc context. `tabs.onUpdated` fires for every change a
@@ -98,6 +101,24 @@ export function App() {
     browser.tabs.onUpdated.addListener(onUpdated);
     browser.windows.onFocusChanged.addListener(onFocusChanged);
 
+    // Refresh whoami + reboot when the SW writes a new session token (sign-in)
+    // or clears it (sign-out). Without this the side panel keeps showing the
+    // old email after the user signs out from another surface.
+    const onStorage = (
+      changes: Record<string, chrome.storage.StorageChange>,
+      areaName: chrome.storage.AreaName,
+    ): void => {
+      if (areaName !== "local" || !changes.settings) return;
+      const before = (changes.settings.oldValue as { sessionToken?: string } | undefined)
+        ?.sessionToken ?? "";
+      const after = (changes.settings.newValue as { sessionToken?: string } | undefined)
+        ?.sessionToken ?? "";
+      if (before === after) return;
+      void refreshWhoami();
+      runBoot();
+    };
+    browser.storage.onChanged.addListener(onStorage);
+
     // Lifecycle port: lets the SW track "is the panel open in this window?"
     // synchronously inside the toolbar `action.onClicked` handler — the
     // gesture chain doesn't survive an `await`, so the SW needs the answer
@@ -114,6 +135,7 @@ export function App() {
       browser.tabs.onActivated.removeListener(onActivated);
       browser.tabs.onUpdated.removeListener(onUpdated);
       browser.windows.onFocusChanged.removeListener(onFocusChanged);
+      browser.storage.onChanged.removeListener(onStorage);
       if (bootTimer.current) clearTimeout(bootTimer.current);
       port?.disconnect();
     };
@@ -121,7 +143,31 @@ export function App() {
 
   return (
     <>
-      <Header email={email} />
+      <Header
+        email={email}
+        slot={
+          <NotificationsBell
+            onOpenProject={(projectId) => {
+              setView({ kind: "loading" });
+              void (async () => {
+                try {
+                  const detail = await fetchProjectDetail(projectId);
+                  if (!detail) {
+                    setView({ kind: "error", message: "project not found" });
+                    return;
+                  }
+                  setView({ kind: "loaded", detail });
+                } catch (err) {
+                  setView({
+                    kind: "error",
+                    message: err instanceof Error ? err.message : String(err),
+                  });
+                }
+              })();
+            }}
+          />
+        }
+      />
       <main id="main">
         <Body view={view} setView={setView} onReboot={runBoot} />
       </main>
@@ -200,6 +246,20 @@ function Body({
           onOpenSettings={() =>
             setView({ kind: "settings", detail: view.detail })
           }
+          onSwitchProject={() => {
+            setView({ kind: "loading" });
+            void (async () => {
+              try {
+                const projects = await fetchProjects();
+                setView({ kind: "picker", projects: projects ?? [] });
+              } catch (err) {
+                setView({
+                  kind: "error",
+                  message: err instanceof Error ? err.message : String(err),
+                });
+              }
+            })();
+          }}
         />
       );
     case "diff":
@@ -227,6 +287,15 @@ function Body({
           onDeleted={() => {
             setView({ kind: "loading" });
             onReboot();
+          }}
+          onRenamed={(name) => {
+            setView({
+              kind: "settings",
+              detail: {
+                ...view.detail,
+                project: { ...view.detail.project, name },
+              },
+            });
           }}
         />
       );

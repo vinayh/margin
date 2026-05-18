@@ -4,12 +4,24 @@ import { cleanDb, seedProject, seedUser, seedVersion, seedReviewRequest } from "
 import { db } from "../db/client.ts";
 import { reviewAssignment } from "../db/schema.ts";
 import { issueReviewActionToken } from "../domain/review-action.ts";
-import { handleReviewActionGet } from "./review-action.tsx";
+import {
+  handleReviewActionGet,
+  handleReviewActionPost,
+} from "./review-action.tsx";
 
 beforeEach(cleanDb);
 
 function get(path: string): Request {
   return new Request(`http://localhost${path}`, { method: "GET" });
+}
+
+function postForm(path: string, body: Record<string, string>): Request {
+  const params = new URLSearchParams(body);
+  return new Request(`http://localhost${path}`, {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: params.toString(),
+  });
 }
 
 async function seedAssignmentWorld() {
@@ -31,15 +43,32 @@ async function seedAssignmentWorld() {
   return { owner, reviewer, proj, ver, rr };
 }
 
-describe("handleReviewActionGet", () => {
-  test("404 for an unknown token", async () => {
+async function reviewerStatus(reviewerId: string): Promise<string> {
+  const rows = await db
+    .select()
+    .from(reviewAssignment)
+    .where(eq(reviewAssignment.userId, reviewerId))
+    .limit(1);
+  return rows[0]!.status;
+}
+
+describe("handleReviewActionGet (renders only; never mutates)", () => {
+  test("renders confirm page for unknown token (validation deferred to POST)", async () => {
     const res = await handleReviewActionGet(get("/r/mra_unknown?action=mark_reviewed"));
-    expect(res.status).toBe(404);
+    // GET is pure render; "unknown token" is discovered on submit.
+    expect(res.status).toBe(200);
     expect(res.headers.get("content-type")).toContain("text/html");
   });
 
   test("404 for a path that doesn't carry a token", async () => {
     const res = await handleReviewActionGet(get("/r/?action=mark_reviewed"));
+    expect(res.status).toBe(404);
+  });
+
+  test("404 from POST for an unknown token", async () => {
+    const res = await handleReviewActionPost(
+      postForm("/r/mra_unknown", { action: "mark_reviewed" }),
+    );
     expect(res.status).toBe(404);
   });
 
@@ -53,8 +82,10 @@ describe("handleReviewActionGet", () => {
     expect(res.status).toBe(200);
     const body = await res.text();
     expect(body).toContain("Choose a review action");
-    expect(body).toContain("action=mark_reviewed");
-    expect(body).toContain("action=decline");
+    // Action submits as a POST form, not a GET link.
+    expect(body).toContain('method="POST"');
+    expect(body).toContain('value="mark_reviewed"');
+    expect(body).toContain('value="decline"');
   });
 
   test("renders chooser with 400 when ?action= is unrecognized", async () => {
@@ -69,6 +100,23 @@ describe("handleReviewActionGet", () => {
     expect(body).toContain("bogus");
   });
 
+  test("?action=<known> renders confirm page (200) without mutating state", async () => {
+    const world = await seedAssignmentWorld();
+    const { token } = await issueReviewActionToken({
+      reviewRequestId: world.rr.id,
+      assigneeUserId: world.reviewer.id,
+    });
+    const res = await handleReviewActionGet(get(`/r/${token}?action=mark_reviewed`));
+    expect(res.status).toBe(200);
+    const body = await res.text();
+    expect(body).toContain("Confirm");
+    expect(body).toContain('method="POST"');
+    // Assignment is still pending — GET must not mutate.
+    expect(await reviewerStatus(world.reviewer.id)).toBe("pending");
+  });
+});
+
+describe("handleReviewActionPost (mutates)", () => {
   test("mark_reviewed transitions assignment; replay is idempotent", async () => {
     const world = await seedAssignmentWorld();
     const { token } = await issueReviewActionToken({
@@ -76,60 +124,36 @@ describe("handleReviewActionGet", () => {
       assigneeUserId: world.reviewer.id,
     });
 
-    const first = await handleReviewActionGet(
-      get(`/r/${token}?action=mark_reviewed`),
+    const first = await handleReviewActionPost(
+      postForm(`/r/${token}`, { action: "mark_reviewed" }),
     );
     expect(first.status).toBe(200);
+    expect(await reviewerStatus(world.reviewer.id)).toBe("reviewed");
 
-    const after = await db
-      .select()
-      .from(reviewAssignment)
-      .where(eq(reviewAssignment.userId, world.reviewer.id))
-      .limit(1);
-    expect(after[0]!.status).toBe("reviewed");
-    expect(after[0]!.respondedAt).not.toBeNull();
-
-    // Re-click: still 200 (multi-use), assignment stays reviewed.
-    const replay = await handleReviewActionGet(
-      get(`/r/${token}?action=mark_reviewed`),
+    const replay = await handleReviewActionPost(
+      postForm(`/r/${token}`, { action: "mark_reviewed" }),
     );
     expect(replay.status).toBe(200);
-    const stillReviewed = await db
-      .select()
-      .from(reviewAssignment)
-      .where(eq(reviewAssignment.userId, world.reviewer.id))
-      .limit(1);
-    expect(stillReviewed[0]!.status).toBe("reviewed");
+    expect(await reviewerStatus(world.reviewer.id)).toBe("reviewed");
   });
 
-  test("reviewer can change response by clicking a different action", async () => {
+  test("reviewer can change response by submitting a different action", async () => {
     const world = await seedAssignmentWorld();
     const { token } = await issueReviewActionToken({
       reviewRequestId: world.rr.id,
       assigneeUserId: world.reviewer.id,
     });
 
-    await handleReviewActionGet(get(`/r/${token}?action=mark_reviewed`));
-    expect(
-      (
-        await db
-          .select()
-          .from(reviewAssignment)
-          .where(eq(reviewAssignment.userId, world.reviewer.id))
-          .limit(1)
-      )[0]!.status,
-    ).toBe("reviewed");
+    await handleReviewActionPost(
+      postForm(`/r/${token}`, { action: "mark_reviewed" }),
+    );
+    expect(await reviewerStatus(world.reviewer.id)).toBe("reviewed");
 
-    const flipped = await handleReviewActionGet(
-      get(`/r/${token}?action=request_changes`),
+    const flipped = await handleReviewActionPost(
+      postForm(`/r/${token}`, { action: "request_changes" }),
     );
     expect(flipped.status).toBe(200);
-    const after = await db
-      .select()
-      .from(reviewAssignment)
-      .where(eq(reviewAssignment.userId, world.reviewer.id))
-      .limit(1);
-    expect(after[0]!.status).toBe("changes_requested");
+    expect(await reviewerStatus(world.reviewer.id)).toBe("changes_requested");
   });
 
   test("decline marks the assignment declined", async () => {
@@ -138,14 +162,11 @@ describe("handleReviewActionGet", () => {
       reviewRequestId: world.rr.id,
       assigneeUserId: world.reviewer.id,
     });
-    const res = await handleReviewActionGet(get(`/r/${token}?action=decline`));
+    const res = await handleReviewActionPost(
+      postForm(`/r/${token}`, { action: "decline" }),
+    );
     expect(res.status).toBe(200);
-    const after = await db
-      .select()
-      .from(reviewAssignment)
-      .where(eq(reviewAssignment.userId, world.reviewer.id))
-      .limit(1);
-    expect(after[0]!.status).toBe("declined");
+    expect(await reviewerStatus(world.reviewer.id)).toBe("declined");
   });
 
   test("expired token returns 404", async () => {
@@ -153,11 +174,40 @@ describe("handleReviewActionGet", () => {
     const { token } = await issueReviewActionToken({
       reviewRequestId: world.rr.id,
       assigneeUserId: world.reviewer.id,
-      ttlMs: -1, // already expired
+      ttlMs: -1,
     });
-    const res = await handleReviewActionGet(
-      get(`/r/${token}?action=mark_reviewed`),
+    const res = await handleReviewActionPost(
+      postForm(`/r/${token}`, { action: "mark_reviewed" }),
     );
     expect(res.status).toBe(404);
+  });
+
+  test("rejects non-form content-type by re-rendering chooser (no mutation)", async () => {
+    const world = await seedAssignmentWorld();
+    const { token } = await issueReviewActionToken({
+      reviewRequestId: world.rr.id,
+      assigneeUserId: world.reviewer.id,
+    });
+    const req = new Request(`http://localhost/r/${token}`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ action: "mark_reviewed" }),
+    });
+    const res = await handleReviewActionPost(req);
+    expect(res.status).toBe(200);
+    expect(await reviewerStatus(world.reviewer.id)).toBe("pending");
+  });
+
+  test("unknown action in form body re-renders chooser without mutating", async () => {
+    const world = await seedAssignmentWorld();
+    const { token } = await issueReviewActionToken({
+      reviewRequestId: world.rr.id,
+      assigneeUserId: world.reviewer.id,
+    });
+    const res = await handleReviewActionPost(
+      postForm(`/r/${token}`, { action: "bogus" }),
+    );
+    expect(res.status).toBe(400);
+    expect(await reviewerStatus(world.reviewer.id)).toBe("pending");
   });
 });

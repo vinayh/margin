@@ -7,7 +7,13 @@ interface Bucket {
 }
 
 const WINDOW_MS = 60 * 1000;
+// Per-user authenticated limit. Per-IP unauthenticated limit is 5x higher
+// (`IP_LIMIT`) because a single corporate NAT or VPN egress IP can
+// legitimately carry many distinct users — the lower bound would be one
+// authenticated user's 120/min, but pre-auth requests from the same NAT
+// shouldn't all stack into one user-sized bucket.
 const DEFAULT_LIMIT = 120;
+export const IP_LIMIT = DEFAULT_LIMIT * 5;
 const MAX_BUCKETS = 10_000;
 
 const buckets = new Map<string, Bucket>();

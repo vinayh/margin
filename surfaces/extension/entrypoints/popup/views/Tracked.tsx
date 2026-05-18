@@ -4,6 +4,7 @@ import {
   openDashboard,
   shouldUseNativeSidebar,
 } from "../../../utils/ui-surfaces.ts";
+import { formatRelative } from "../../../ui/format-time.ts";
 
 interface Props {
   tab: ActiveDocTab;
@@ -31,7 +32,7 @@ export function Tracked({ tab, state, onSync }: Props) {
         <Stat label="Comments" value={String(state.commentCount)} />
         <Stat label="Open reviews" value={String(state.openReviewCount)} />
         <Stat label="Version" value={versionLabel} />
-        <Stat label="Last synced" value={formatLastSynced(state.lastSyncedAt)} />
+        <Stat label="Last synced" value={formatRelative(state.lastSyncedAt)} />
       </div>
       <div class="actions">
         <button id="sync" type="button" onClick={onSync}>
@@ -71,16 +72,3 @@ function Stat({ label, value }: { label: string; value: string }) {
   );
 }
 
-function formatLastSynced(ts: number | null): string {
-  if (!ts) return "never";
-  const diff = Date.now() - ts;
-  if (diff < 0) return "just now";
-  const sec = Math.round(diff / 1000);
-  if (sec < 60) return `${sec}s ago`;
-  const min = Math.round(sec / 60);
-  if (min < 60) return `${min}m ago`;
-  const hr = Math.round(min / 60);
-  if (hr < 24) return `${hr}h ago`;
-  const day = Math.round(hr / 24);
-  return `${day}d ago`;
-}

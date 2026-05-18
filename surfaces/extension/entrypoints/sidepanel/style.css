@@ -8,10 +8,13 @@
     @apply text-ink;
   }
   header {
-    @apply flex items-baseline gap-2 px-[0.9rem] pt-[0.7rem] pb-[0.55rem] border-b border-rule bg-cream;
+    @apply flex items-center gap-2 px-[0.9rem] pt-[0.7rem] pb-[0.55rem] border-b border-rule bg-cream;
   }
   header strong {
-    @apply font-display text-[22px] font-normal tracking-[-0.01em] leading-none text-ink;
+    /* Bagel Fat One glyphs sit lower in their line-box than the icons + button
+     * text, so even with `items-center` the visual midline drifts below. Nudge
+     * the brand up so its optical center aligns with the bell + Options. */
+    @apply font-display text-[22px] font-normal tracking-[-0.01em] leading-none text-ink relative top-[-3px];
   }
   header .header-email {
     @apply flex-1 min-w-0 text-[11px] font-mono truncate;
@@ -116,6 +119,99 @@
     @apply flex gap-[0.3rem] flex-wrap;
   }
 
+  /* Side-panel can be quite narrow; let wide tables scroll horizontally
+   * instead of clipping the rightmost columns. */
+  .table-scroll {
+    @apply w-full overflow-x-auto;
+  }
+
+  .empty-state {
+    @apply flex flex-col gap-[0.35rem] py-3 px-3 rounded-md border border-rule border-dashed;
+  }
+  .empty-state-title {
+    @apply m-0 text-[12px] font-medium text-ink;
+  }
+  .empty-state-body {
+    @apply m-0 text-[11px] text-muted leading-[1.5];
+  }
+
+  /* "Coming soon" sections (e.g. Derivatives) — muted across the whole
+   * section so the eye skips them in the dashboard scan. */
+  .panel-section-pending {
+    @apply opacity-60;
+    & .section-heading {
+      @apply text-muted;
+    }
+    & .count {
+      @apply text-muted;
+    }
+  }
+  .pending-tag {
+    @apply inline-block ml-2 px-[0.4rem] py-[0.05rem] rounded-full bg-cream border border-rule font-mono text-[9px] uppercase tracking-[0.08em] text-muted align-middle;
+    /* Don't dim further — already inside .panel-section-pending. */
+    opacity: 1;
+  }
+
+  .notifications-bell {
+    @apply relative inline-flex items-center;
+  }
+  .notifications-toggle {
+    @apply relative;
+  }
+  .notifications-badge {
+    @apply absolute -top-[0.15rem] -right-[0.15rem] min-w-[14px] h-[14px] px-[0.2rem] rounded-full bg-bad text-cream text-[9px] font-semibold leading-[14px] text-center;
+  }
+  .notifications-pop {
+    @apply absolute right-0 top-full mt-1 w-[280px] max-w-[90vw] z-10 border border-rule rounded-md bg-cream-2 shadow-lg p-2;
+  }
+  .notifications-pop-head {
+    @apply flex items-center justify-between mb-1;
+    & .title { @apply m-0 text-[12px] font-semibold; }
+    & button.text-only {
+      @apply text-[11px] text-muted bg-transparent border-0 inline-flex items-center gap-1 cursor-pointer;
+      &:hover { @apply text-ink; }
+    }
+  }
+  .notifications-list {
+    @apply list-none p-0 m-0 max-h-[300px] overflow-y-auto;
+    & > li {
+      @apply border-b border-rule;
+    }
+    & > li:last-child {
+      @apply border-b-0;
+    }
+    & > li.is-unread {
+      @apply bg-accent/[8%];
+    }
+  }
+  .notification-item {
+    @apply w-full text-left bg-transparent border-0 p-2 cursor-pointer flex flex-col gap-[0.15rem];
+    &:hover { @apply bg-ink/[3%]; }
+  }
+  .notification-body {
+    @apply text-[12px] text-ink;
+  }
+  .notification-meta {
+    @apply text-[10px] text-muted font-mono;
+  }
+
+  .settings-inline-row {
+    @apply flex gap-2 items-center;
+    & input[type="text"] {
+      @apply flex-1;
+    }
+  }
+
+  .filter-input {
+    @apply w-full mb-2 [font:inherit] text-[12px] px-2 py-[0.35rem] border border-rule rounded-[4px] bg-cream text-ink;
+    &:focus {
+      @apply outline-none border-accent;
+    }
+    &::placeholder {
+      @apply text-muted;
+    }
+  }
+
   .rows {
     @apply list-none p-0 m-0 text-[12px];
     & > li {
@@ -218,6 +314,24 @@
     & button {
       @apply text-[11px] px-2 py-[0.2rem];
     }
+  }
+
+  .skeleton {
+    @apply inline-block bg-ink/[8%] rounded-[3px] align-middle;
+    animation: margin-skeleton-pulse 1.4s ease-in-out infinite;
+  }
+  .skeleton-pill {
+    @apply w-12 h-3 mr-1;
+  }
+  .skeleton-line {
+    @apply block w-full h-3 mb-[0.25rem];
+  }
+  .skeleton-line-short {
+    @apply w-2/3;
+  }
+  @keyframes margin-skeleton-pulse {
+    0%, 100% { opacity: 0.55; }
+    50%      { opacity: 1; }
   }
 
   .settings-view {

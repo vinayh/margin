@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, test } from "bun:test";
 import { startServer } from "./server.ts";
-import { _resetRateLimitForTests } from "./rate-limit.ts";
+import { IP_LIMIT, _resetRateLimitForTests } from "./rate-limit.ts";
 
 beforeEach(_resetRateLimitForTests);
 
@@ -58,20 +58,19 @@ describe("startServer route table", () => {
     }
   });
 
-  test("/r/<token> path is registered and renders HTML for unknown tokens", async () => {
+  test("/r/<token> path is registered and renders the confirm page", async () => {
     const server = startServer({ port: 0, backgroundLoops: false });
     try {
       const res = await fetch(
         `http://${server.hostname}:${server.port}/r/mra_unknown?action=mark_reviewed`,
       );
-      // Unknown tokens render the "Link not recognized" page at 404. The
-      // test exists to verify Bun.serve's `:token` parameter route matches
-      // — a 404-from-fetch-fallthrough would also be 404, but the response
-      // body / content-type proves it went through `handleReviewActionGet`.
-      expect(res.status).toBe(404);
+      // GET is pure render under the POST-redeem flow; the route resolves
+      // and emits the confirm page even for an unknown token (the redeem
+      // attempt on POST is what surfaces the 404).
+      expect(res.status).toBe(200);
       expect(res.headers.get("content-type")).toContain("text/html");
       const body = await res.text();
-      expect(body).toContain("Link not recognized");
+      expect(body).toContain('method="POST"');
     } finally {
       await server.stop();
     }
@@ -87,11 +86,10 @@ describe("startServer route table", () => {
     }
   });
 
-  test("extension routes set x-margin-rate-limit-remaining and 429 when exhausted", async () => {
-    // 401-on-no-auth requests still pass through the rate-limit gate; the
-    // first call sees ~119 remaining, and a tight burst of >120 starts
-    // returning 429 with a Retry-After header. We don't burn the full
-    // 120 here — just verify the header is present and decrementing.
+  test("extension routes set x-margin-rate-limit-remaining and decrement on each call", async () => {
+    // Unauthenticated requests key into the IP bucket (limit `IP_LIMIT`, 5x
+    // the authenticated 120/min cap). Two requests should show the bucket
+    // decrementing.
     const server = startServer({ port: 0, backgroundLoops: false });
     try {
       const a = await fetch(
@@ -103,9 +101,8 @@ describe("startServer route table", () => {
         },
       );
       expect(a.status).toBe(401);
-      const remA = a.headers.get("x-margin-rate-limit-remaining");
-      expect(remA).not.toBeNull();
-      expect(Number(remA)).toBe(119);
+      const remA = Number(a.headers.get("x-margin-rate-limit-remaining"));
+      expect(remA).toBe(IP_LIMIT - 1);
 
       const b = await fetch(
         `http://${server.hostname}:${server.port}/api/picker/register-doc`,
@@ -116,13 +113,15 @@ describe("startServer route table", () => {
         },
       );
       expect(b.status).toBe(401);
-      expect(Number(b.headers.get("x-margin-rate-limit-remaining"))).toBe(118);
+      expect(Number(b.headers.get("x-margin-rate-limit-remaining"))).toBe(
+        IP_LIMIT - 2,
+      );
     } finally {
       await server.stop();
     }
   });
 
-  test("burning the full budget on a single IP yields 429 with Retry-After", async () => {
+  test("burning the full IP budget yields 429 with Retry-After", async () => {
     // Real fetches against the running server so the bucket key — keyed on
     // the socket-level IP that Bun.serve hands rateLimitGate via
     // `server.requestIP(req)` — matches what the test is exercising.
@@ -135,9 +134,9 @@ describe("startServer route table", () => {
           headers: { "content-type": "application/json" },
           body: "{}",
         });
-      // Burn the full default budget (120 / minute). The 121st request must
-      // be rejected by the limiter, ahead of the handler's own 401.
-      for (let i = 0; i < 120; i++) {
+      // Burn the unauthenticated IP budget. The (limit+1)th request must be
+      // rejected by the limiter, ahead of the handler's own 401.
+      for (let i = 0; i < IP_LIMIT; i++) {
         const ok = await fire();
         await ok.body?.cancel();
       }

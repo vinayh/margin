@@ -8,13 +8,19 @@ import { handleDocSyncPost } from "./doc-sync.ts";
 import { handleProjectDetailPost } from "./project-detail.ts";
 import { handleProjectsListPost } from "./projects-list.ts";
 import { handleProjectDeletePost } from "./project-delete.ts";
+import { handleProjectRenamePost } from "./project-rename.ts";
 import { handleVersionCreatePost } from "./version-create.ts";
 import { handleVersionDiffPost } from "./version-diff.ts";
 import { handleVersionCommentsPost } from "./version-comments.ts";
 import { handleCommentActionPost } from "./comment-action.ts";
+import { handleCommentActionBatchPost } from "./comment-action-batch.ts";
 import { handleSettingsPost } from "./settings.ts";
 import { handleWhoamiPost } from "./whoami.ts";
-import { handleReviewActionGet } from "./review-action.tsx";
+import {
+  handleNotificationsPost,
+  handleNotificationsMarkReadPost,
+} from "./notifications.ts";
+import { handleReviewActionGet, handleReviewActionPost } from "./review-action.tsx";
 import { handleReviewRequestPost } from "./review-request.ts";
 import { handlePickerPage } from "./picker-page.tsx";
 import { handleRegisterDocPost } from "./picker-register.ts";
@@ -63,7 +69,14 @@ export function startServer(opts: ServeOptions & { backgroundLoops?: boolean } =
       // Bun.serve treats a bare-function route as accept-any-method, so we
       // wrap GET-only routes in the method-keyed form to get automatic 405
       // on the wrong verb.
-      "/healthz": { GET: secured(() => Response.json({ ok: true })) },
+      //
+      // Rate-limit carveouts (`{ rateLimit: false }`):
+      //  - `/healthz`: infrastructure liveness probe, shouldn't trip a limiter.
+      //  - `/api/auth/*`: Better Auth has its own per-route limiter.
+      //  - `/webhooks/drive`: Google delivers from a small pool of IPs and
+      //    retries aggressively on non-200; throttling here would back up
+      //    the entire push queue.
+      "/healthz": { GET: secured(() => Response.json({ ok: true }), { rateLimit: false }) },
       "/api/auth/ext/launch-tab": { GET: secured(handleAuthExtLaunchTab) },
       // `secured` wraps the response with default-deny CSP + frame-deny
       // *unless* the handler set its own — `handleAuthExtSuccess` returns
@@ -71,25 +84,32 @@ export function startServer(opts: ServeOptions & { backgroundLoops?: boolean } =
       // doesn't clobber it.
       "/api/auth/ext/success": { GET: secured(handleAuthExtSuccess) },
       "/api/auth/*": {
-        GET: secured(handleAuthRequest),
-        POST: secured(handleAuthRequest),
+        GET: secured(handleAuthRequest, { rateLimit: false }),
+        POST: secured(handleAuthRequest, { rateLimit: false }),
       },
-      "/webhooks/drive": { POST: secured(handleDriveWebhook) },
+      "/webhooks/drive": { POST: secured(handleDriveWebhook, { rateLimit: false }) },
       "/api/extension/doc-state": corsRoute({ POST: handleDocStatePost }),
       "/api/extension/doc-sync": corsRoute({ POST: handleDocSyncPost }),
       "/api/extension/project": corsRoute({ POST: handleProjectDetailPost }),
       "/api/extension/project-delete": corsRoute({ POST: handleProjectDeletePost }),
+      "/api/extension/project-rename": corsRoute({ POST: handleProjectRenamePost }),
       "/api/extension/projects": corsRoute({ POST: handleProjectsListPost }),
       "/api/extension/version/create": corsRoute({ POST: handleVersionCreatePost }),
       "/api/extension/version-diff": corsRoute({ POST: handleVersionDiffPost }),
       "/api/extension/version-comments": corsRoute({ POST: handleVersionCommentsPost }),
       "/api/extension/comment-action": corsRoute({ POST: handleCommentActionPost }),
+      "/api/extension/comment-action/batch": corsRoute({ POST: handleCommentActionBatchPost }),
       "/api/extension/settings": corsRoute({ POST: handleSettingsPost }),
       "/api/extension/whoami": corsRoute({ POST: handleWhoamiPost }),
+      "/api/extension/notifications": corsRoute({ POST: handleNotificationsPost }),
+      "/api/extension/notifications/mark-read": corsRoute({ POST: handleNotificationsMarkReadPost }),
       "/api/extension/review/request": corsRoute({ POST: handleReviewRequestPost }),
       "/api/picker/page": { GET: secured(handlePickerPage) },
       "/api/picker/register-doc": corsRoute({ POST: handleRegisterDocPost }),
-      "/r/:token": { GET: secured(handleReviewActionGet) },
+      "/r/:token": {
+        GET: secured(handleReviewActionGet),
+        POST: secured(handleReviewActionPost),
+      },
       "/fonts/:filename": { GET: secured(handleFontRequest) },
       "/static/:filename": { GET: secured(handleStaticAsset) },
     },

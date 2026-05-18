@@ -12,13 +12,16 @@ import { sql } from "drizzle-orm";
 import { db } from "../src/db/client.ts";
 import {
   account,
+  auditLog,
   canonicalComment,
   commentProjection,
   derivative,
   driveWatchChannel,
+  notification,
   overlay,
   overlayOperation,
   project,
+  reviewActionToken,
   reviewAssignment,
   reviewRequest,
   session,
@@ -42,6 +45,9 @@ export async function cleanDb(): Promise<void> {
   // change.
   db.run(sql`PRAGMA foreign_keys = OFF`);
   for (const t of [
+    auditLog,
+    notification,
+    reviewActionToken,
     reviewAssignment,
     reviewRequest,
     commentProjection,

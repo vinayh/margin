@@ -1,4 +1,5 @@
 import type { ProjectListEntry } from "../utils/types.ts";
+import { formatRelative } from "./format-time.ts";
 
 // Shared visual + text shape for project-list rows. Options renders DOM
 // directly; the side-panel picker renders Preact JSX. A component can't be
@@ -25,21 +26,7 @@ export function projectRowLabel(p: ProjectListEntry): string {
 export function formatProjectMeta(p: ProjectListEntry): string {
   const versions =
     p.versionCount === 1 ? "1 version" : `${p.versionCount} versions`;
-  return `${versions} · last sync ${formatProjectLastSync(p.lastSyncedAt)}`;
-}
-
-export function formatProjectLastSync(ts: number | null): string {
-  if (!ts) return "never";
-  const diff = Date.now() - ts;
-  if (diff < 0) return "just now";
-  const sec = Math.round(diff / 1000);
-  if (sec < 60) return `${sec}s ago`;
-  const min = Math.round(sec / 60);
-  if (min < 60) return `${min}m ago`;
-  const hr = Math.round(min / 60);
-  if (hr < 24) return `${hr}h ago`;
-  const day = Math.round(hr / 24);
-  return `${day}d ago`;
+  return `${versions} · last sync ${formatRelative(p.lastSyncedAt)}`;
 }
 
 export function sortProjectsByLastSync(

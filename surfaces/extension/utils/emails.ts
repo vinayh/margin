@@ -11,3 +11,27 @@ export function parseEmails(raw: string): string[] {
     .map((s) => s.trim())
     .filter((s) => s.length > 0);
 }
+
+// Pragmatic email regex (single @, dotted domain). Backend re-validates with
+// valibot — this just catches obvious typos before the round-trip.
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+export function isValidEmail(s: string): boolean {
+  return EMAIL_RE.test(s);
+}
+
+export interface EmailValidationResult {
+  valid: string[];
+  invalid: string[];
+}
+
+/** Same split as parseEmails, but partitions valid vs invalid entries. */
+export function validateEmails(raw: string): EmailValidationResult {
+  const valid: string[] = [];
+  const invalid: string[] = [];
+  for (const entry of parseEmails(raw)) {
+    if (isValidEmail(entry)) valid.push(entry);
+    else invalid.push(entry);
+  }
+  return { valid, invalid };
+}

@@ -10,33 +10,59 @@ import {
   ReviewActionChooserPage,
   type ChooserAction,
 } from "./pages/ReviewActionChooserPage.tsx";
+import { ReviewActionConfirmPage } from "./pages/ReviewActionConfirmPage.tsx";
 
 /**
- * GET /r/<token>?action=<kind> — magic-link review action handler
- * (SPEC §6.3 + §12 Phase 4). External reviewers receive emails with one
- * link per assignment that includes a `?action=` query string per button
- * ("Mark reviewed", "Decline", "Request changes", "Accept reconciliation").
+ * Magic-link review action handler (SPEC §6.3 + §12 Phase 4). External
+ * reviewers receive emails with one link per assignment that includes a
+ * `?action=` query string per button ("Mark reviewed", "Decline",
+ * "Request changes", "Accept reconciliation").
+ *
+ * Two-step flow:
+ *  - `GET /r/<token>[?action=<kind>]` renders a confirm/chooser page only
+ *    — never mutates state. Email link-checkers + antivirus pre-fetchers
+ *    use GET, so this keeps them from firing actions on the reviewer's
+ *    behalf.
+ *  - `POST /r/<token>` with form field `action=<kind>` redeems the token
+ *    and updates the assignment.
  *
  * Tokens are multi-use until expiry: the reviewer can re-click a different
  * action to change their response, and replaying the same action is a
  * no-op state-wise (the audit log still records the click).
  *
  * Sits on the secured (non-CORS) side of the API — these URLs are
- * navigated to from email clients, not fetched cross-origin. Render an
- * HTML confirmation page so the recipient sees a result, not a JSON blob.
- *
- * Hitting `/r/<token>` without `?action=` renders a friendly chooser page
- * with one button per action — handles email clients that strip query
- * strings or reviewers who paste the URL without the query intact.
+ * navigated to from email clients, not fetched cross-origin.
  */
 export async function handleReviewActionGet(req: Request): Promise<Response> {
   const url = new URL(req.url);
   const token = extractToken(url.pathname);
   if (!token) return renderResult({ status: 404, kind: "missing" });
 
-  const action = parseReviewActionKind(url.searchParams.get("action"));
+  const rawAction = url.searchParams.get("action");
+  const action = parseReviewActionKind(rawAction);
+  if (action) return renderConfirm(token, action);
+  return renderChooser(token, rawAction);
+}
+
+export async function handleReviewActionPost(req: Request): Promise<Response> {
+  const url = new URL(req.url);
+  const token = extractToken(url.pathname);
+  if (!token) return renderResult({ status: 404, kind: "missing" });
+
+  // Reject anything that isn't an HTML form post — this endpoint isn't a
+  // JSON API and a JSON or empty body indicates a confused caller.
+  const ct = req.headers.get("content-type") ?? "";
+  if (!ct.includes("application/x-www-form-urlencoded") && !ct.includes("multipart/form-data")) {
+    return renderChooser(token, null);
+  }
+
+  const form = await req.formData().catch(() => null);
+  const rawAction = form?.get("action");
+  const action = parseReviewActionKind(
+    typeof rawAction === "string" ? rawAction : null,
+  );
   if (!action) {
-    return renderChooser(token, url.searchParams.get("action"));
+    return renderChooser(token, typeof rawAction === "string" ? rawAction : null);
   }
 
   const outcome = await redeemReviewActionToken(token, action);
@@ -146,6 +172,10 @@ const CHOOSER_ACTIONS: readonly ChooserAction[] = [
   { kind: "accept_reconciliation", label: "Accept reconciliation" },
 ];
 
+function labelForAction(action: ReviewActionKind): string {
+  return CHOOSER_ACTIONS.find((a) => a.kind === action)?.label ?? action;
+}
+
 function renderChooser(token: string, rawParam: string | null): Response {
   const status = rawParam ? 400 : 200;
   return renderPage(
@@ -155,5 +185,16 @@ function renderChooser(token: string, rawParam: string | null): Response {
       actions={CHOOSER_ACTIONS}
     />,
     { csp: STATIC_CSP, status },
+  );
+}
+
+function renderConfirm(token: string, action: ReviewActionKind): Response {
+  return renderPage(
+    <ReviewActionConfirmPage
+      token={token}
+      action={action}
+      label={labelForAction(action)}
+    />,
+    { csp: STATIC_CSP, status: 200 },
   );
 }

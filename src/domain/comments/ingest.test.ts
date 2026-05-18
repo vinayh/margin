@@ -166,6 +166,94 @@ describe("ingestVersionComments", () => {
     expect(rows[0]?.originUserEmail).toBe("alice@example.com");
   });
 
+  test("marks canonical_comment.deletedAt when upstream comment disappears on re-ingest", async () => {
+    const h = await fixtureHarness();
+    const fxPresent = {
+      docxBytes: makeDocxBytes({
+        document: docXml(`
+          <w:p>
+            <w:commentRangeStart w:id="0"/>
+            <w:r><w:t>quoted</w:t></w:r>
+            <w:commentRangeEnd w:id="0"/>
+          </w:p>`),
+        comments: commentsXml(`
+          <w:comment w:id="0" w:author="A" w:date="2026-01-01T10:00:00Z">
+            <w:p><w:r><w:t>doomed</w:t></w:r></w:p>
+          </w:comment>`),
+      }),
+      driveComments: [],
+    };
+    const fxEmpty = {
+      docxBytes: makeDocxBytes({ document: docXml("<w:p/>") }),
+      driveComments: [],
+    };
+
+    stubGoogle({ [h.googleDocId]: fxPresent });
+    const r1 = await ingestVersionComments(h.versionId);
+    expect(r1.inserted).toBe(1);
+    expect(r1.markedDeleted).toBe(0);
+
+    // Upstream comment is removed (rejected in Docs, deleted by user, etc.).
+    stubGoogle({ [h.googleDocId]: fxEmpty });
+    const r2 = await ingestVersionComments(h.versionId);
+    expect(r2.inserted).toBe(0);
+    expect(r2.markedDeleted).toBe(1);
+
+    const rows = await db
+      .select()
+      .from(canonicalComment)
+      .where(eq(canonicalComment.projectId, h.projectId));
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.deletedAt).toBeInstanceOf(Date);
+
+    // Re-stamp is idempotent — a third ingest with the same empty state must
+    // not re-bump or duplicate markedDeleted on already-dead rows.
+    stubGoogle({ [h.googleDocId]: fxEmpty });
+    const r3 = await ingestVersionComments(h.versionId);
+    expect(r3.markedDeleted).toBe(0);
+  });
+
+  test("clears deletedAt when an externally-deleted comment reappears", async () => {
+    const h = await fixtureHarness();
+    const fxPresent = {
+      docxBytes: makeDocxBytes({
+        document: docXml(`
+          <w:p>
+            <w:commentRangeStart w:id="0"/>
+            <w:r><w:t>quoted</w:t></w:r>
+            <w:commentRangeEnd w:id="0"/>
+          </w:p>`),
+        comments: commentsXml(`
+          <w:comment w:id="0" w:author="A" w:date="2026-01-01T10:00:00Z">
+            <w:p><w:r><w:t>back from the dead</w:t></w:r></w:p>
+          </w:comment>`),
+      }),
+      driveComments: [],
+    };
+    const fxEmpty = {
+      docxBytes: makeDocxBytes({ document: docXml("<w:p/>") }),
+      driveComments: [],
+    };
+
+    stubGoogle({ [h.googleDocId]: fxPresent });
+    await ingestVersionComments(h.versionId);
+    stubGoogle({ [h.googleDocId]: fxEmpty });
+    const reap = await ingestVersionComments(h.versionId);
+    expect(reap.markedDeleted).toBe(1);
+
+    // Upstream comment is back (e.g. Drive undelete). Restore.
+    stubGoogle({ [h.googleDocId]: fxPresent });
+    const restore = await ingestVersionComments(h.versionId);
+    expect(restore.restored).toBe(1);
+
+    const rows = await db
+      .select()
+      .from(canonicalComment)
+      .where(eq(canonicalComment.projectId, h.projectId));
+    expect(rows).toHaveLength(1);
+    expect(rows[0]!.deletedAt).toBeNull();
+  });
+
   test("re-running is idempotent: alreadyPresent ticks, inserted stays 0", async () => {
     const h = await fixtureHarness();
     const fx = {

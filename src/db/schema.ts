@@ -271,6 +271,12 @@ export const canonicalComment = sqliteTable(
     status: text("status").$type<CanonicalCommentStatus>().notNull().default("open"),
     parentCommentId: text("parent_comment_id"),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(now),
+    // Stamped when the next ingest of `originVersionId` no longer sees the
+    // upstream Drive comment / suggestion. The row stays for history (audit
+    // trail, projections onto other versions remain referenceable) but is
+    // filtered out of the reconciliation view. Cleared if the same external
+    // id reappears in a later ingest (rare: Drive undelete, manual re-add).
+    deletedAt: integer("deleted_at", { mode: "timestamp_ms" }),
   },
   (t) => [
     index("canonical_comment_project_idx").on(t.projectId),
@@ -403,6 +409,52 @@ export const reviewActionToken = sqliteTable(
       t.reviewRequestId,
       t.assigneeUserId,
     ),
+  ],
+);
+
+export type NotificationKind =
+  | "review_assigned"
+  | "review_completed"
+  | "review_changes_requested"
+  | "review_declined";
+
+/**
+ * Notification payload shape varies by kind. Stored as opaque JSON so the
+ * domain layer can rev the shape per kind without a migration.
+ *
+ * - `review_assigned`           : { reviewRequestId, projectId, projectName, requesterEmail }
+ * - `review_completed`          : { reviewRequestId, projectId, projectName, reviewerEmail }
+ * - `review_changes_requested`  : same as review_completed
+ * - `review_declined`           : same as review_completed
+ */
+export type NotificationPayload = {
+  reviewRequestId?: string;
+  projectId?: string;
+  projectName?: string | null;
+  requesterEmail?: string | null;
+  reviewerEmail?: string | null;
+};
+
+export const notification = sqliteTable(
+  "notification",
+  {
+    id: text("id").primaryKey().$defaultFn(newId),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    kind: text("kind").$type<NotificationKind>().notNull(),
+    payload: text("payload", { mode: "json" })
+      .$type<NotificationPayload>()
+      .notNull()
+      .$defaultFn(() => ({})),
+    readAt: integer("read_at", { mode: "timestamp_ms" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).notNull().$defaultFn(now),
+  },
+  (t) => [
+    index("notification_user_idx").on(t.userId, t.createdAt),
+    // Partial-equivalent: queries for "unread for this user" scan the user
+    // index then filter on read_at IS NULL; with the typical low-N inbox
+    // size that's cheap. Keep one index, not two.
   ],
 );
 

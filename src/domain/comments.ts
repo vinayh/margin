@@ -5,5 +5,9 @@
  * ingest, canonical upsert.
  */
 export { ingestVersionComments } from "./comments/ingest.ts";
-export { listCommentsForProject, type CanonicalComment } from "./comments/list.ts";
+export {
+  listCommentsForProject,
+  listDeletedCommentsForProject,
+  type CanonicalComment,
+} from "./comments/list.ts";
 export type { IngestResult } from "./comments/types.ts";

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "preact/hooks";
 import { Trash2 } from "lucide-preact";
 import { sendMessage } from "../../../ui/sendMessage.ts";
-import { parseEmails } from "../../../utils/emails.ts";
+import { parseEmails, validateEmails } from "../../../utils/emails.ts";
 import type { ProjectSettingsView } from "../../../utils/types.ts";
 
 interface Props {
@@ -9,6 +9,7 @@ interface Props {
   projectName: string | null;
   onClose: () => void;
   onDeleted: () => void;
+  onRenamed?: (name: string) => void;
 }
 
 type State =
@@ -23,12 +24,21 @@ type State =
  * a `patch` shaped like the diff between the current form state and the
  * last-loaded server state; missing keys keep their stored value.
  */
-export function Settings({ projectId, projectName, onClose, onDeleted }: Props) {
+export function Settings({
+  projectId,
+  projectName,
+  onClose,
+  onDeleted,
+  onRenamed,
+}: Props) {
   const [state, setState] = useState<State>({ kind: "loading" });
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [form, setForm] = useState<ProjectSettingsView | null>(null);
+  const [nameDraft, setNameDraft] = useState(projectName ?? "");
+  const [renaming, setRenaming] = useState(false);
+  const [renameError, setRenameError] = useState<string | null>(null);
   // The reviewer-emails textarea is stored as the raw string the user typed,
   // not the parsed list — round-tripping through `parseEmails` on every
   // keystroke discards empty lines, so the user can't press Enter to start a
@@ -69,6 +79,32 @@ export function Settings({ projectId, projectName, onClose, onDeleted }: Props) 
     };
   }, [projectId]);
 
+  async function onRename(): Promise<void> {
+    const trimmed = nameDraft.trim();
+    if (trimmed.length === 0) {
+      setRenameError("Name cannot be empty.");
+      return;
+    }
+    if (trimmed === (projectName ?? "")) return;
+    setRenameError(null);
+    setRenaming(true);
+    try {
+      const r = await sendMessage({
+        kind: "project/rename",
+        projectId,
+        name: trimmed,
+      });
+      if (r?.kind !== "project/rename") throw new Error("unexpected response");
+      if (r.error) throw new Error(r.error);
+      if (!r.project) throw new Error("rename failed");
+      onRenamed?.(r.project.name);
+    } catch (err) {
+      setRenameError(err instanceof Error ? err.message : String(err));
+    } finally {
+      setRenaming(false);
+    }
+  }
+
   async function onDelete(): Promise<void> {
     const label = projectName ?? "this project";
     if (!window.confirm(`Delete "${label}"? This cannot be undone.`)) return;
@@ -89,11 +125,16 @@ export function Settings({ projectId, projectName, onClose, onDeleted }: Props) 
   async function onSave(): Promise<void> {
     if (state.kind !== "loaded" || !form) return;
     setError(null);
+    const { valid, invalid } = validateEmails(reviewerEmailsRaw);
+    if (invalid.length > 0) {
+      setError(`Invalid email${invalid.length > 1 ? "s" : ""}: ${invalid.join(", ")}`);
+      return;
+    }
     setSaving(true);
     try {
       const next: ProjectSettingsView = {
         ...form,
-        defaultReviewerEmails: parseEmails(reviewerEmailsRaw),
+        defaultReviewerEmails: valid,
       };
       const patch = diffSettings(state.settings, next);
       if (Object.keys(patch).length === 0) {
@@ -118,7 +159,11 @@ export function Settings({ projectId, projectName, onClose, onDeleted }: Props) 
     return (
       <section class="settings-view">
         <SettingsHeader onClose={onClose} />
-        <p class="muted">Loading…</p>
+        <div class="settings-form">
+          <span class="skeleton skeleton-line" />
+          <span class="skeleton skeleton-line" />
+          <span class="skeleton skeleton-line skeleton-line-short" />
+        </div>
       </section>
     );
   }
@@ -142,6 +187,34 @@ export function Settings({ projectId, projectName, onClose, onDeleted }: Props) 
     <section class="settings-view">
       <SettingsHeader onClose={onClose} />
       <div class="settings-form">
+        <div class="settings-field">
+          <label for="projectName">Project name</label>
+          <div class="settings-inline-row">
+            <input
+              id="projectName"
+              type="text"
+              value={nameDraft}
+              onInput={(ev) =>
+                setNameDraft((ev.currentTarget as HTMLInputElement).value)
+              }
+              disabled={renaming}
+            />
+            <button
+              type="button"
+              disabled={
+                renaming ||
+                nameDraft.trim().length === 0 ||
+                nameDraft.trim() === (projectName ?? "")
+              }
+              onClick={() => void onRename()}
+            >
+              {renaming ? "Saving…" : "Rename"}
+            </button>
+          </div>
+          <small>Displayed in the side panel header. Doesn't rename the Google Doc.</small>
+          {renameError ? <p class="muted error">{renameError}</p> : null}
+        </div>
+
         <label class="settings-toggle">
           <input
             type="checkbox"

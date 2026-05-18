@@ -1,7 +1,8 @@
 import { eq } from "drizzle-orm";
 import * as v from "valibot";
 import { db } from "../db/client.ts";
-import { auditLog, project, type ProjectSettings } from "../db/schema.ts";
+import { project, type ProjectSettings } from "../db/schema.ts";
+import { writeAudit } from "../db/audit.ts";
 import { getOwnedProject } from "./project.ts";
 
 /**
@@ -107,10 +108,9 @@ export async function updateProjectSettings(opts: {
     .set({ settings: storedNext })
     .where(eq(project.id, proj.id));
 
-  await db.insert(auditLog).values({
+  await writeAudit({
     actorUserId: opts.userId,
     action: "project.settings.update",
-    targetType: "project",
     targetId: proj.id,
     before: before as unknown as Record<string, unknown>,
     after: next as unknown as Record<string, unknown>,

@@ -1,6 +1,11 @@
 /* Margin design tokens. Single source of truth for colors + font families.
  * Imported by `site/src/styles/global.css` (Astro), `src/api/styles/input.css`
  * (backend Tailwind build), and `surfaces/extension/ui/extension.css`.
+ *
+ * Light palette lives in @theme so Tailwind v4 generates utility classes
+ * from these names. The dark palette overrides the same CSS variables via
+ * `prefers-color-scheme` — Tailwind utilities reference `var(--color-…)`,
+ * so they pick the override up at runtime without recompiling.
  */
 
 @theme {
@@ -26,4 +31,25 @@
   --font-display: "Bagel Fat One", "Recoleta", "Fraunces", ui-serif, serif;
   --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-cream: #15140f;
+    --color-cream-2: #1f1d17;
+    --color-ink: #f4f0e3;
+    --color-ink-2: #d8d2c2;
+    --color-muted: #8e8978;
+    --color-rule: #3a3730;
+    /* Accent yellows stay — they pass contrast on the dark cream. */
+    --color-term-bg: #050504;
+    --color-term-fg: #e7e3d6;
+
+    --color-good: #9fcf85;
+    --color-good-bg: #1f3324;
+    --color-bad: #d8855a;
+    --color-bad-bg: #3a201a;
+    --color-warn: #e0b76b;
+    --color-warn-bg: #3a2c15;
+  }
 }

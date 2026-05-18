@@ -5,7 +5,6 @@ import type {
   ProjectDetail,
   ProjectListEntry,
   ProjectSettingsView,
-  RegisterDocResult,
   ReviewRequestResult,
   Settings,
   VersionCommentsPayload,
@@ -14,7 +13,6 @@ import type {
 } from "./types.ts";
 
 const MAX_ID_LEN = 200;
-const MAX_URL_LEN = 4 * 1024;
 const MAX_FIELD_LEN = 256;
 const MAX_REVIEWERS = 64;
 
@@ -45,11 +43,6 @@ const SettingsPatchSchema = v.partial(
   }),
 );
 
-const SettingsSchema = v.object({
-  backendUrl: v.pipe(v.string(), v.maxLength(MAX_URL_LEN)),
-  sessionToken: v.pipe(v.string(), v.maxLength(MAX_FIELD_LEN * 4)),
-});
-
 /**
  * Inbound-message envelope for `runtime.sendMessage` between popup/side-panel
  * and the SW. Used as both the runtime guard (`v.safeParse`) on inbound calls
@@ -62,17 +55,17 @@ const SettingsSchema = v.object({
  */
 export const MessageSchema = v.variant("kind", [
   v.object({ kind: v.literal("settings/get") }),
-  v.object({ kind: v.literal("settings/set"), settings: SettingsSchema }),
   v.object({ kind: v.literal("auth/sign-out") }),
   v.object({ kind: v.literal("auth/whoami") }),
   v.object({ kind: v.literal("doc/state"), docId: Id }),
   v.object({ kind: v.literal("doc/sync"), docId: Id }),
-  v.object({
-    kind: v.literal("doc/register"),
-    docUrlOrId: v.pipe(v.string(), v.minLength(1), v.maxLength(MAX_URL_LEN)),
-  }),
   v.object({ kind: v.literal("project/detail"), projectId: Id }),
   v.object({ kind: v.literal("project/delete"), projectId: Id }),
+  v.object({
+    kind: v.literal("project/rename"),
+    projectId: Id,
+    name: v.pipe(v.string(), v.minLength(1), v.maxLength(MAX_FIELD_LEN)),
+  }),
   v.object({ kind: v.literal("projects/list") }),
   v.object({
     kind: v.literal("version/create"),
@@ -107,6 +100,12 @@ export const MessageSchema = v.variant("kind", [
     ),
     deadline: v.optional(v.union([v.null(), v.pipe(v.number(), v.integer())])),
   }),
+  v.object({ kind: v.literal("notifications/list") }),
+  v.object({
+    kind: v.literal("notifications/mark-read"),
+    ids: v.optional(v.pipe(v.array(Id), v.maxLength(200))),
+    all: v.optional(v.boolean()),
+  }),
 ]);
 
 export type Message = v.InferOutput<typeof MessageSchema>;
@@ -132,7 +131,6 @@ export type MessageResponse =
       backendUrl: string | null;
       error?: string;
     }
-  | { kind: "settings/set"; ok: true; error?: string }
   | { kind: "auth/sign-out"; ok: true; error?: string }
   | {
       kind: "auth/whoami";
@@ -143,9 +141,13 @@ export type MessageResponse =
     }
   | { kind: "doc/state"; state: DocState | null; error?: string }
   | { kind: "doc/sync"; state: DocState | null; error?: string }
-  | { kind: "doc/register"; result: RegisterDocResult; error?: string }
   | { kind: "project/detail"; detail: ProjectDetail | null; error?: string }
   | { kind: "project/delete"; deleted: boolean; error?: string }
+  | {
+      kind: "project/rename";
+      project: { projectId: string; name: string } | null;
+      error?: string;
+    }
   | {
       kind: "projects/list";
       projects: ProjectListEntry[] | null;
@@ -181,4 +183,33 @@ export type MessageResponse =
       kind: "review/request";
       result: ReviewRequestResult | null;
       error?: string;
+    }
+  | {
+      kind: "notifications/list";
+      items: NotificationView[];
+      unread: number;
+      error?: string;
+    }
+  | {
+      kind: "notifications/mark-read";
+      marked: number;
+      error?: string;
     };
+
+export interface NotificationView {
+  id: string;
+  kind:
+    | "review_assigned"
+    | "review_completed"
+    | "review_changes_requested"
+    | "review_declined";
+  payload: {
+    reviewRequestId?: string;
+    projectId?: string;
+    projectName?: string | null;
+    requesterEmail?: string | null;
+    reviewerEmail?: string | null;
+  };
+  createdAt: number;
+  readAt: number | null;
+}

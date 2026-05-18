@@ -1,13 +1,13 @@
 import { and, eq } from "drizzle-orm";
 import { db } from "../db/client.ts";
 import {
-  auditLog,
   canonicalComment,
   commentProjection,
   project,
   type CanonicalCommentStatus,
   type ProjectionStatus,
 } from "../db/schema.ts";
+import { writeAudit } from "../db/audit.ts";
 import { reanchor } from "./reanchor.ts";
 import { getDocument } from "../google/docs.ts";
 import { tokenProviderForProject } from "./project.ts";
@@ -296,21 +296,3 @@ function projectionResult(
   return { canonicalCommentId, status, projection };
 }
 
-interface AuditArgs {
-  actorUserId: string;
-  action: string;
-  targetId: string;
-  before: Record<string, unknown> | null;
-  after: Record<string, unknown> | null;
-}
-
-async function writeAudit(args: AuditArgs): Promise<void> {
-  await db.insert(auditLog).values({
-    actorUserId: args.actorUserId,
-    action: args.action,
-    targetType: args.action.split(".")[0]!,
-    targetId: args.targetId,
-    before: args.before,
-    after: args.after,
-  });
-}

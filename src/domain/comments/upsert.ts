@@ -24,6 +24,14 @@ export interface UpsertArgs {
   anchor: CommentAnchor;
   parentCommentId: string | null;
   result: IngestResult;
+  /**
+   * Populated by the caller during ingest. The set of `googleCommentId`s
+   * observed in this run is used by `reapDeletedCanonicals` afterwards to
+   * mark canonical_comments whose upstream Drive comment / suggestion is no
+   * longer present. Adding to this set inside upsert (rather than at the
+   * call site) keeps the bookkeeping local to where the id is canonicalised.
+   */
+  seenExternalIds?: Set<string>;
 }
 
 /**
@@ -33,6 +41,7 @@ export interface UpsertArgs {
  * lets the loser of a race retry safely.
  */
 export async function upsertCanonical(args: UpsertArgs): Promise<string> {
+  args.seenExternalIds?.add(args.googleCommentId);
   // `userIdByEmail` hits the DB but isn't part of the upsert atomicity — pull
   // it outside the transaction so the txn callback can stay synchronous
   // (bun:sqlite transactions cannot await).

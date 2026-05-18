@@ -2,12 +2,17 @@ import { and, eq } from "drizzle-orm";
 import { db } from "../db/client.ts";
 import {
   auditLog,
+  project,
   reviewActionToken,
   reviewAssignment,
+  reviewRequest,
+  user,
+  type NotificationKind,
   type ReviewActionKind,
   type ReviewAssignmentStatus,
 } from "../db/schema.ts";
-import { paragraphHash } from "./anchor.ts";
+import { sha256Hex } from "./anchor.ts";
+import { createNotification } from "./notification.ts";
 
 // Magic-link review actions. One token per (review_request_id, assignee_user_id);
 // reusable until expiry. The action is supplied at redeem time so a reviewer
@@ -15,7 +20,10 @@ import { paragraphHash } from "./anchor.ts";
 // mra_<base64url(32 bytes)>; DB stores sha256(plaintext).
 export const REVIEW_ACTION_TOKEN_PREFIX = "mra_";
 const RANDOM_BYTES = 32;
-const DEFAULT_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
+// 7 days. The window covers a normal review-turnaround timeline without
+// leaving the magic link active in browser history / proxy logs for a
+// month. Shorter than the 30-day default we shipped first.
+const DEFAULT_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 export interface IssuedReviewActionToken {
   // Plaintext. Embed in the email link; not persisted.
@@ -41,7 +49,7 @@ export async function issueReviewActionToken(opts: {
   const inserted = await db
     .insert(reviewActionToken)
     .values({
-      tokenHash: paragraphHash(token),
+      tokenHash: sha256Hex(token),
       reviewRequestId: opts.reviewRequestId,
       assigneeUserId: opts.assigneeUserId,
       expiresAt,
@@ -94,11 +102,12 @@ export async function redeemReviewActionToken(
   // The redeem is multi-use, but each redemption still needs to be atomic so
   // two concurrent clicks don't double-fire the audit log or race the state
   // transition.
-  return db.transaction((tx): RedeemOutcome => {
+  let resolved: { reviewRequestId: string; assigneeUserId: string } | null = null;
+  const outcome = db.transaction((tx): RedeemOutcome => {
     const rows = tx
       .select()
       .from(reviewActionToken)
-      .where(eq(reviewActionToken.tokenHash, paragraphHash(plaintext)))
+      .where(eq(reviewActionToken.tokenHash, sha256Hex(plaintext)))
       .limit(1)
       .all();
     const row = rows[0];
@@ -150,8 +159,83 @@ export async function redeemReviewActionToken(
       after: { status: nextStatus },
     }).run();
 
+    resolved = {
+      reviewRequestId: assignment.reviewRequestId,
+      assigneeUserId: assignment.userId,
+    };
     return { ok: true, action, assignmentStatus: nextStatus };
   });
+
+  // Notify the request creator after the transaction commits. Async work
+  // can't live inside `db.transaction`'s callback (bun:sqlite is sync),
+  // and the notification isn't part of the atomic state transition — a
+  // failure here must not roll back the redeem.
+  if (outcome.ok && resolved !== null) {
+    await notifyRequesterOfReviewAction(
+      (resolved as { reviewRequestId: string; assigneeUserId: string }).reviewRequestId,
+      (resolved as { reviewRequestId: string; assigneeUserId: string }).assigneeUserId,
+      action,
+    ).catch((err) => {
+      console.warn(
+        `[review-action] notify failed: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    });
+  }
+
+  return outcome;
+}
+
+async function notifyRequesterOfReviewAction(
+  reviewRequestId: string,
+  assigneeUserId: string,
+  action: ReviewActionKind,
+): Promise<void> {
+  const rows = await db
+    .select({
+      reviewRequestId: reviewRequest.id,
+      projectId: project.id,
+      projectName: project.name,
+      createdByUserId: reviewRequest.createdByUserId,
+      reviewerEmail: user.email,
+    })
+    .from(reviewRequest)
+    .innerJoin(project, eq(project.id, reviewRequest.projectId))
+    .innerJoin(user, eq(user.id, assigneeUserId))
+    .where(eq(reviewRequest.id, reviewRequestId))
+    .limit(1);
+  const row = rows[0];
+  if (!row) return;
+  // Don't notify yourself.
+  if (row.createdByUserId === assigneeUserId) return;
+
+  const kind = notificationKindForAction(action);
+  if (!kind) return;
+
+  await createNotification({
+    userId: row.createdByUserId,
+    kind,
+    payload: {
+      reviewRequestId: row.reviewRequestId,
+      projectId: row.projectId,
+      projectName: row.projectName,
+      reviewerEmail: row.reviewerEmail,
+    },
+  });
+}
+
+function notificationKindForAction(
+  action: ReviewActionKind,
+): NotificationKind | null {
+  switch (action) {
+    case "mark_reviewed":
+      return "review_completed";
+    case "request_changes":
+      return "review_changes_requested";
+    case "decline":
+      return "review_declined";
+    case "accept_reconciliation":
+      return null;
+  }
 }
 
 /**

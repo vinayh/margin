@@ -20,6 +20,8 @@ function emptyResult(versionId: string): IngestResult {
     alreadyPresent: 0,
     skippedOrphanMetadata: 0,
     suggestionsInserted: 0,
+    markedDeleted: 0,
+    restored: 0,
   };
 }
 

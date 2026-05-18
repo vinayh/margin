@@ -1,4 +1,4 @@
-import { and, count, eq, inArray, max } from "drizzle-orm";
+import { and, count, eq, inArray, isNull, max } from "drizzle-orm";
 import { db } from "../db/client.ts";
 import { canonicalComment, reviewRequest, version } from "../db/schema.ts";
 
@@ -51,7 +51,12 @@ export async function countComments(projectId: string): Promise<number> {
     await db
       .select({ n: count() })
       .from(canonicalComment)
-      .where(eq(canonicalComment.projectId, projectId))
+      .where(
+        and(
+          eq(canonicalComment.projectId, projectId),
+          isNull(canonicalComment.deletedAt),
+        ),
+      )
   )[0];
   return row?.n ?? 0;
 }
@@ -72,7 +77,12 @@ export async function countCommentsByOriginVersion(
       n: count(),
     })
     .from(canonicalComment)
-    .where(eq(canonicalComment.projectId, projectId))
+    .where(
+      and(
+        eq(canonicalComment.projectId, projectId),
+        isNull(canonicalComment.deletedAt),
+      ),
+    )
     .groupBy(canonicalComment.originVersionId);
   const out = new Map<string, number>();
   for (const row of rows) out.set(row.versionId, row.n);

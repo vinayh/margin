@@ -3,7 +3,7 @@ import { browser } from "wxt/browser";
 import * as v from "valibot";
 import { MessageSchema, type Message, type MessageResponse } from "../utils/messages.ts";
 import { parseDocIdFromUrl } from "../utils/ids.ts";
-import { getBackendUrl, getSettings, patchSettings, setSettings } from "../utils/storage.ts";
+import { getBackendUrl, getSettings, patchSettings } from "../utils/storage.ts";
 import { DEFAULT_BACKEND_URL } from "../utils/types.ts";
 import { openDashboard, openOptions } from "../utils/ui-surfaces.ts";
 import {
@@ -15,6 +15,9 @@ import {
   createReviewRequest,
   createVersion,
   deleteProject,
+  fetchNotifications,
+  markNotificationsRead,
+  renameProject,
   fetchDocState,
   fetchProjectDetail,
   fetchVersionComments,
@@ -22,7 +25,6 @@ import {
   fetchWhoami,
   listProjects,
   loadProjectSettings,
-  registerDoc,
   runCommentAction,
   runDocSync,
   signOutFromBackend,
@@ -378,8 +380,6 @@ function errorResponseFor(message: Message | unknown, error: string): MessageRes
   switch (kind) {
     case "settings/get":
       return { kind: "settings/get", settings: null, backendUrl: null, error };
-    case "settings/set":
-      return { kind: "settings/set", ok: true, error };
     case "auth/sign-out":
       return { kind: "auth/sign-out", ok: true, error };
     case "auth/whoami":
@@ -388,12 +388,16 @@ function errorResponseFor(message: Message | unknown, error: string): MessageRes
       return { kind: "doc/state", state: null, error };
     case "doc/sync":
       return { kind: "doc/sync", state: null, error };
-    case "doc/register":
-      return { kind: "doc/register", result: { kind: "error", message: error }, error };
     case "project/detail":
       return { kind: "project/detail", detail: null, error };
     case "project/delete":
       return { kind: "project/delete", deleted: false, error };
+    case "project/rename":
+      return { kind: "project/rename", project: null, error };
+    case "notifications/list":
+      return { kind: "notifications/list", items: [], unread: 0, error };
+    case "notifications/mark-read":
+      return { kind: "notifications/mark-read", marked: 0, error };
     case "projects/list":
       return { kind: "projects/list", projects: null, error };
     case "version/create":
@@ -424,10 +428,6 @@ async function handleMessage(message: Message): Promise<MessageResponse> {
         getBackendUrl(),
       ]);
       return { kind: "settings/get", settings, backendUrl };
-    }
-    case "settings/set": {
-      await setSettings(message.settings);
-      return { kind: "settings/set", ok: true };
     }
     case "auth/sign-out": {
       await signOutFromBackend();
@@ -463,15 +463,6 @@ async function handleMessage(message: Message): Promise<MessageResponse> {
       void refreshTabsForDoc(message.docId);
       return { kind: "doc/sync", state };
     }
-    case "doc/register": {
-      const result = await registerDoc(message.docUrlOrId);
-      // The popup path no longer hits this (picker POSTs register-doc directly); kept for future surfaces.
-      if (result.kind === "registered") {
-        trackedCache.delete(result.parentDocId);
-        void refreshTabsForDoc(result.parentDocId);
-      }
-      return { kind: "doc/register", result };
-    }
     case "project/detail": {
       const detail = await fetchProjectDetail(message.projectId);
       return { kind: "project/detail", detail };
@@ -479,6 +470,25 @@ async function handleMessage(message: Message): Promise<MessageResponse> {
     case "project/delete": {
       const deleted = await deleteProject(message.projectId);
       return { kind: "project/delete", deleted };
+    }
+    case "project/rename": {
+      const project = await renameProject(message.projectId, message.name);
+      return { kind: "project/rename", project };
+    }
+    case "notifications/list": {
+      const r = await fetchNotifications();
+      return {
+        kind: "notifications/list",
+        items: r?.items ?? [],
+        unread: r?.unread ?? 0,
+      };
+    }
+    case "notifications/mark-read": {
+      const marked = await markNotificationsRead({
+        ids: message.ids,
+        all: message.all,
+      });
+      return { kind: "notifications/mark-read", marked };
     }
     case "projects/list": {
       const projects = await listProjects();

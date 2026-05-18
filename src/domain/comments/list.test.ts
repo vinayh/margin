@@ -9,7 +9,10 @@ import {
 } from "../../../test/db.ts";
 import { db } from "../../db/client.ts";
 import { canonicalComment } from "../../db/schema.ts";
-import { listCommentsForProject } from "./list.ts";
+import {
+  listCommentsForProject,
+  listDeletedCommentsForProject,
+} from "./list.ts";
 
 beforeEach(cleanDb);
 
@@ -48,6 +51,31 @@ describe("listCommentsForProject", () => {
 
     const got = await listCommentsForProject(p.id);
     expect(got.map((c) => c.body)).toEqual(["newer", "older"]);
+  });
+
+  test("excludes soft-deleted (deletedAt is not null) by default", async () => {
+    const u = await seedUser();
+    const p = await seedProject({ ownerUserId: u.id });
+    const v = await seedVersion({ projectId: p.id, createdByUserId: u.id });
+    const live = await seedCanonicalComment({
+      projectId: p.id,
+      originVersionId: v.id,
+      body: "live",
+    });
+    const dead = await seedCanonicalComment({
+      projectId: p.id,
+      originVersionId: v.id,
+      body: "dead",
+    });
+    await db
+      .update(canonicalComment)
+      .set({ deletedAt: new Date() })
+      .where(eq(canonicalComment.id, dead.id));
+
+    const active = await listCommentsForProject(p.id);
+    expect(active.map((c) => c.id)).toEqual([live.id]);
+    const deletedOnly = await listDeletedCommentsForProject(p.id);
+    expect(deletedOnly.map((c) => c.id)).toEqual([dead.id]);
   });
 
   test("excludes comments from other projects (no cross-project leak)", async () => {

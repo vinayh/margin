@@ -123,6 +123,18 @@ export const config = {
       envValue("MARGIN_TEST_USER_EMAIL"),
     );
   },
+  slack: {
+    // Slack incoming-webhook URL. Null = no Slack transport; getSlackTransport()
+    // falls back to LogSlackTransport in that case. Phase 5's full Slack bot
+    // will replace the webhook approach with bot-token routing.
+    get webhookUrl() {
+      return parseEnv(
+        "MARGIN_SLACK_WEBHOOK_URL",
+        OptionalUrlSchema,
+        envValue("MARGIN_SLACK_WEBHOOK_URL"),
+      );
+    },
+  },
   email: {
     // null = no transport configured (default), fall back to LogEmailTransport.
     // "resend" = use the Resend HTTP API; requires resendApiKey + from below.

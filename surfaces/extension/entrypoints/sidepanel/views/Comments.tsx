@@ -1,5 +1,6 @@
 import { useEffect, useState } from "preact/hooks";
 import { sendMessage } from "../../../ui/sendMessage.ts";
+import { formatDateTime } from "../../../ui/format-time.ts";
 import type {
   CanonicalCommentKind,
   CanonicalCommentStatus,
@@ -37,6 +38,7 @@ export function Comments({ versionId, versionLabel, onClose }: Props) {
   const [state, setState] = useState<State>({ kind: "loading" });
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [filter, setFilter] = useState("");
 
   useEffect(() => {
     let cancelled = false;
@@ -98,7 +100,11 @@ export function Comments({ versionId, versionLabel, onClose }: Props) {
     return (
       <section class="comments-view">
         <CommentsHeader title={`Comments on ${versionLabel}`} onClose={onClose} />
-        <p class="muted">Loading…</p>
+        <ul class="comment-list">
+          <SkeletonCommentCard />
+          <SkeletonCommentCard />
+          <SkeletonCommentCard />
+        </ul>
       </section>
     );
   }
@@ -113,6 +119,7 @@ export function Comments({ versionId, versionLabel, onClose }: Props) {
 
   const ordered = sortForReconciliation(state.payload.comments);
   const summary = summarize(ordered);
+  const filtered = filterComments(ordered, filter);
 
   return (
     <section class="comments-view">
@@ -127,14 +134,28 @@ export function Comments({ versionId, versionLabel, onClose }: Props) {
           : ""}
       </p>
       {actionError ? <p class="muted error">{actionError}</p> : null}
+      {ordered.length > 0 ? (
+        <input
+          type="search"
+          class="filter-input"
+          placeholder="Filter comments by body, author, or quoted text…"
+          value={filter}
+          onInput={(e) => setFilter((e.target as HTMLInputElement).value)}
+        />
+      ) : null}
       {ordered.length === 0 ? (
-        <p class="muted">
-          No comments projected onto this version yet. Sync the version or
-          project comments from another version to populate this list.
-        </p>
+        <div class="empty-state">
+          <p class="empty-state-title">No comments on this version yet.</p>
+          <p class="empty-state-body">
+            Sync this version to ingest comments and suggestions from the
+            Google Doc, or project comments from an earlier version.
+          </p>
+        </div>
+      ) : filtered.length === 0 ? (
+        <p class="muted">No comments match.</p>
       ) : (
         <ul class="comment-list">
-          {ordered.map((c) => (
+          {filtered.map((c) => (
             <CommentCard
               key={c.canonicalCommentId}
               entry={c}
@@ -146,6 +167,39 @@ export function Comments({ versionId, versionLabel, onClose }: Props) {
         </ul>
       )}
     </section>
+  );
+}
+
+function filterComments(
+  entries: VersionCommentEntry[],
+  q: string,
+): VersionCommentEntry[] {
+  const trimmed = q.trim().toLowerCase();
+  if (trimmed === "") return entries;
+  return entries.filter((c) => {
+    if (c.body.toLowerCase().includes(trimmed)) return true;
+    if (c.anchor.quotedText?.toLowerCase().includes(trimmed)) return true;
+    if (c.originUserDisplayName?.toLowerCase().includes(trimmed)) return true;
+    if (c.originUserEmail?.toLowerCase().includes(trimmed)) return true;
+    return false;
+  });
+}
+
+function SkeletonCommentCard() {
+  return (
+    <li class="comment-card">
+      <div class="comment-card-head">
+        <span class="skeleton skeleton-pill" />
+        <span class="skeleton skeleton-pill" />
+      </div>
+      <p class="comment-meta">
+        <span class="skeleton skeleton-line skeleton-line-short" />
+      </p>
+      <p class="comment-body">
+        <span class="skeleton skeleton-line" />
+        <span class="skeleton skeleton-line" />
+      </p>
+    </li>
   );
 }
 
@@ -199,7 +253,7 @@ function CommentCard({
       </div>
       <p class="comment-meta">
         <span>{author}</span>
-        <span class="muted"> · {formatDate(entry.originTimestamp)}</span>
+        <span class="muted"> · {formatDateTime(entry.originTimestamp)}</span>
         {entry.projection.anchorMatchConfidence !== null ? (
           <span class="muted">
             {" "}
@@ -378,6 +432,3 @@ function applyResult(
   });
 }
 
-function formatDate(ts: number): string {
-  return new Date(ts).toLocaleString();
-}

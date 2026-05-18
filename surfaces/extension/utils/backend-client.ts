@@ -1,4 +1,5 @@
 import { getSettings, patchSettings } from "./storage.ts";
+import type { NotificationView } from "./messages.ts";
 import type {
   CommentActionKind,
   CommentActionResult,
@@ -6,7 +7,6 @@ import type {
   ProjectDetail,
   ProjectListEntry,
   ProjectSettingsView,
-  RegisterDocResult,
   ReviewRequestResult,
   Settings,
   VersionCommentsPayload,
@@ -107,49 +107,6 @@ export async function runDocSync(docId: string): Promise<DocState | null> {
   return postJson<DocState>("/api/extension/doc-sync", { docId }, settings);
 }
 
-// Maps both 200 (created) and 409 already_exists into the same `registered` shape.
-export async function registerDoc(docUrlOrId: string): Promise<RegisterDocResult> {
-  const settings = await getSettings();
-  if (!settings) return { kind: "error", message: "no settings configured" };
-  let res: Response;
-  try {
-    res = await postJsonRaw("/api/picker/register-doc", { docUrlOrId }, settings);
-  } catch (err) {
-    return { kind: "error", message: err instanceof Error ? err.message : String(err) };
-  }
-  const body = (await res.json().catch(() => ({}))) as {
-    projectId?: string;
-    parentDocId?: string;
-    error?: string;
-    message?: string;
-  };
-  if (res.ok && body.projectId && body.parentDocId) {
-    return {
-      kind: "registered",
-      projectId: body.projectId,
-      parentDocId: body.parentDocId,
-      alreadyExisted: false,
-    };
-  }
-  if (
-    res.status === 409 &&
-    body.error === "already_exists" &&
-    body.projectId &&
-    body.parentDocId
-  ) {
-    return {
-      kind: "registered",
-      projectId: body.projectId,
-      parentDocId: body.parentDocId,
-      alreadyExisted: true,
-    };
-  }
-  return {
-    kind: "error",
-    message: body.message ?? `register-doc failed (${res.status})`,
-  };
-}
-
 export async function listProjects(): Promise<ProjectListEntry[] | null> {
   const settings = await getSettings();
   if (!settings) return null;
@@ -180,6 +137,46 @@ export async function deleteProject(projectId: string): Promise<boolean> {
     settings,
   );
   return r?.deleted === true;
+}
+
+export async function renameProject(
+  projectId: string,
+  name: string,
+): Promise<{ projectId: string; name: string } | null> {
+  const settings = await getSettings();
+  if (!settings) return null;
+  return postJsonOrNull<{ projectId: string; name: string }>(
+    "/api/extension/project-rename",
+    { projectId, name },
+    settings,
+  );
+}
+
+export async function fetchNotifications(): Promise<{
+  items: NotificationView[];
+  unread: number;
+} | null> {
+  const settings = await getSettings();
+  if (!settings) return null;
+  return postJsonOrNull<{ items: NotificationView[]; unread: number }>(
+    "/api/extension/notifications",
+    {},
+    settings,
+  );
+}
+
+export async function markNotificationsRead(opts: {
+  ids?: string[];
+  all?: boolean;
+}): Promise<number> {
+  const settings = await getSettings();
+  if (!settings) return 0;
+  const r = await postJsonOrNull<{ marked: number }>(
+    "/api/extension/notifications/mark-read",
+    opts,
+    settings,
+  );
+  return r?.marked ?? 0;
 }
 
 export async function createVersion(opts: {

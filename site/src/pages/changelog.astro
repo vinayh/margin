@@ -1,0 +1,124 @@
+---
+import Layout from "../layouts/Layout.astro";
+
+interface Entry {
+  date: string;
+  title: string;
+  items: string[];
+}
+
+// Hand-curated. The changelog is the public-facing narrative — keep it tight
+// and skip churn (CI tweaks, dep bumps, internal refactors). The full log is
+// on GitHub for anyone who wants commit-granularity.
+const entries: Entry[] = [
+  {
+    date: "2026-05-17",
+    title: "Polish round",
+    items: [
+      "Side panel: empty-state guidance for versions, derivatives, reviews, and per-version comments.",
+      "Side panel: skeleton placeholders while the comments list loads.",
+      "Side panel: wide tables now scroll horizontally instead of clipping the rightmost actions.",
+      "Reviewer-email inputs validate format inline (Settings textarea + Dashboard request form).",
+    ],
+  },
+  {
+    date: "2026-05-14",
+    title: "Side panel theme + project delete",
+    items: [
+      "Side panel adopts the public site's theme; rebinds reliably across tab switches.",
+      "Settings view gains a Delete project action.",
+      "Shared row styling between popup and side panel.",
+    ],
+  },
+  {
+    date: "2026-05-10",
+    title: "Options page becomes the landing surface",
+    items: [
+      "First-install opens the Options page directly; popup is reserved for tracked docs.",
+      "Email magic-link redaction in logs; envelope-encrypted refresh tokens audited.",
+    ],
+  },
+  {
+    date: "2026-05-05",
+    title: "Phase 4.5 — full review cycle in the side panel",
+    items: [
+      "Snapshot a version, request review, and resolve comments without leaving the panel.",
+      "Email transport: pluggable LogEmailTransport (default) and ResendEmailTransport.",
+      "Per-assignee share / email error surfaced inline on the dashboard.",
+      "Magic-link tokens are multi-use until expiry; action is passed as a query param.",
+    ],
+  },
+  {
+    date: "2026-04-24",
+    title: "Phase 4 — comment reconciliation",
+    items: [
+      "Reconciliation actions: accept anchor, re-anchor, mark resolved, mark won't fix, reopen.",
+      "Settings view: notification preferences and default reviewer emails.",
+      "Tab-based OAuth flow plus backend-hosted Drive Picker.",
+    ],
+  },
+  {
+    date: "2026-04-10",
+    title: "Better Auth migration",
+    items: [
+      "Authentication moved to Better Auth (Google provider + bearer plugin).",
+      "Bearer-token API surface; envelope-encryption hook on the account refresh token.",
+    ],
+  },
+  {
+    date: "2026-03-20",
+    title: "OOXML ingest cutover",
+    items: [
+      "Comment ingest reads the .docx export, recovering suggestion-thread replies that the public Drive API doesn't expose.",
+      "Capture pipeline removed; ingest is fully server-side.",
+    ],
+  },
+];
+---
+
+<Layout
+  title="Changelog. Margin."
+  description="What shipped, and when."
+>
+  <main class="mx-auto max-w-[760px] px-6 sm:px-10 md:px-14 py-16">
+    <a href="/" class="font-display text-3xl leading-none">margin</a>
+
+    <h1 class="font-display text-[40px] leading-[0.95] mt-10 mb-4">Changelog.</h1>
+    <p class="text-[15px] text-muted mb-10">
+      The shape of Margin, working backwards. The
+      <a
+        href="https://github.com/vinayh/margin/commits/main"
+        class="underline decoration-2 decoration-accent underline-offset-4"
+        >full commit history</a
+      >
+      is on GitHub.
+    </p>
+
+    <section class="space-y-12">
+      {
+        entries.map((e) => (
+          <article class="border-l-2 border-accent pl-5">
+            <p class="font-mono text-[12px] text-muted uppercase tracking-[0.06em]">
+              {e.date}
+            </p>
+            <h2 class="font-display text-2xl mt-1 mb-3">{e.title}</h2>
+            <ul class="text-[15px] leading-7 text-ink-2 list-disc pl-5 space-y-1">
+              {e.items.map((item) => (
+                <li>{item}</li>
+              ))}
+            </ul>
+          </article>
+        ))
+      }
+    </section>
+
+    <p class="pt-12">
+      <a
+        href="/"
+        class="underline decoration-2 decoration-accent underline-offset-4"
+      >
+        ← Back to home
+      </a>
+    </p>
+  </main>
+</Layout>

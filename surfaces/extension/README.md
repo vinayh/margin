@@ -136,9 +136,12 @@ The SW's `storage.onChanged` listener picks the value up and reprimes
 `cachedUseNativeSidebar`. Add new exclusion probes here if more
 side-panel-less browsers come up.
 
-There is no static `host_permissions` for `docs.google.com` — the
-extension never injects into the Docs tab. The `tabs` API gives the popup
-read access to the active tab's URL + title without any extra permission.
+The manifest declares static `host_permissions: ["https://docs.google.com/*"]`.
+The extension never injects into the Docs tab — the grant is what lets
+`tabs.query({url: ...})` return the active Doc's URL + title (Chrome
+strips both on Doc pages otherwise). User-configured backend origins
+stay on `optional_host_permissions: ["<all_urls>"]` and are requested at
+sign-in time.
 
 ## Doc title
 
