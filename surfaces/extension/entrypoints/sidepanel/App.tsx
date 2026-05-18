@@ -147,24 +147,7 @@ export function App() {
         email={email}
         slot={
           <NotificationsBell
-            onOpenProject={(projectId) => {
-              setView({ kind: "loading" });
-              void (async () => {
-                try {
-                  const detail = await fetchProjectDetail(projectId);
-                  if (!detail) {
-                    setView({ kind: "error", message: "project not found" });
-                    return;
-                  }
-                  setView({ kind: "loaded", detail });
-                } catch (err) {
-                  setView({
-                    kind: "error",
-                    message: err instanceof Error ? err.message : String(err),
-                  });
-                }
-              })();
-            }}
+            onOpenProject={(projectId) => loadProjectInto(setView, projectId)}
           />
         }
       />
@@ -201,22 +184,7 @@ function Body({
       return (
         <ProjectPicker
           projects={view.projects}
-          onPick={async (p) => {
-            setView({ kind: "loading" });
-            try {
-              const detail = await fetchProjectDetail(p.id);
-              if (!detail) {
-                setView({ kind: "error", message: "project not found" });
-                return;
-              }
-              setView({ kind: "loaded", detail });
-            } catch (err) {
-              setView({
-                kind: "error",
-                message: err instanceof Error ? err.message : String(err),
-              });
-            }
-          }}
+          onPick={(p) => loadProjectInto(setView, p.id)}
         />
       );
     case "loaded":
@@ -379,6 +347,27 @@ async function fetchProjectDetail(projectId: string): Promise<ProjectDetail | nu
   if (r?.kind !== "project/detail") return null;
   if (r.error) throw new Error(r.error);
   return r.detail;
+}
+
+// Used by both the NotificationsBell open-project handler and the project-picker
+// onPick: flip to loading, fetch the detail, then commit either loaded or error.
+function loadProjectInto(setView: (v: View) => void, projectId: string): void {
+  setView({ kind: "loading" });
+  void (async () => {
+    try {
+      const detail = await fetchProjectDetail(projectId);
+      if (!detail) {
+        setView({ kind: "error", message: "project not found" });
+        return;
+      }
+      setView({ kind: "loaded", detail });
+    } catch (err) {
+      setView({
+        kind: "error",
+        message: err instanceof Error ? err.message : String(err),
+      });
+    }
+  })();
 }
 
 async function fetchProjects(): Promise<ProjectListEntry[] | null> {

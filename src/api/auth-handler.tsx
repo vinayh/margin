@@ -97,7 +97,13 @@ export async function handleAuthExtLaunchTab(req: Request): Promise<Response> {
 
   // Use the configured public origin, not req.url — Host header is attacker-spoofable
   // and would let a forged Host steer the token-bearing bridge page elsewhere.
-  const baseURL = new URL(config.publicBaseUrl ?? req.url);
+  // Fail closed when MARGIN_PUBLIC_BASE_URL is unset rather than falling back.
+  if (!config.publicBaseUrl) {
+    return new Response("server not configured: MARGIN_PUBLIC_BASE_URL is required", {
+      status: 500,
+    });
+  }
+  const baseURL = new URL(config.publicBaseUrl);
   baseURL.search = "";
   baseURL.pathname = "/api/auth/ext/success";
   const launchNonce = mintExtNonce(ext);

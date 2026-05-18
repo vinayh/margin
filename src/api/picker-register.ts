@@ -51,13 +51,13 @@ export async function handleRegisterDocPost(req: Request): Promise<Response> {
     });
   } catch (err) {
     if (err instanceof DuplicateProjectError) {
-      return new Response(
-        JSON.stringify({
+      return jsonOk(
+        {
           error: "already_exists",
           projectId: err.projectId,
           parentDocId: err.parentDocId,
-        }),
-        { status: 409, headers: { "content-type": "application/json" } },
+        },
+        { status: 409 },
       );
     }
     throw err;

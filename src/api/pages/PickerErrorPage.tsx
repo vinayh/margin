@@ -5,8 +5,6 @@ export type PickerErrorVariant = "not-signed-in" | "not-configured" | "token-err
 
 export interface PickerErrorPageProps {
   variant: PickerErrorVariant;
-  /** Raw error string surfaced under a `<code>` block for `token-error`. */
-  details?: string;
 }
 
 function titleFor(variant: PickerErrorVariant): string {
@@ -39,17 +37,10 @@ export function PickerErrorPage(props: PickerErrorPageProps) {
         </p>
       ) : null}
       {props.variant === "token-error" ? (
-        <>
-          <p class="mt-4 text-ink-2">
-            Could not mint a Drive access token. Try signing out from the extension's Options page
-            and signing in again.
-          </p>
-          {props.details ? (
-            <p class="mt-2">
-              <code class="font-mono text-sm">{props.details}</code>
-            </p>
-          ) : null}
-        </>
+        <p class="mt-4 text-ink-2">
+          Could not mint a Drive access token. Try signing out from the extension's Options page
+          and signing in again.
+        </p>
       ) : null}
     </Layout>
   );

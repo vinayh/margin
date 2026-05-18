@@ -8,8 +8,8 @@ import { PickerErrorPage, type PickerErrorVariant } from "./pages/PickerErrorPag
 const STATIC_CSP =
   "default-src 'none'; style-src 'self'; font-src 'self'; frame-ancestors 'none'";
 
-function renderError(variant: PickerErrorVariant, status: number, details?: string): Response {
-  return renderPage(<PickerErrorPage variant={variant} details={details} />, {
+function renderError(variant: PickerErrorVariant, status: number): Response {
+  return renderPage(<PickerErrorPage variant={variant} />, {
     csp: STATIC_CSP,
     status,
   });
@@ -46,8 +46,8 @@ export async function handlePickerPage(req: Request): Promise<Response> {
   try {
     accessToken = await tokenProviderForUser(session.user.id).getAccessToken();
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    return renderError("token-error", 500, msg);
+    console.error(`picker-page: token mint failed for user ${session.user.id}:`, err);
+    return renderError("token-error", 500);
   }
 
   const n = nonce();

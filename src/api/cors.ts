@@ -21,8 +21,8 @@ const EXPOSED_HEADERS = "x-margin-rate-limit-remaining";
 const ORIGIN_PATTERNS: readonly RegExp[] = [
   /^chrome-extension:\/\/[a-z]{32}$/,
   /^moz-extension:\/\/[0-9a-fA-F-]{36}$/,
-  /^http:\/\/localhost(?::\d+)?$/,
-  /^http:\/\/127\.0\.0\.1(?::\d+)?$/,
+  /^http:\/\/localhost(?::\d{1,5})?$/,
+  /^http:\/\/127\.0\.0\.1(?::\d{1,5})?$/,
 ];
 
 export function isAllowedOrigin(origin: string): boolean {
