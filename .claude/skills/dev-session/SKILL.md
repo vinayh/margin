@@ -37,7 +37,7 @@ Rebuild every time — WXT is fast (~600 ms) and the alternative is debugging st
 cd extension && bun run build
 ```
 
-The dist lives at `extension/dist/chrome-mv3/` (absolute: `/Users/vinay/Dev/margin/extension/dist/chrome-mv3`).
+The dist lives at `extension/dist/chrome-mv3/` relative to the repo root. `install_extension` (next step) wants an absolute path; resolve it at use-time with `pwd` from the repo root, e.g. `"$(git rev-parse --show-toplevel)"/extension/dist/chrome-mv3`.
 
 ## 3. Chrome via chrome-devtools-mcp
 
@@ -48,7 +48,7 @@ Calling any `mcp__chrome-devtools__*` tool boots Chrome. Start with `list_pages`
 1. `mcp__chrome-devtools__list_pages` — boots Chrome and returns open tabs + extension SW IDs.
 2. `mcp__chrome-devtools__list_extensions` — is "Margin" already installed in this profile?
    - **Yes** → `mcp__chrome-devtools__reload_extension` with the id from the list.
-   - **No** → `mcp__chrome-devtools__install_extension` with `path: /Users/vinay/Dev/margin/extension/dist/chrome-mv3`. Save the returned id.
+   - **No** → `mcp__chrome-devtools__install_extension` with `path: <repo-root>/extension/dist/chrome-mv3` (absolute path — get it from `git rev-parse --show-toplevel` if you don't already know cwd). Save the returned id.
 
 ## 4. Open whatever the user wants to look at
 

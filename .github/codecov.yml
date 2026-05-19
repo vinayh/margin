@@ -13,8 +13,8 @@ coverage:
 # request path. Excluding both from coverage so the project total
 # reflects production code only.
 ignore:
-  - "src/cli/**/*"
-  - "src/db/migrate.ts"
+  - "backend/src/cli/**/*"
+  - "backend/src/db/migrate.ts"
 
 # Two parallel uploads merge into the project total:
 #   - `unit`: ci.yml on every push/PR (mocked transports + temp-DB)
@@ -24,11 +24,11 @@ ignore:
 flags:
   unit:
     paths:
-      - src/
+      - backend/src/
     carryforward: false
   integration:
     paths:
-      - src/
+      - backend/src/
     # No carryforward: a stale integration session from a previous commit
     # ships its own line numbers and merges badly with the current unit
     # upload (Codecov ends up reporting on lines that no longer exist —
