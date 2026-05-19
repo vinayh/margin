@@ -17,7 +17,11 @@ RUN deno install --frozen
 FROM node:24-alpine AS styles
 WORKDIR /app
 COPY package.json ./
-RUN npm install --no-audit --no-fund --ignore-scripts
+# `--legacy-peer-deps`: npm's strict resolver excludes prereleases from
+# non-prerelease ranges, so better-auth's peerOptional `drizzle-kit@">=0.31.4"`
+# refuses to coexist with our pinned `drizzle-kit@1.0.0-rc.3`. The styles
+# stage only runs Tailwind, so the conflict is irrelevant here.
+RUN npm install --no-audit --no-fund --ignore-scripts --legacy-peer-deps
 COPY src ./src
 COPY tokens.css ./
 RUN npx -y @tailwindcss/cli -i src/api/styles/input.css -o dist/backend.css --minify
@@ -27,7 +31,6 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY deno.jsonc deno.lock package.json tsconfig.json ./
 COPY src ./src
-COPY test ./test
 COPY drizzle ./drizzle
 COPY --from=styles /app/dist ./dist
 
