@@ -4,7 +4,7 @@ export interface Settings {
   sessionToken: string;
 }
 
-// Dev builds (`bun run ext:dev`) default to the locally running backend;
+// Dev builds (`npm run ext:dev`) default to the locally running backend;
 // production builds bake in the deployed API host so a freshly installed
 // extension is reachable without the user pasting a URL on first launch.
 // Vite inlines `import.meta.env.DEV` at build time, so the dead branch is

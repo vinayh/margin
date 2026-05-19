@@ -1,4 +1,4 @@
-import { migrate } from "drizzle-orm/bun-sqlite/migrator";
+import { migrate } from "drizzle-orm/node-sqlite/migrator";
 import { db } from "./client.ts";
 
 migrate(db, { migrationsFolder: "./drizzle" });

@@ -12,12 +12,12 @@ import { usage, dispatchSubcommands, parseNumberArg } from "./util.ts";
 
 const USAGE = `\
 usage:
-  bun margin watcher subscribe <version-id> --address <https-url> [--ttl-ms <n>]
-  bun margin watcher list
-  bun margin watcher unsubscribe <channel-row-id>
-  bun margin watcher renew
-  bun margin watcher poll
-  bun margin watcher simulate <channel-id> [--state update] [--token <t>]
+  deno task margin watcher subscribe <version-id> --address <https-url> [--ttl-ms <n>]
+  deno task margin watcher list
+  deno task margin watcher unsubscribe <channel-row-id>
+  deno task margin watcher renew
+  deno task margin watcher poll
+  deno task margin watcher simulate <channel-id> [--state update] [--token <t>]
 
 Per SPEC §9.3 the address must be an HTTPS endpoint with a domain verified in
 Google Search Console. The HTTP API serves \`/webhooks/drive\`; \`simulate\`

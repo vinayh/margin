@@ -1,7 +1,8 @@
+import { Buffer } from "node:buffer";
 import * as v from "valibot";
 
 function envValue(name: string): string | null {
-  const value = Bun.env[name];
+  const value = Deno.env.get(name);
   return value && value.length > 0 ? value : null;
 }
 
@@ -108,13 +109,13 @@ export const config = {
       envValue("MARGIN_PUBLIC_BASE_URL"),
     );
   },
-  // Required "1" gate for `bun margin e2e seed-project` — the seeder bypasses Drive validation.
+  // Required "1" gate for `deno task margin e2e seed-project` — the seeder bypasses Drive validation.
   get allowE2eSeed() {
-    return Bun.env.MARGIN_ALLOW_E2E_SEED === "1";
+    return Deno.env.get("MARGIN_ALLOW_E2E_SEED") === "1";
   },
   // Off by default: without an upstream proxy, Fly-Client-IP / X-Forwarded-For are spoofable.
   get trustProxy() {
-    return Bun.env.MARGIN_TRUST_PROXY === "1";
+    return Deno.env.get("MARGIN_TRUST_PROXY") === "1";
   },
   get testUserEmail() {
     return parseEnv(

@@ -1,4 +1,6 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import "../../test/setup.ts";
+import { afterEach, beforeEach, describe, it as test } from "@std/testing/bdd";
+import { expect } from "@std/expect";
 import { eq } from "drizzle-orm";
 import { cleanDb, seedProject, seedUser, seedVersion } from "../../test/db.ts";
 import { setFetch } from "../../test/fetch.ts";
@@ -195,7 +197,7 @@ describe("getVersion / requireVersion / listVersions", () => {
     const u = await seedUser();
     const p = await seedProject({ ownerUserId: u.id });
     const v1 = await seedVersion({ projectId: p.id, createdByUserId: u.id, label: "v1" });
-    // bun:sqlite stores createdAt as ms — wait one tick to avoid identical
+    // node:sqlite stores createdAt as ms — wait one tick to avoid identical
     // timestamps on fast hardware.
     await new Promise((r) => setTimeout(r, 5));
     const v2 = await seedVersion({ projectId: p.id, createdByUserId: u.id, label: "v2" });

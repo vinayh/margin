@@ -20,12 +20,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: oven-sh/setup-bun@v2
+      - uses: denoland/setup-deno@v2
         with:
-          bun-version: latest
-      - run: bun install --frozen-lockfile
-      - run: bun run typecheck
-      - run: bun run test:coverage
+          deno-version: v2.x
+      - run: deno install --frozen
+      - run: deno task typecheck
+      - run: deno task test:coverage
 
       - name: Upload coverage reports to Codecov
         uses: codecov/codecov-action@v6
@@ -41,33 +41,31 @@ jobs:
 
   # Gate against the failure mode that took prod down once already:
   # a runtime import resolves a package that lives in `devDependencies`,
-  # so `bun install --production` (run by the Dockerfile) silently drops
-  # it and the prod image crash-loops.
-  # - `bun build --target=bun` walks every static import from the entry;
-  #   missing packages fail the build.
-  # - `bun --eval` evaluates the api server's module tree under the
-  #   prod-only install, catching module-init-time crashes (e.g. a
-  #   `Bun.resolveSync` against a devDep) that a static bundle wouldn't
-  #   surface.
+  # so a production install drops it and the prod image crash-loops.
+  # `deno check` walks every static import from the entry; a missing
+  # package would fail to type-check under a prod-only node_modules.
   prod-resolve:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: oven-sh/setup-bun@v2
+      - uses: denoland/setup-deno@v2
         with:
-          bun-version: latest
-      - run: bun install --frozen-lockfile --production
-      - run: bun build src/cli/index.ts --target=bun --outdir /tmp/build
+          deno-version: v2.x
+      # Mirror the Dockerfile: prod-only npm install, then have Deno walk
+      # the import tree against that pruned node_modules.
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+      - run: npm install --omit=dev --no-audit --no-fund --ignore-scripts
+      - run: deno check src/api/server.ts src/cli/index.ts
       - name: Module-init smoke under prod-only install
-        # Dummy secrets satisfy module-init validators in src/config.ts.
-        # We're not running the server, just walking the import tree.
         env:
           BETTER_AUTH_SECRET: "00000000000000000000000000000000"
           MARGIN_MASTER_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
           MARGIN_DB_PATH: /tmp/margin-init-check.db
           GOOGLE_CLIENT_ID: fake-ci
           GOOGLE_CLIENT_SECRET: fake-ci
-        run: bun --eval 'await import("./src/api/server.ts"); console.log("module tree imports OK");'
+        run: deno eval --ext=ts 'await import("./src/api/server.ts"); console.log("module tree imports OK");'
 
   deploy:
     needs: [test, prod-resolve]

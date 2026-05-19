@@ -41,7 +41,7 @@ For the underlying Google-side constraints that drive these limits, see [`docs/s
 
 ## Stack
 
-Bun runtime, `bun:sqlite` + Drizzle (Postgres later when we need multi-process), `Bun.serve()` for HTTP, WebCrypto AES-GCM envelope encryption for refresh tokens, `bun test` for tests.
+Deno runtime with scoped per-task permissions, `node:sqlite` + Drizzle (Postgres later when we need multi-process), `Deno.serve` over a URLPattern-based dispatcher for HTTP, WebCrypto AES-GCM envelope encryption for refresh tokens, `deno test` (JSR `@std/testing/bdd` + `@std/expect`).
 
 ## Contributing
 

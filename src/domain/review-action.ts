@@ -1,3 +1,4 @@
+import { Buffer } from "node:buffer";
 import { and, eq } from "drizzle-orm";
 import { db } from "../db/client.ts";
 import {
@@ -167,7 +168,7 @@ export async function redeemReviewActionToken(
   });
 
   // Notify the request creator after the transaction commits. Async work
-  // can't live inside `db.transaction`'s callback (bun:sqlite is sync),
+  // can't live inside `db.transaction`'s callback (node:sqlite is sync),
   // and the notification isn't part of the atomic state transition — a
   // failure here must not roll back the redeem.
   if (outcome.ok && resolved !== null) {

@@ -1,4 +1,6 @@
-import { beforeEach, describe, expect, test } from "bun:test";
+import "../../test/setup.ts";
+import { beforeEach, describe, it as test } from "@std/testing/bdd";
+import { expect } from "@std/expect";
 import {
   cleanDb,
   seedDerivative,
@@ -326,7 +328,7 @@ describe("listDerivatives", () => {
       overlayId: ovA.id,
       audienceLabel: "first",
     });
-    // bun:sqlite stores createdAt as ms — wait a tick so the order test is
+    // node:sqlite stores createdAt as ms — wait a tick so the order test is
     // stable on fast hardware.
     await new Promise((r) => setTimeout(r, 5));
     const d2 = await seedDerivative({

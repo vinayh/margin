@@ -1,5 +1,5 @@
 /* Tailwind entry for the backend HTML pages (oauth bridge, picker shell,
- * picker errors, magic-link review). Compiled by `bunx tailwindcss` to
+ * picker errors, magic-link review). Compiled by `npx @tailwindcss/cli` to
  * `dist/backend.css` at Docker build time and served by `GET /static/:filename`.
  *
  * Tailwind v4 auto-detects content paths; we add explicit @source for the

@@ -1,0 +1,102 @@
+{
+  // Hybrid repo: Deno owns the backend (src/, test/). The WXT extension and
+  // Astro site still build under Node — their scripts live in package.json.
+  "nodeModulesDir": "auto",
+
+  "tasks": {
+    // Scoped permission grants per task. The story is: a compromised dep
+    // can't reach env vars we didn't list, can't dial hosts outside the
+    // allowlist, can't reach IMDS even if --allow-net widens.
+    //
+    // `margin` (CLI) keeps --allow-env/--allow-net broad: subcommands span
+    // ad-hoc dev paths (e2e seed, smoke tests, watcher subscribe) and we
+    // optimize for human-driven exploration. The Dockerfile CMD uses the
+    // tight allow-lists for `serve`/`migrate` in production.
+    "margin": {
+      "description": "CLI dispatcher (bun margin → deno task margin)",
+      "command": "deno run --allow-env --allow-read --allow-write --allow-net --allow-sys --deny-net=169.254.169.254,[fd00:ec2::254],metadata.google.internal,_metadata.flyio.internal src/cli/index.ts"
+    },
+    "migrate": {
+      "description": "Apply drizzle migrations",
+      "command": "deno run --allow-env=MARGIN_DB_PATH,NODE_ENV --allow-read --allow-write --allow-sys src/db/migrate.ts"
+    },
+    "serve": {
+      "description": "HTTP API host",
+      "command": "deno run --allow-env=GOOGLE_CLIENT_ID,GOOGLE_CLIENT_SECRET,GOOGLE_API_KEY,GOOGLE_PROJECT_NUMBER,MARGIN_MASTER_KEY,MARGIN_DB_PATH,MARGIN_PUBLIC_BASE_URL,MARGIN_TRUST_PROXY,MARGIN_SLACK_WEBHOOK_URL,MARGIN_EMAIL_TRANSPORT,MARGIN_EMAIL_FROM,RESEND_API_KEY,PORT,DEBUG,NODE_ENV,LANG,TEST,BETTER_AUTH_SECRET,BETTER_AUTH_SECRETS,BETTER_AUTH_URL,BETTER_AUTH_TRUSTED_ORIGINS,BETTER_AUTH_TELEMETRY,BETTER_AUTH_TELEMETRY_DEBUG,BETTER_AUTH_TELEMETRY_ID,BETTER_AUTH_TELEMETRY_ENDPOINT,AUTH_SECRET,BASE_URL,DATABASE_URL,DATABASE_HOST,DATABASE_PASSWORD,DATABASE_USERNAME,NETLIFY_URL,NETLIFY_DB_DRIVER,NETLIFY_DB_URL,VERCEL_URL,RENDER_URL,AWS_LAMBDA_FUNCTION_NAME,AZURE_FUNCTION_NAME,GOOGLE_CLOUD_FUNCTION_NAME,NEXT_PUBLIC_AUTH_URL,NEXT_PUBLIC_BETTER_AUTH_URL,NEXTAUTH_URL,NUXT_PUBLIC_AUTH_URL,NUXT_PUBLIC_BETTER_AUTH_URL,PUBLIC_BETTER_AUTH_URL,AUTH0_CLIENT_ID,AUTH0_CLIENT_SECRET,AUTH0_DOMAIN,GUMROAD_CLIENT_ID,GUMROAD_CLIENT_SECRET,HUBSPOT_CLIENT_ID,HUBSPOT_CLIENT_SECRET,KEYCLOAK_CLIENT_ID,KEYCLOAK_CLIENT_SECRET,KEYCLOAK_ISSUER,LINE_JP_CLIENT_ID,LINE_JP_CLIENT_SECRET,LINE_TH_CLIENT_ID,LINE_TH_CLIENT_SECRET,LINE_TW_CLIENT_ID,LINE_TW_CLIENT_SECRET,MS_APP_ID,MS_CLIENT_SECRET,MS_TENANT_ID,OKTA_CLIENT_ID,OKTA_CLIENT_SECRET,OKTA_ISSUER,PATREON_CLIENT_ID,PATREON_CLIENT_SECRET,SLACK_CLIENT_ID,SLACK_CLIENT_SECRET,CI,CI_NAME,CONTINUOUS_INTEGRATION,TF_BUILD,AGENT_NAME,APPVEYOR,BUILDKITE,CIRCLECI,DRONE,GITEA_ACTIONS,GITHUB_ACTIONS,GITLAB_CI,TRAVIS,TEAMCITY_VERSION,BUILD_ID,BUILD_NUMBER,CI_APP_ID,CI_BUILD_ID,CI_BUILD_NUMBER,RUN_ID,PACKAGE_VERSION,COLORTERM,TERM,TERM_PROGRAM,TERM_PROGRAM_VERSION,TMUX,FORCE_COLOR,NO_COLOR,NODE_DISABLE_COLORS,npm_config_user_agent --allow-read --allow-write --allow-sys --allow-net=oauth2.googleapis.com:443,www.googleapis.com:443,docs.googleapis.com:443,content.googleapis.com:443,api.resend.com:443,hooks.slack.com:443,0.0.0.0:8787,127.0.0.1:8787 --deny-net=169.254.169.254,[fd00:ec2::254],metadata.google.internal,_metadata.flyio.internal src/cli/index.ts serve"
+    },
+    "test": {
+      "description": "Unit + route tests",
+      "command": "deno test --allow-env --allow-read --allow-write --allow-net --allow-sys --allow-run --no-check"
+    },
+    "test:coverage": {
+      "description": "deno test with lcov coverage",
+      "command": "deno test --allow-env --allow-read --allow-write --allow-net --allow-sys --allow-run --no-check --coverage=coverage && deno coverage --lcov --output=coverage/lcov.info coverage"
+    },
+    "test:integration": {
+      "description": "Live-Google integration suite",
+      "command": "deno test --allow-env --allow-read --allow-write --allow-net --allow-sys --allow-run --no-check test/smoke.integration.test.ts"
+    },
+    "typecheck": {
+      "description": "Type-check the backend (src/ + test/)",
+      "command": "deno check src/ test/"
+    }
+  },
+
+  "imports": {
+    "@std/expect": "jsr:@std/expect@^1.0.18",
+    "@std/testing/bdd": "jsr:@std/testing@^1.0.18/bdd",
+    "@std/fs/walk": "jsr:@std/fs@^1.0.20/walk",
+    "@std/path": "jsr:@std/path@^1.1.2"
+  },
+
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact",
+    "lib": ["esnext", "dom", "dom.iterable", "deno.ns"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true
+  },
+
+  "fmt": {
+    "lineWidth": 100,
+    "indentWidth": 2,
+    "singleQuote": false,
+    "exclude": [
+      "site/",
+      "surfaces/extension/.output/",
+      "surfaces/extension/.wxt/",
+      "coverage/",
+      "node_modules/",
+      "drizzle/"
+    ]
+  },
+
+  "lint": {
+    "exclude": [
+      "site/",
+      "surfaces/extension/.output/",
+      "surfaces/extension/.wxt/",
+      "coverage/",
+      "node_modules/",
+      "drizzle/"
+    ]
+  },
+
+  // Don't typecheck or lint the Node-only surfaces; they have their own setup.
+  // surfaces/extension/ in full — the extension is WXT/Node-built and its
+  // *.test.ts files still target a Node test runner (or none at all).
+  "exclude": [
+    "site/",
+    "surfaces/",
+    "coverage/",
+    "node_modules/",
+    "dist/",
+    "drizzle/",
+    ".margin-test-chrome/"
+  ],
+  "test": {
+    "include": ["src/", "test/"]
+  }
+}

@@ -53,7 +53,7 @@ let testOverride: SlackTransport | null = null;
 
 /**
  * Resolve the active transport from env on each call (config getters are
- * lazy + tests may mutate Bun.env between cases). `_setSlackTransportForTests`
+ * lazy + tests may mutate Deno.env between cases). `_setSlackTransportForTests`
  * takes precedence so tests don't need to set env at all.
  */
 export function getSlackTransport(): SlackTransport {

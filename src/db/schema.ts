@@ -245,7 +245,7 @@ export type CanonicalCommentStatus = "open" | "addressed" | "wontfix" | "superse
  * - `suggestion_insert` / `suggestion_delete`: a tracked-change suggestion. Author/timestamp
  *   aren't surfaced by `documents.get`; resolving via the Drive revisions API is deferred
  *   (SPEC Phase 6). Reply threads on a suggestion are stored internally by Google and not
- *   exposed by any public API (verified empirically). Use `bun margin inspect <url>` to confirm.
+ *   exposed by any public API (verified empirically). Use `deno task margin inspect <url>` to confirm.
  */
 export type CanonicalCommentKind = "comment" | "suggestion_insert" | "suggestion_delete";
 

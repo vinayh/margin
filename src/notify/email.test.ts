@@ -1,4 +1,6 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import "../../test/setup.ts";
+import { afterEach, describe, it as test } from "@std/testing/bdd";
+import { expect } from "@std/expect";
 import { setFetch } from "../../test/fetch.ts";
 import {
   LogEmailTransport,
@@ -11,9 +13,9 @@ const realFetch = globalThis.fetch;
 afterEach(() => {
   globalThis.fetch = realFetch;
   _setEmailTransportForTests(null);
-  delete (Bun.env as Record<string, string | undefined>).MARGIN_EMAIL_TRANSPORT;
-  delete (Bun.env as Record<string, string | undefined>).RESEND_API_KEY;
-  delete (Bun.env as Record<string, string | undefined>).MARGIN_EMAIL_FROM;
+  Deno.env.delete("MARGIN_EMAIL_TRANSPORT");
+  Deno.env.delete("RESEND_API_KEY");
+  Deno.env.delete("MARGIN_EMAIL_FROM");
 });
 
 describe("ResendEmailTransport", () => {
@@ -90,15 +92,15 @@ describe("getEmailTransport", () => {
   });
 
   test("returns ResendEmailTransport when MARGIN_EMAIL_TRANSPORT=resend and keys are set", () => {
-    Bun.env.MARGIN_EMAIL_TRANSPORT = "resend";
-    Bun.env.RESEND_API_KEY = "rk_test";
-    Bun.env.MARGIN_EMAIL_FROM = "hi@example.com";
+    Deno.env.set("MARGIN_EMAIL_TRANSPORT", "resend");
+    Deno.env.set("RESEND_API_KEY", "rk_test");
+    Deno.env.set("MARGIN_EMAIL_FROM", "hi@example.com");
     const t = getEmailTransport();
     expect(t).toBeInstanceOf(ResendEmailTransport);
   });
 
   test("throws on invalid MARGIN_EMAIL_TRANSPORT value", () => {
-    Bun.env.MARGIN_EMAIL_TRANSPORT = "smtp";
+    Deno.env.set("MARGIN_EMAIL_TRANSPORT", "smtp");
     expect(() => getEmailTransport()).toThrow(/invalid env var MARGIN_EMAIL_TRANSPORT/);
   });
 

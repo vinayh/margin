@@ -4,12 +4,11 @@
  * tight allow-list keyed by filename, long-cache + immutable.
  *
  * The Dockerfile's styles stage emits `dist/backend.css`; locally the
- * developer runs `bunx tailwindcss -i src/api/styles/input.css -o
+ * developer runs `npx @tailwindcss/cli -i src/api/styles/input.css -o
  * dist/backend.css` once (or as part of a watch script). Paths are
  * resolved relative to the cwd (= repo root in dev, /app in the image).
  */
 
-import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 
 const STATIC_FILES: Record<string, { path: string; contentType: string }> = {
@@ -22,8 +21,14 @@ export async function handleStaticAsset(req: Request): Promise<Response> {
   const entry = STATIC_FILES[name];
   if (!entry) return new Response("not found", { status: 404 });
   const abs = resolve(entry.path);
-  if (!existsSync(abs)) return new Response("not built", { status: 503 });
-  return new Response(Bun.file(abs), {
+  let file: Deno.FsFile;
+  try {
+    file = await Deno.open(abs);
+  } catch (err) {
+    if (err instanceof Deno.errors.NotFound) return new Response("not built", { status: 503 });
+    throw err;
+  }
+  return new Response(file.readable, {
     status: 200,
     headers: {
       "content-type": entry.contentType,

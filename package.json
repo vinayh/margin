@@ -3,12 +3,6 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "margin": "bun src/cli/index.ts",
-    "migrate": "bun src/db/migrate.ts",
-    "test": "bun test",
-    "test:coverage": "bun test --coverage --coverage-reporter=lcov --coverage-dir=coverage",
-    "test:integration": "bun test test/smoke.integration.test.ts",
-    "typecheck": "tsc --noEmit",
     "ext:dev": "cd surfaces/extension && wxt",
     "ext:dev:firefox": "cd surfaces/extension && wxt -b firefox",
     "ext:build": "cd surfaces/extension && wxt build",
@@ -23,9 +17,8 @@
     "@preact/preset-vite": "^2.10.5",
     "@tailwindcss/cli": "^4.3.0",
     "@tailwindcss/vite": "^4.3.0",
-    "@types/bun": "latest",
     "@types/chrome": "^0.1.42",
-    "drizzle-kit": "^0.31.10",
+    "drizzle-kit": "1.0.0-rc.3",
     "tailwindcss": "^4.3.0",
     "wxt": "^0.20.26"
   },
@@ -35,7 +28,7 @@
   "dependencies": {
     "better-auth": "^1.6.11",
     "diff": "^9.0.0",
-    "drizzle-orm": "^0.45.2",
+    "drizzle-orm": "1.0.0-rc.3",
     "fast-xml-parser": "^5.8.0",
     "fflate": "^0.8.2",
     "lucide": "^1.16.0",

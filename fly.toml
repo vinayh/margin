@@ -2,12 +2,12 @@
 # set `app` on first launch / `fly apps create`.
 #
 # Why these knobs:
-# - SQLite (`bun:sqlite`) lives on a Fly Volume mounted at /data so it
+# - SQLite (`node:sqlite`) lives on a Fly Volume mounted at /data so it
 #   survives machine restarts. MARGIN_DB_PATH points at it.
 # - min_machines_running = 1 keeps the Drive `files.watch` webhook
 #   reachable without cold-start drops (SPEC §9.3). Auto-stop still
 #   trims any auto-scaled extras when idle.
-# - Health check hits /healthz (served by `bun margin serve`).
+# - Health check hits /healthz (served by `deno task serve`).
 # - Secrets (GOOGLE_*, MARGIN_MASTER_KEY, BETTER_AUTH_SECRET) are set via
 #   `fly secrets set`.
 
@@ -26,6 +26,9 @@ primary_region = "lhr"
   # Fly's edge sets `Fly-Client-IP` / `X-Forwarded-For` for every request;
   # opt in so the rate limiter buckets per real client instead of per edge IP.
   MARGIN_TRUST_PROXY = "1"
+  # Opt out of Better Auth's telemetry. The runtime env doesn't otherwise
+  # set this; explicit "0" makes the intent durable.
+  BETTER_AUTH_TELEMETRY = "0"
 
 [[mounts]]
   source = "margin_data"

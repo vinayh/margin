@@ -3,7 +3,7 @@
 End-to-end checklist for the browser extension + the backend routes it depends on.
 Walk through top to bottom; each step is self-contained so you can stop and resume.
 
-Assumes a local backend at `http://localhost:8787` (`bun margin serve`) and a fresh
+Assumes a local backend at `http://localhost:8787` (`deno task serve`) and a fresh
 Chrome profile with `dist/chrome-mv3` loaded unpacked. Repeat §10–11 against
 Firefox (`dist/firefox-mv3`) and Edge.
 
@@ -11,7 +11,7 @@ Firefox (`dist/firefox-mv3`) and Edge.
 
 ## 1. Install & first-run
 
-1. `bun run ext:build` → load `surfaces/extension/dist/chrome-mv3` via
+1. `npm run ext:build` → load `surfaces/extension/dist/chrome-mv3` via
    `chrome://extensions` → Developer Mode → **Load unpacked**.
 2. Confirm the toolbar icon appears.
 3. Confirm the **Options** page opens in a tab (not a popup) automatically
@@ -82,7 +82,7 @@ Firefox (`dist/firefox-mv3`) and Edge.
    updates) should show: role (parent/version), version label, comment
    count, last-synced timestamp, **Sync now**.
 5. Click **Sync now** → comment count + last-synced refresh.
-6. Force a backend error (stop `bun margin serve`) → click **Sync now**
+6. Force a backend error (stop `deno task serve`) → click **Sync now**
    → expect **ErrorView** with retry. Restart the backend; retry
    succeeds.
 

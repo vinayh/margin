@@ -1,4 +1,6 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import "../../test/setup.ts";
+import { afterEach, describe, it as test } from "@std/testing/bdd";
+import { expect } from "@std/expect";
 import { setFetch } from "../../test/fetch.ts";
 import {
   GoogleApiError,

@@ -21,7 +21,8 @@ export async function handleFontRequest(req: Request): Promise<Response> {
   const name = url.pathname.replace(/^\/fonts\//, "");
   const fileUrl = FONT_FILES[name];
   if (!fileUrl) return new Response("not found", { status: 404 });
-  return new Response(Bun.file(fileUrl), {
+  const file = await Deno.open(fileUrl);
+  return new Response(file.readable, {
     status: 200,
     headers: {
       "content-type": "font/woff2",

@@ -1,4 +1,6 @@
-import { beforeEach, describe, expect, test } from "bun:test";
+import "../../test/setup.ts";
+import { beforeEach, describe, it as test } from "@std/testing/bdd";
+import { expect } from "@std/expect";
 import { startServer } from "./server.ts";
 import { IP_LIMIT, _resetRateLimitForTests } from "./rate-limit.ts";
 
@@ -7,7 +9,10 @@ beforeEach(_resetRateLimitForTests);
 /**
  * Smoke-tests for the route table and background-loop wiring. We bind to
  * port 0 so each run gets a free OS-assigned port — running tests in
- * parallel with `bun test` would otherwise step on one another.
+ * parallel with `deno test` would otherwise step on one another.
+ *
+ * Deno's leak detector fails the file if a fetch Response body is left
+ * unread, so every fetch below either consumes the body or cancels it.
  */
 describe("startServer route table", () => {
   test("/healthz responds 200 with { ok: true }", async () => {
@@ -128,7 +133,7 @@ describe("startServer route table", () => {
 
   test("burning the full IP budget yields 429 with Retry-After", async () => {
     // Real fetches against the running server so the bucket key — keyed on
-    // the socket-level IP that Bun.serve hands rateLimitGate via
+    // the socket-level IP that Deno.serve hands rateLimitGate via
     // `server.requestIP(req)` — matches what the test is exercising.
     const server = startServer({ port: 0, backgroundLoops: false });
     try {
@@ -193,24 +198,24 @@ describe("startServer background loops", () => {
   test("backgroundLoops:false boots clean and stops without dangling timers", async () => {
     const server = startServer({ port: 0, backgroundLoops: false });
     await server.stop();
-    // If a setInterval slipped through, Bun's test runner would warn about
+    // If a setInterval slipped through, Deno's leak detector would fire on
     // the open handle keeping the test process alive. Reaching this line is
     // the assertion.
     expect(true).toBe(true);
   });
 
   test("backgroundLoops on with no MARGIN_PUBLIC_BASE_URL is a no-op", async () => {
-    // .env doesn't set MARGIN_PUBLIC_BASE_URL during `bun test`, so the
+    // .env doesn't set MARGIN_PUBLIC_BASE_URL during `deno test`, so the
     // loop initializer logs "skipping" and schedules nothing. Just verify
     // the server still boots and stops.
-    const original = Bun.env.MARGIN_PUBLIC_BASE_URL;
-    delete Bun.env.MARGIN_PUBLIC_BASE_URL;
+    const original = Deno.env.get("MARGIN_PUBLIC_BASE_URL");
+    Deno.env.delete("MARGIN_PUBLIC_BASE_URL");
     try {
       const server = startServer({ port: 0, backgroundLoops: true });
       await server.stop();
       expect(true).toBe(true);
     } finally {
-      if (original !== undefined) Bun.env.MARGIN_PUBLIC_BASE_URL = original;
+      if (original !== undefined) Deno.env.set("MARGIN_PUBLIC_BASE_URL", original);
     }
   });
 });

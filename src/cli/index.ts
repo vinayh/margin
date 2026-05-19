@@ -33,7 +33,7 @@ const isHelp = name === "--help" || name === "-h";
 
 if (!name || isHelp || !commands[name]) {
   const known = Object.keys(commands).join(" | ");
-  console.error(`usage: bun margin <${known}> [...args]`);
+  console.error(`usage: deno task margin <${known}> [...args]`);
   // Unknown command is a usage error (exit 2 per Unix convention); --help is exit 0.
   process.exit(name && !isHelp ? 2 : 0);
 }

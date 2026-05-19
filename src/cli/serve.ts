@@ -1,13 +1,13 @@
 import { parseArgs } from "node:util";
 import * as v from "valibot";
-import { migrate } from "drizzle-orm/bun-sqlite/migrator";
+import { migrate } from "drizzle-orm/node-sqlite/migrator";
 import { startServer } from "../api/server.ts";
 import { db, sqlite } from "../db/client.ts";
 import { parseNumberArg } from "./util.ts";
 
 const USAGE = `\
 usage:
-  bun margin serve [--port <n>]`;
+  deno task serve [--port <n>]`;
 
 export async function run(args: string[]): Promise<void> {
   const { values } = parseArgs({
@@ -25,8 +25,8 @@ export async function run(args: string[]): Promise<void> {
   );
 
   // Apply pending migrations before the server binds. The Dockerfile invokes
-  // `bun src/db/migrate.ts` ahead of `serve`; running it here too lets
-  // `bun margin serve` outside the container match that contract instead of
+  // `deno task migrate` ahead of `serve`; running it here too lets
+  // `deno task serve` outside the container match that contract instead of
   // surfacing schema drift as a 500 from `no such column: …`.
   migrate(db, { migrationsFolder: "./drizzle" });
 

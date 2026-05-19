@@ -1,4 +1,7 @@
-import { test, expect, describe, beforeAll } from "bun:test";
+import "../../test/setup.ts";
+import { beforeAll, describe, it as test } from "@std/testing/bdd";
+import { expect } from "@std/expect";
+import { Buffer } from "node:buffer";
 import {
   importMasterKey,
   encrypt,
@@ -77,9 +80,9 @@ describe("master-key roundtrip", () => {
     // `getMasterKey` reads `config.masterKeyB64`, which calls `required(...)`.
     // The repo's `.env` already provides this, but pin a deterministic value
     // here so the test doesn't depend on the developer's local env.
-    Bun.env.MARGIN_MASTER_KEY = Buffer.from(
+    Deno.env.set("MARGIN_MASTER_KEY", Buffer.from(
       crypto.getRandomValues(new Uint8Array(32)),
-    ).toString("base64");
+    ).toString("base64"));
   });
 
   test("encryptWithMaster → decryptWithMaster round-trips", async () => {

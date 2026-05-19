@@ -1,10 +1,11 @@
+import { createHash } from "node:crypto";
 import type { ParagraphText, RegionParagraphText } from "../google/docs.ts";
 import type { CommentAnchor, DocRegion } from "../db/schema.ts";
 
 export const CONTEXT_CHARS = 32;
 
 export function sha256Hex(text: string): string {
-  return new Bun.CryptoHasher("sha256").update(text).digest("hex");
+  return createHash("sha256").update(text).digest("hex");
 }
 
 // Anchor-shaped alias kept so callers that hash a paragraph for the

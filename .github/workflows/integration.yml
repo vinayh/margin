@@ -25,16 +25,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: oven-sh/setup-bun@v2
+      - uses: denoland/setup-deno@v2
         with:
-          bun-version: latest
-      - run: bun install --frozen-lockfile
-      - run: bun run typecheck
+          deno-version: v2.x
+      - run: deno install --frozen
+      - run: deno task typecheck
 
       - name: Run integration tests with coverage
-        # Bun picks up every *.integration.test.ts file under test/ — new
-        # integration files don't need to be listed here individually.
-        run: bun test 'test/*.integration.test.ts' --coverage --coverage-reporter=lcov --coverage-dir=coverage
+        # Deno test picks up every *.integration.test.ts file under test/
+        # — new integration files don't need to be listed here individually.
+        run: deno test --allow-env --allow-read --allow-write --allow-net --allow-sys --allow-run --no-check --coverage=coverage 'test/*.integration.test.ts' && deno coverage --lcov --output=coverage/lcov.info coverage
         env:
           GOOGLE_CI_REFRESH_TOKEN: ${{ secrets.GOOGLE_CI_REFRESH_TOKEN }}
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}

@@ -44,7 +44,7 @@ export async function upsertCanonical(args: UpsertArgs): Promise<string> {
   args.seenExternalIds?.add(args.googleCommentId);
   // `userIdByEmail` hits the DB but isn't part of the upsert atomicity — pull
   // it outside the transaction so the txn callback can stay synchronous
-  // (bun:sqlite transactions cannot await).
+  // (node:sqlite transactions cannot await).
   const originUserId = await userIdByEmail(args.authorEmail);
 
   try {
