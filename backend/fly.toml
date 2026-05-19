@@ -10,11 +10,20 @@
 # - Health check hits /healthz (served by `deno task serve`).
 # - Secrets (GOOGLE_*, MARGIN_MASTER_KEY, BETTER_AUTH_SECRET) are set via
 #   `fly secrets set`.
+#
+# Build context note: the Dockerfile needs both backend/ and shared/, so
+# the Docker build context is the repo root. Invoke as
+# `flyctl deploy --config backend/fly.toml` from the repo root —
+# flyctl's workdir defaults to cwd (which becomes the build context),
+# and --config points at this file. The `dockerfile = "Dockerfile"`
+# entry below is resolved relative to this fly.toml, so it picks up
+# backend/Dockerfile.
 
 app = "margin-server"
 primary_region = "lhr"
 
 [build]
+  dockerfile = "Dockerfile"
 
 [env]
   PORT = "8787"

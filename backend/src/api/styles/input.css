@@ -7,7 +7,7 @@
  * caller's working directory. */
 
 @import "tailwindcss";
-@import "../../../tokens.css";
+@import "../../../../shared/tokens.css";
 
 @source "../pages/**/*.tsx";
 

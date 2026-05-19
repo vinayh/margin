@@ -12,7 +12,7 @@ Comment ingest is not an extension concern; it lives in the backend (`.docx` exp
 [WXT](https://wxt.dev) drives the build (Vite under the hood). The extension is its own Bun workspace with `package.json` + `bun.lock` here; root scripts don't drive it. Backend stays on Deno.
 
 ```sh
-cd surfaces/extension
+cd extension
 bun install                    # first time / after package.json bumps
 bun run build                  # production build, Chrome/Edge target
 bun run build:firefox          # production build, Firefox target
@@ -21,7 +21,7 @@ bun run dev:firefox            # dev server with HMR (Firefox)
 bun run zip                    # bundle dist/<target>/ into a publishable .zip
 ```
 
-Outputs to `surfaces/extension/dist/{chrome-mv3,firefox-mv3}/`. Each output directory is loadable directly:
+Outputs to `extension/dist/{chrome-mv3,firefox-mv3}/`. Each output directory is loadable directly:
 
 - **Chrome / Edge:** `chrome://extensions` → enable Developer Mode → Load unpacked → pick `dist/chrome-mv3`.
 - **Firefox:** `about:debugging#/runtime/this-firefox` → Load Temporary Add-on → pick any file inside `dist/firefox-mv3` (e.g. `manifest.json`).
@@ -72,7 +72,7 @@ Tracked docs use `DocState.title` from `/api/extension/doc-state`, which is the 
 ## Layout
 
 ```
-surfaces/extension/
+extension/
   wxt.config.ts             one config, per-browser manifest via (env) callback
   tsconfig.json             extends .wxt/tsconfig.json + DOM + WebWorker libs
   entrypoints/

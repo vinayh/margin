@@ -18,6 +18,9 @@ env:
 jobs:
   test:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
     steps:
       - uses: actions/checkout@v6
       - uses: denoland/setup-deno@v2
@@ -31,7 +34,7 @@ jobs:
         uses: codecov/codecov-action@v6
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
-          files: coverage/lcov.info
+          files: backend/coverage/lcov.info
           # `flags: unit` tags this upload so the nightly `integration.yml`
           # workflow can upload its own report under `flags: integration`.
           # Codecov merges flagged reports into the project total and lets
@@ -46,6 +49,9 @@ jobs:
   # package would fail to type-check under a prod-only node_modules.
   prod-resolve:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
     steps:
       - uses: actions/checkout@v6
       - uses: denoland/setup-deno@v2
@@ -91,6 +97,10 @@ jobs:
             | xargs -r flyctl machine start -a margin-server
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
-      - run: flyctl deploy --remote-only
+      # Run from the repo root so the Docker build context is the repo root
+      # (the styles stage reaches into shared/tokens.css). Point flyctl at
+      # the moved config with --config; the dockerfile path inside fly.toml
+      # is resolved relative to the config file.
+      - run: flyctl deploy --config backend/fly.toml --remote-only
         env:
           FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

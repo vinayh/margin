@@ -54,7 +54,7 @@ describe("response helpers", () => {
 
 /**
  * AGENTS.md endorses the hand-mirrored copy in
- * `surfaces/extension/utils/messages.ts` (the extension bundle can't import
+ * `extension/utils/messages.ts` (the extension bundle can't import
  * backend code). This guard pins the two values so a drift on either side
  * is the failing case here, not a silent SW-vs-API discrepancy.
  */
@@ -62,7 +62,7 @@ describe("id-length parity (backend ↔ extension)", () => {
   test("MAX_ID_LEN matches the extension's mirror", async () => {
     // String import keeps this file out of the extension's bundle graph.
     const text = await Deno.readTextFile(
-      new URL("../../surfaces/extension/utils/messages.ts", import.meta.url),
+      new URL("../../../extension/utils/messages.ts", import.meta.url),
     );
     const match = /const\s+MAX_ID_LEN\s*=\s*(\d+)\s*;/.exec(text);
     expect(match).not.toBeNull();

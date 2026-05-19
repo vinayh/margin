@@ -15,7 +15,7 @@ import {
 } from "../domain/review.ts";
 
 const MAX_BODY_BYTES = 16 * 1024;
-// Matches src/domain/settings.ts and surfaces/extension/utils/messages.ts —
+// Matches src/domain/settings.ts and extension/utils/messages.ts —
 // the default-reviewers field feeds review requests, so the ceiling has to
 // be the same on all three layers.
 const MAX_EMAILS = 64;

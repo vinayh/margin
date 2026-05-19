@@ -1,6 +1,6 @@
 /* Margin design tokens. Single source of truth for colors + font families.
  * Imported by `site/src/styles/global.css` (Astro), `src/api/styles/input.css`
- * (backend Tailwind build), and `surfaces/extension/ui/extension.css`.
+ * (backend Tailwind build), and `extension/ui/extension.css`.
  *
  * Light palette lives in @theme so Tailwind v4 generates utility classes
  * from these names. The dark palette overrides the same CSS variables via

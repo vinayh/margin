@@ -1,6 +1,7 @@
 {
-  // Hybrid repo: Deno owns the backend (src/, test/). The WXT extension and
-  // Astro site still build under Node — their scripts live in package.json.
+  // Deno config for the backend workspace. The WXT extension (../extension)
+  // and Astro site (../site) are independent Bun workspaces and live
+  // outside this directory, so they don't appear in the exclude list.
   "nodeModulesDir": "auto",
 
   "tasks": {
@@ -64,9 +65,6 @@
     "indentWidth": 2,
     "singleQuote": false,
     "exclude": [
-      "site/",
-      "surfaces/extension/.output/",
-      "surfaces/extension/.wxt/",
       "coverage/",
       "node_modules/",
       "drizzle/"
@@ -75,26 +73,17 @@
 
   "lint": {
     "exclude": [
-      "site/",
-      "surfaces/extension/.output/",
-      "surfaces/extension/.wxt/",
       "coverage/",
       "node_modules/",
       "drizzle/"
     ]
   },
 
-  // Don't typecheck or lint the Node-only surfaces; they have their own setup.
-  // surfaces/extension/ in full — the extension is WXT/Node-built and its
-  // *.test.ts files still target a Node test runner (or none at all).
   "exclude": [
-    "site/",
-    "surfaces/",
     "coverage/",
     "node_modules/",
     "dist/",
-    "drizzle/",
-    ".margin-test-chrome/"
+    "drizzle/"
   ],
   "test": {
     "include": ["src/", "test/"]

@@ -1,5 +1,7 @@
 # Project Spec: Margin (Research Doc Review & Versioning)
 
+**Path conventions.** Source paths shown as `src/...`, `test/...`, `drizzle/...`, `deno.jsonc`, `Dockerfile`, `fly.toml` are relative to the `backend/` workspace. Shared assets sit under `shared/`; the public site lives in `site/` and the extension in `extension/`.
+
 ## 1. Objective
 
 Margin helps research teams run structured review of Google Docs across drafts, audiences, and orgs without leaving Docs. It addresses three pain points:
@@ -107,7 +109,7 @@ Chrome / Firefox / Edge extension: popup + options + side panel. The extension i
 - **Rich UI (side panel).** Preact app: project dashboard (versions, derivatives, review history, reviewer participation), structured side-by-side version diff, comment reconciliation list. Talks to backend with the user's Better Auth session token (acquired via §6.3) sent as `Authorization: Bearer …` from the SW.
 - **Visualization (Phase 6).** Highlights overlaid on the doc body, gutter markers, hover previews, right-click "comment on selection," native-comment-rail integration. Doc body is `<canvas>` (§9.6), so this needs the accessibility-DOM mirror or selection-event hooks. This is the only future role that touches the doc page; if it ships, it will reintroduce `host_permissions` on `docs.google.com/*` and a content script, but only to read selection events / a11y-mirror coordinates, never comment data.
 
-Implementation detail (popup state machine, tab-based OAuth bridge, backend-hosted Picker mechanics, manifest permissions, cross-browser shim) lives in [`surfaces/extension/README.md`](../surfaces/extension/README.md). Conventions for working on this surface: [`AGENTS.md`](../AGENTS.md#browser-extension-surfacesextension).
+Implementation detail (popup state machine, tab-based OAuth bridge, backend-hosted Picker mechanics, manifest permissions, cross-browser shim) lives in [`extension/README.md`](../extension/README.md). Conventions for working on this surface: [`AGENTS.md`](../AGENTS.md#browser-extension-extension).
 
 **Out of scope:** mobile / iPad Docs.
 
@@ -273,7 +275,7 @@ Routes:
 - `POST /api/picker/register-doc`: resolves caller (cookie or bearer) and calls `createProject`.
 - CORS allow-list covers Chromium / Firefox extension origins + localhost on `/api/extension/*` and `/api/picker/register-doc`. Requests carrying a non-allow-listed `Origin` are rejected server-side with 403; requests with no `Origin` (curl / CI / cron) pass through, since bearer-token confidentiality is the access boundary there.
 
-Popup state machine + OAuth/Picker mechanics live in [`surfaces/extension/README.md`](../surfaces/extension/README.md). The popup never holds the session token; everything routes through the SW.
+Popup state machine + OAuth/Picker mechanics live in [`extension/README.md`](../extension/README.md). The popup never holds the session token; everything routes through the SW.
 
 ### Phase 4: Extension rich UI + docx-export ingest + magic-link action handlers
 **Status: shipped.** ✅

@@ -4,32 +4,40 @@ Phased build plan in [`docs/spec.md` §12](./docs/spec.md#12-build-sequence). Ea
 
 ## Repo layout
 
+Top-level deliverables (`backend/`, `site/`, `extension/`) are siblings; `shared/` holds cross-surface assets. Path references elsewhere in this doc that start with `src/`, `test/`, `drizzle/`, etc. are relative to `backend/` unless prefixed.
+
 ```
-src/
-  config.ts          lazy env-var getters; importing it doesn't require any env var
-  db/                drizzle schema (SPEC §4) + node:sqlite client + migrator
-  auth/              Better Auth server config (Google provider + bearer plugin),
+backend/             Deno backend (runtime + tests + CLI). Run `deno task ...`
+                     from inside this dir; everything below is relative to it.
+  src/
+    config.ts        lazy env-var getters; importing it doesn't require any env var
+    db/              drizzle schema (SPEC §4) + node:sqlite client + migrator
+    auth/            Better Auth server config (Google provider + bearer plugin),
                      envelope encryption, TokenProvider, test-only session helper
-  google/            endpoint-shaped REST wrappers (drive/docs + token-refresh
+    google/          endpoint-shaped REST wrappers (drive/docs + token-refresh
                      helper). No domain logic.
-  domain/            business logic composing db/google/auth. No HTTP, no CLI.
-  cli/               thin parse-and-call shells dispatched by index.ts
+    domain/          business logic composing db/google/auth. No HTTP, no CLI.
+    cli/             thin parse-and-call shells dispatched by index.ts
                      (`deno task margin <cmd>`)
-  api/               Deno.serve HTTP host. server.ts owns the route table +
+    api/             Deno.serve HTTP host. server.ts owns the route table +
                      in-process renew/poll loops; one module per route.
                      router.ts is the URLPattern-based dispatcher;
                      middleware.ts + cors.ts hold bearer-auth + CORS helpers.
-  notify/            transport abstraction for outbound notifications
+    notify/          transport abstraction for outbound notifications
                      (email.ts, slack.ts)
-surfaces/extension/  MV3 extension (Chrome / Edge / Firefox), WXT-driven.
-                     See surfaces/extension/README.md
+  test/              test suite (Deno BDD; see Tests section below)
+  drizzle/           generated migration directories (one per migration)
+  deno.jsonc         tasks + import map (margin, migrate, serve, test, …)
+  Dockerfile         multi-stage Deno-on-Alpine image; runs migrate then serve
+                     (styles stage is Node-based for @tailwindcss/cli)
+  fly.toml           Fly.io app config (see docs/deployment.md)
+shared/              cross-surface assets shared between backend, site, and
+                     extension. Currently just tokens.css (Tailwind v4 @theme).
+extension/           MV3 extension (Chrome / Edge / Firefox), WXT-driven.
+                     See extension/README.md
 site/                Astro + Preact public site; deploys to GitHub Pages
 docs/                internal markdown. Public README + contributor guide
                      stay at root.
-drizzle/             generated migration directories (one per migration)
-Dockerfile           multi-stage Deno-on-Alpine image; runs migrate then serve
-                     (the styles stage is Node-based for @tailwindcss/cli)
-fly.toml             Fly.io app config (see docs/deployment.md)
 .github/workflows/   ci.yml: deno check + deno test + codecov + fly-deploy on main.
                      integration.yml: nightly live-Google suite. pages.yml:
                      site/ → Pages
@@ -64,19 +72,19 @@ fly.toml             Fly.io app config (see docs/deployment.md)
 
 ## Frontend stack
 
-- Astro for the public site (`site/`), WXT for the extension. Preact is the shared component layer. Extension-only UI lives in `surfaces/extension/ui/`.
-- **Tailwind v4** via `@tailwindcss/vite` in both `site/astro.config.mjs` and `surfaces/extension/wxt.config.ts`. Design tokens (colors, fonts, spacing) live in `tokens.css` as a `@theme` block at the repo root. Prefer token utilities (`text-ink`, `bg-cream-2`, `border-rule`) over raw `black/N`-style classes.
+- Astro for the public site (`site/`), WXT for the extension. Preact is the shared component layer. Extension-only UI lives in `extension/ui/`.
+- **Tailwind v4** via `@tailwindcss/vite` in both `site/astro.config.mjs` and `extension/wxt.config.ts`. Design tokens (colors, fonts, spacing) live in `shared/tokens.css` as a `@theme` block. Prefer token utilities (`text-ink`, `bg-cream-2`, `border-rule`) over raw `black/N`-style classes.
 
-## Browser extension (`surfaces/extension/`)
+## Browser extension (`extension/`)
 
-Build pipeline, popup state machine, Picker mechanics, and toolbar-icon routing live in [`surfaces/extension/README.md`](./surfaces/extension/README.md). Conventions to know when working on this surface:
+Build pipeline, popup state machine, Picker mechanics, and toolbar-icon routing live in [`extension/README.md`](./extension/README.md). Conventions to know when working on this surface:
 
-- **Don't build by hand.** Always go through the WXT scripts from `surfaces/extension/`: `bun run build`, `build:firefox`, `dev`. Run `bun run prepare` after edits that affect TypeScript so `.wxt/wxt.d.ts` regenerates.
+- **Don't build by hand.** Always go through the WXT scripts from `extension/`: `bun run build`, `build:firefox`, `dev`. Run `bun run prepare` after edits that affect TypeScript so `.wxt/wxt.d.ts` regenerates.
 - **Cross-browser API.** Import `{ browser }` from `wxt/browser`; WXT ships its own promisified shim. Don't add `webextension-polyfill` (30 KB) or hand-roll a `chrome ?? browser` picker.
 - **No content script.** Ingest is server-side (`.docx` export, SPEC §9.8); the extension is a pure UI surface (popup, options, side panel). The Drive Picker is hosted on the backend at `/api/picker/page` and opens as a new tab from the popup's *Add to Margin* button.
 - **Preact only in the popup + side panel.** Options + SW stay plain TS.
 - **Backend calls go through the SW.** All popup → backend traffic uses the `Message` envelope in `utils/messages.ts`. The popup never touches the API token directly. The backend-hosted picker page calls `/api/picker/register-doc` itself with the session cookie.
-- **E2E rig via `chrome-devtools-mcp`** (`.mcp.json` at repo root). Persistent Chrome profile at `.margin-test-chrome/` (gitignored), pre-warmed with the test Google account. Use `--categoryExtensions` + the `install_extension` MCP tool against `surfaces/extension/dist/chrome-mv3` (Puppeteer-launched Chrome silently ignores `--load-extension`). After install, pre-populate settings via `chrome.storage.local.set` in the SW context, then drive a real click on the Options page's *Test connection* button to grant `http://localhost:8787/*` (Chrome rejects programmatic `permissions.request` without a user gesture).
+- **E2E rig via `chrome-devtools-mcp`** (`.mcp.json` at repo root). Persistent Chrome profile at `.margin-test-chrome/` (gitignored), pre-warmed with the test Google account. Use `--categoryExtensions` + the `install_extension` MCP tool against `extension/dist/chrome-mv3` (Puppeteer-launched Chrome silently ignores `--load-extension`). After install, pre-populate settings via `chrome.storage.local.set` in the SW context, then drive a real click on the Options page's *Test connection* button to grant `http://localhost:8787/*` (Chrome rejects programmatic `permissions.request` without a user gesture).
 
 ## Schema migrations
 
@@ -115,11 +123,11 @@ Build pipeline, popup state machine, Picker mechanics, and toolbar-icon routing 
 
 This is a dual-runtime repo:
 
-- **Backend (`src/`, `test/`) runs on Deno** (see `deno.jsonc` for tasks + import map). Permissions are scoped per task — a compromised dep can't reach env vars / hosts / paths outside the allow-list.
+- **Backend (`backend/src/`, `backend/test/`) runs on Deno** (see `backend/deno.jsonc` for tasks + import map). Run `deno task …` from inside `backend/`. Permissions are scoped per task — a compromised dep can't reach env vars / hosts / paths outside the allow-list.
   - SQLite via `node:sqlite` (Deno's built-in Node-API; no `--allow-ffi` needed). Drizzle adapter: `drizzle-orm/node-sqlite`.
   - HTTP via `Deno.serve` + the URLPattern-based dispatcher in `src/api/router.ts`.
   - Crypto via `node:crypto` (sync SHA-256 etc.) and Web Crypto where async is fine.
   - File I/O: `Deno.open` / `Deno.readTextFile` / `Deno.readFile`. For Node-API parity (`Buffer`, `Stream`) import explicitly: `import { Buffer } from "node:buffer"`.
   - Env: `Deno.env.get/set/delete`. `.env` is loaded via `--env-file=.env` if you wire it into a task; tests rely on per-process defaults set in `test/setup.ts`.
-- **WXT extension (`surfaces/extension/`) and Astro site (`site/`) are Bun workspaces** — each has its own `package.json` + `bun.lock` and is independent of the root install. Install + build with `bun install` / `bun run build` from inside the workspace dir. The root `package.json` carries only backend npm deps (Deno consumes them via `nodeModulesDir: "auto"`).
-- `drizzle.config.ts` runs under Node (drizzle-kit invokes it), so it uses `process.env`.
+- **WXT extension (`extension/`) and Astro site (`site/`) are Bun workspaces** — each has its own `package.json` + `bun.lock` and is independent of `backend/`. Install + build with `bun install` / `bun run build` from inside the workspace dir. `backend/package.json` carries only backend npm deps (Deno consumes them via `nodeModulesDir: "auto"`).
+- `backend/drizzle.config.ts` runs under Node (drizzle-kit invokes it), so it uses `process.env`.

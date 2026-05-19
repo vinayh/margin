@@ -2,10 +2,16 @@
 
 # Backend runtime + tests + CLI all run on Deno (see deno.jsonc tasks).
 # The styles stage still uses Node — `@tailwindcss/cli` is a Node tool.
+#
+# Build context: repo root (not backend/). The styles stage needs both
+# backend/src and shared/tokens.css, and the @import path inside
+# src/api/styles/input.css points up four levels into shared/. Mirroring
+# the host layout under /app keeps that relative path identical.
+# Invoke as `flyctl deploy --config backend/fly.toml` from the repo root.
 
 FROM denoland/deno:alpine AS deps
-WORKDIR /app
-COPY deno.jsonc deno.lock package.json ./
+WORKDIR /app/backend
+COPY backend/deno.jsonc backend/deno.lock backend/package.json ./
 # `deno install` reads package.json deps + the deno.jsonc imports map and
 # materializes everything into node_modules (nodeModulesDir: "auto").
 # Notes on hardening:
@@ -15,24 +21,24 @@ COPY deno.jsonc deno.lock package.json ./
 RUN deno install --frozen
 
 FROM node:24-alpine AS styles
-WORKDIR /app
-COPY package.json ./
+WORKDIR /app/backend
+COPY backend/package.json ./
 # `--legacy-peer-deps`: npm's strict resolver excludes prereleases from
 # non-prerelease ranges, so better-auth's peerOptional `drizzle-kit@">=0.31.4"`
 # refuses to coexist with our pinned `drizzle-kit@1.0.0-rc.3`. The styles
 # stage only runs Tailwind, so the conflict is irrelevant here.
 RUN npm install --no-audit --no-fund --ignore-scripts --legacy-peer-deps
-COPY src ./src
-COPY tokens.css ./
+COPY backend/src ./src
+COPY shared/tokens.css /app/shared/tokens.css
 RUN npx -y @tailwindcss/cli -i src/api/styles/input.css -o dist/backend.css --minify
 
 FROM denoland/deno:alpine
-WORKDIR /app
-COPY --from=deps /app/node_modules ./node_modules
-COPY deno.jsonc deno.lock package.json tsconfig.json ./
-COPY src ./src
-COPY drizzle ./drizzle
-COPY --from=styles /app/dist ./dist
+WORKDIR /app/backend
+COPY --from=deps /app/backend/node_modules ./node_modules
+COPY backend/deno.jsonc backend/deno.lock backend/package.json backend/tsconfig.json ./
+COPY backend/src ./src
+COPY backend/drizzle ./drizzle
+COPY --from=styles /app/backend/dist ./dist
 
 ENV NODE_ENV=production
 ENV PORT=8787

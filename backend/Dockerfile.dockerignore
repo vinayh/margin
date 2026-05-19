@@ -1,0 +1,40 @@
+# BuildKit picks this up by naming convention (Dockerfile.dockerignore
+# next to Dockerfile takes precedence over the build-context .dockerignore).
+#
+# Build context = repo root, so patterns are matched repo-wide.
+
+.git
+.github
+node_modules
+.DS_Store
+
+# Other surfaces and shared scaffolding the backend image doesn't need.
+site
+surfaces
+docs
+.scratch
+.margin-test-chrome
+.wxt
+dist
+coverage
+
+# Backend-side build/test artefacts and secrets.
+backend/node_modules
+backend/coverage
+backend/test
+backend/.env
+backend/.env.local
+backend/.env.test
+backend/*.db
+backend/*.db-shm
+backend/*.db-wal
+
+# Top-level docs we don't want inside the image.
+README.md
+SPEC.md
+AGENTS.md
+CLAUDE.md
+LICENSE
+
+# fly.toml is config for flyctl, not something the image consumes.
+backend/fly.toml

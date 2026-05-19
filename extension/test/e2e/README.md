@@ -40,7 +40,7 @@ follow-up slice when seeding a 2nd version becomes possible.
 
 ```sh
 # 1. Build a fresh extension.
-cd surfaces/extension && bun run build
+cd extension && bun run build
 
 # 2. (Re)start the local backend on :8787.
 #    Run in a separate shell or via `run_in_background`.
@@ -71,7 +71,7 @@ id returned by `install_extension`; replace `<DOC_ID>` with what
 ### A. Install the unpacked extension
 
 ```
-install_extension(path="surfaces/extension/dist/chrome-mv3")
+install_extension(path="extension/dist/chrome-mv3")
 → returns { extensionId: "<EXT_ID>" }
 ```
 

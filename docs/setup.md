@@ -4,13 +4,16 @@ Local development setup for Margin. For deployment to Fly.io see [`deployment.md
 
 ## Install + configure
 
+All backend commands run from `backend/`. `cd backend` once at the start of a session, or prefix invocations with it.
+
 1. **Install:**
 
    ```sh
+   cd backend
    deno install --frozen
    ```
 
-   This populates `node_modules/` (via `nodeModulesDir: "auto"` in `deno.jsonc`) for both the Deno backend and the npm-based extension/site builds. No separate `npm install` needed.
+   This populates `backend/node_modules/` (via `nodeModulesDir: "auto"` in `deno.jsonc`). The extension and site each have their own `node_modules/` under their workspace dirs and are independent.
 
 2. **Create a Google Cloud OAuth client.** In [console.cloud.google.com](https://console.cloud.google.com), create a project, enable the **Google Drive API**, **Google Docs API**, and **Google Picker API**, then create an OAuth 2.0 client (type: web application). Add `http://localhost:8787/api/auth/callback/google` as an authorized redirect URI (Better Auth's default callback path).
 
@@ -22,7 +25,7 @@ Local development setup for Margin. For deployment to Fly.io see [`deployment.md
    deno eval 'console.log(btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32)))))'
    ```
 
-5. **Create `.env`** by copying `.env.example` and filling in:
+5. **Create `backend/.env`** by copying `backend/.env.example` and filling in:
 
    ```
    GOOGLE_CLIENT_ID=...
@@ -36,7 +39,7 @@ Local development setup for Margin. For deployment to Fly.io see [`deployment.md
 
    Deno tasks don't auto-load `.env` by default; run them under your shell's env (`set -a; source .env; set +a`) or pass `--env-file=.env` if you wire it into a task. The Picker vars are only required for the extension's "add doc" flow. The rest of the server works without them.
 
-6. **Apply migrations:**
+6. **Apply migrations** (still inside `backend/`):
 
    ```sh
    deno task migrate
@@ -137,7 +140,7 @@ The Picker is the only mechanism that grants `drive.file` access to a doc the OA
 
 ## Test the browser extension
 
-The MV3 extension lives in [`surfaces/extension/`](../surfaces/extension/). Build, load, configure, and sign-in steps are in its [README](../surfaces/extension/README.md). End-to-end smoke test after that:
+The MV3 extension lives in [`extension/`](../extension/). Build, load, configure, and sign-in steps are in its [README](../extension/README.md). End-to-end smoke test after that:
 
 1. Start the backend: `deno task serve` (defaults to `http://localhost:8787`).
 2. Open a Google Doc, click the toolbar icon, click **Add to Margin**. The Picker tab opens; pick the doc and the page registers it as a project.

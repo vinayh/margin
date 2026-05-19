@@ -1,5 +1,5 @@
 @import "tailwindcss";
-@import "../../../tokens.css";
+@import "../../../shared/tokens.css";
 
 html {
   background: var(--color-cream);

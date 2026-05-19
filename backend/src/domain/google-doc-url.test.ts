@@ -2,7 +2,7 @@ import "../../test/setup.ts";
 import { describe, it as test } from "@std/testing/bdd";
 import { expect } from "@std/expect";
 import { parseGoogleDocId, googleDocUrl } from "./google-doc-url.ts";
-import { parseDocIdFromUrl } from "../../surfaces/extension/utils/ids.ts";
+import { parseDocIdFromUrl } from "../../../extension/utils/ids.ts";
 
 describe("parseGoogleDocId", () => {
   test("extracts id from a standard edit URL", () => {

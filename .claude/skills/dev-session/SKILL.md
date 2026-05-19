@@ -5,7 +5,7 @@ description: Boot the Margin dev loop — backend on :8787 plus a Chrome session
 
 # Margin dev session
 
-End state: `deno task serve` running on :8787, the extension built into `surfaces/extension/dist/chrome-mv3/`, and Chrome running with the extension loaded into the persistent test profile so the popup / side panel / options pages can be poked.
+End state: `deno task serve` running on :8787, the extension built into `extension/dist/chrome-mv3/`, and Chrome running with the extension loaded into the persistent test profile so the popup / side panel / options pages can be poked.
 
 ## 1. Backend on :8787
 
@@ -34,10 +34,10 @@ Capture the bash shell id from the Bash result. You'll want it for tailing logs 
 Rebuild every time — WXT is fast (~600 ms) and the alternative is debugging stale CSS. The extension is its own Bun workspace, so run from inside it:
 
 ```bash
-cd surfaces/extension && bun run build
+cd extension && bun run build
 ```
 
-The dist lives at `surfaces/extension/dist/chrome-mv3/` (absolute: `/Users/vinay/Dev/margin/surfaces/extension/dist/chrome-mv3`).
+The dist lives at `extension/dist/chrome-mv3/` (absolute: `/Users/vinay/Dev/margin/extension/dist/chrome-mv3`).
 
 ## 3. Chrome via chrome-devtools-mcp
 
@@ -48,7 +48,7 @@ Calling any `mcp__chrome-devtools__*` tool boots Chrome. Start with `list_pages`
 1. `mcp__chrome-devtools__list_pages` — boots Chrome and returns open tabs + extension SW IDs.
 2. `mcp__chrome-devtools__list_extensions` — is "Margin" already installed in this profile?
    - **Yes** → `mcp__chrome-devtools__reload_extension` with the id from the list.
-   - **No** → `mcp__chrome-devtools__install_extension` with `path: /Users/vinay/Dev/margin/surfaces/extension/dist/chrome-mv3`. Save the returned id.
+   - **No** → `mcp__chrome-devtools__install_extension` with `path: /Users/vinay/Dev/margin/extension/dist/chrome-mv3`. Save the returned id.
 
 ## 4. Open whatever the user wants to look at
 

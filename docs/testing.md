@@ -1,6 +1,6 @@
 # CI & test tiers
 
-`deno task test` runs every test in the repo. CI splits them across two GitHub Actions workflows:
+`deno task test` (from `backend/`) runs every test in the repo. CI splits them across two GitHub Actions workflows:
 
 | Workflow | Trigger | What it runs | Codecov flag |
 |---|---|---|---|
@@ -31,6 +31,7 @@ Set these under **Settings → Secrets and variables → Actions → New reposit
 3. Run the OAuth flow once locally as the CI account:
 
    ```sh
+   cd backend
    deno task serve
    # then load the extension, set Backend URL = http://localhost:8787,
    # click "Sign in with Google" with the CI account.
@@ -38,7 +39,7 @@ Set these under **Settings → Secrets and variables → Actions → New reposit
 
    On approval Better Auth upserts a `user` row, a `session` row, and an `account` row whose `refresh_token` is envelope-encrypted.
 
-4. Decrypt the stored refresh token (uses the same `MARGIN_MASTER_KEY` that wrote it):
+4. Decrypt the stored refresh token (uses the same `MARGIN_MASTER_KEY` that wrote it; run from `backend/`):
 
    ```sh
    deno eval --ext=ts --allow-env --allow-read --allow-write --allow-sys 'import("./src/auth/encryption.ts").then(async ({decryptWithMaster}) => { const {db} = await import("./src/db/client.ts"); const {account} = await import("./src/db/schema.ts"); const {eq} = await import("drizzle-orm"); const r = (await db.select().from(account).where(eq(account.providerId, "google")))[0]; console.log(await decryptWithMaster(r.refreshToken)); })'
@@ -52,6 +53,6 @@ The token is long-lived as long as the CI account stays in **Test users** and th
 
 ## Adding more integration tests
 
-Drop additional `*.integration.test.ts` files anywhere under `test/`, wrap each test body with `integrationTest()` from `test/integration.ts`, and update the `test:integration` task in `deno.jsonc` to widen the path glob if it grows beyond the current single file. They run in the same nightly job and contribute to the `integration` codecov flag.
+Drop additional `*.integration.test.ts` files anywhere under `backend/test/`, wrap each test body with `integrationTest()` from `backend/test/integration.ts`, and update the `test:integration` task in `backend/deno.jsonc` to widen the path glob if it grows beyond the current single file. They run in the same nightly job and contribute to the `integration` codecov flag.
 
 The split is intentional: unit tests (transport-faked, temp-DB-backed) catch our own logic regressions on every push; integration tests catch Google-side drift on a cadence we control.

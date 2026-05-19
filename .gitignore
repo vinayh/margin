@@ -16,8 +16,9 @@ lerna-debug.log*
 *.db-shm
 *.db-wal
 
-# package-json
-package-json.lock
+# npm lockfile — backend uses deno.lock as the source of truth; package-lock.json
+# only shows up transiently when running `npm install` (e.g. the CI prod-resolve job).
+package-lock.json
 
 # bun deploy file
 node_modules.bun
@@ -132,5 +133,6 @@ dist
 # TernJS port file
 .tern-port
 
-# Claude Code per-machine settings (project skills + global settings stay tracked)
+# Claude Code per-machine settings + runtime locks (project skills stay tracked)
 .claude/settings.local.json
+.claude/*.lock

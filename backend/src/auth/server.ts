@@ -13,7 +13,7 @@ import { clearTokenProvider } from "./credentials.ts";
  * `verification`. Bearer plugin lets the extension authenticate via
  * `Authorization: Bearer <session_token>` instead of cookies — the SW
  * acquires its token via the tab-based OAuth bridge at
- * `/api/auth/ext/success` (see `surfaces/extension/entrypoints/background.ts`).
+ * `/api/auth/ext/success` (see `extension/entrypoints/background.ts`).
  *
  * Google refresh tokens stored on `account.refreshToken` are envelope-
  * encrypted on write by the `databaseHooks.account` hook below; the

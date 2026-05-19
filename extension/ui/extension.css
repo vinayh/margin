@@ -3,7 +3,7 @@
  * @font-face blocks below keep bundled woff2s to one per family. */
 
 @import "tailwindcss";
-@import "../../../tokens.css";
+@import "../../shared/tokens.css";
 @import "@fontsource/bagel-fat-one/latin.css";
 
 @font-face {
