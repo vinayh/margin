@@ -23,6 +23,10 @@ export interface BackgroundLoops {
 }
 
 export function startBackgroundLoops(): BackgroundLoops {
+  if (!config.runBackgroundLoops) {
+    console.log("background loops: MARGIN_RUN_BACKGROUND_LOOPS=0, skipping");
+    return { stop() {} };
+  }
   if (!config.publicBaseUrl) {
     console.log("background loops: MARGIN_PUBLIC_BASE_URL not set, skipping");
     return { stop() {} };

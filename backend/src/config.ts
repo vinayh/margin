@@ -117,6 +117,10 @@ export const config = {
   get trustProxy() {
     return Deno.env.get("MARGIN_TRUST_PROXY") === "1";
   },
+  // On by default. Set "0" on N-1 replicas when scaling out — loops have no cross-process coordination.
+  get runBackgroundLoops() {
+    return Deno.env.get("MARGIN_RUN_BACKGROUND_LOOPS") !== "0";
+  },
   get testUserEmail() {
     return parseEnv(
       "MARGIN_TEST_USER_EMAIL",

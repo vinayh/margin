@@ -58,13 +58,16 @@ export default defineConfig({
     host_permissions: ["https://docs.google.com/*"],
     optional_host_permissions: ["<all_urls>"],
     // Tab-based OAuth bridge: the success page (`/api/auth/ext/success`)
-    // running on the user-configured backend `chrome.runtime.sendMessage`s
-    // the session token to this extension. We can't pin a host here because
-    // the backend URL is user-configurable, so we declare the broadest match
-    // pattern and gate `onMessageExternal` against `sender.origin === stored
-    // backendUrl` in the SW. A third-party page that knows the extension ID
-    // can post messages, but the SW drops them.
-    externally_connectable: { matches: ["*://*/*"] },
+    // `chrome.runtime.sendMessage`s the session token to this extension.
+    // Match patterns don't accept ports, so the localhost entries cover any
+    // port. SW also gates on `sender.origin === stored backendUrl`.
+    externally_connectable: {
+      matches: [
+        "https://api.margin.pub/*",
+        "http://localhost/*",
+        "http://127.0.0.1/*",
+      ],
+    },
     action: {
       default_title: "Margin",
       default_icon: {

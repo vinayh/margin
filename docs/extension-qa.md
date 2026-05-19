@@ -11,7 +11,7 @@ Firefox (`dist/firefox-mv3`) and Edge.
 
 ## 1. Install & first-run
 
-1. `cd extension && bun run build` → load `extension/dist/chrome-mv3`
+1. `cd extension && deno task build` → load `extension/dist/chrome-mv3`
    via `chrome://extensions` → Developer Mode → **Load unpacked**.
 2. Confirm the toolbar icon appears.
 3. Confirm the **Options** page opens in a tab (not a popup) automatically
