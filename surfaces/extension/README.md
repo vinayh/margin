@@ -9,14 +9,14 @@ Comment ingest is not an extension concern; it lives in the backend (`.docx` exp
 
 ## Build
 
-[WXT](https://wxt.dev) drives the build (Vite under the hood). Scripts live in the repo root `package.json`:
+[WXT](https://wxt.dev) drives the build (Vite under the hood). Scripts live in the repo root `package.json` and run under Node (the extension/site toolchain is npm-based, unlike the Deno backend):
 
 ```sh
-bun run ext:build              # production build, Chrome/Edge target
-bun run ext:build:firefox      # production build, Firefox target
-bun run ext:dev                # dev server with HMR (Chrome/Edge)
-bun run ext:dev:firefox        # dev server with HMR (Firefox)
-bun run ext:zip                # bundle dist/<target>/ into a publishable .zip
+npm run ext:build              # production build, Chrome/Edge target
+npm run ext:build:firefox      # production build, Firefox target
+npm run ext:dev                # dev server with HMR (Chrome/Edge)
+npm run ext:dev:firefox        # dev server with HMR (Firefox)
+npm run ext:zip                # bundle dist/<target>/ into a publishable .zip
 ```
 
 Outputs to `surfaces/extension/dist/{chrome-mv3,firefox-mv3}/`. Each output directory is loadable directly:

@@ -23,7 +23,7 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - run: deno install
+      - run: deno install --frozen
       - run: deno task typecheck
       - run: deno task test:coverage
 

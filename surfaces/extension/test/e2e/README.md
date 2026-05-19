@@ -16,7 +16,7 @@ The smoke flow this playbook covers:
    permission) pre-seeded into `chrome.storage.local`.
 5. New Google Doc created via `doc.new` → doc id extracted from URL.
 6. Backend DB seeded with a project + v1 row for that doc id
-   (`bun margin e2e seed-project`).
+   (`deno task margin e2e seed-project`).
 7. Click the toolbar action → popup renders the **Tracked** view.
 8. Click **Open dashboard** → side panel opens, Dashboard view renders the
    v1 row.
@@ -32,19 +32,19 @@ follow-up slice when seeding a 2nd version becomes possible.
 - `.margin-test-chrome/` exists at the repo root with the test Google
   account already signed in (cookies + keychain in the profile).
 - `.env` has `MARGIN_TEST_USER_EMAIL` and `MARGIN_TEST_API_TOKEN` set —
-  see `.env.example`. The user must already exist in the DB (`bun margin
+  see `.env.example`. The user must already exist in the DB (`deno task margin
   connect` once with that account if not).
-- `bun run typecheck && bun test` clean.
+- `deno task typecheck && deno task test` clean.
 
 ## Step-by-step (Bash commands the agent runs)
 
 ```sh
 # 1. Build a fresh extension.
-bun run ext:build
+npm run ext:build
 
 # 2. (Re)start the local backend on :8787.
 #    Run in a separate shell or via `run_in_background`.
-bun margin serve
+deno task margin serve
 
 # 3. Sanity: backend reachable.
 curl -fsS http://localhost:8787/healthz
@@ -55,7 +55,7 @@ The MCP-driven Claude does the rest via `chrome-devtools-mcp` tools (see
 
 ```sh
 # 4. Seed the local DB with a project + v1 row for the newly created doc.
-MARGIN_ALLOW_E2E_SEED=1 bun margin e2e seed-project <doc-id>
+MARGIN_ALLOW_E2E_SEED=1 deno task margin e2e seed-project <doc-id>
 ```
 
 `--user` defaults to `$MARGIN_TEST_USER_EMAIL`. The CLI refuses to seed
@@ -129,7 +129,7 @@ evaluate_script(expression=`
 Run via Bash, **not** the MCP browser session:
 
 ```sh
-MARGIN_ALLOW_E2E_SEED=1 bun margin e2e seed-project <DOC_ID>
+MARGIN_ALLOW_E2E_SEED=1 deno task margin e2e seed-project <DOC_ID>
 ```
 
 ### F. Open the popup, assert Tracked view
@@ -149,8 +149,8 @@ take_snapshot()
 
 If the popup shows "Add to Margin" (Untracked view) instead, either the
 SW settings didn't seed (check `chrome.storage.local` in the SW) or the
-backend can't see the seed row (check `bun margin e2e seed-project` output
-or `bun margin project list`).
+backend can't see the seed row (check `deno task margin e2e seed-project` output
+or `deno task margin project list`).
 
 ### G. Side-panel rendering — open as a standalone page, NOT via the popup
 
@@ -233,7 +233,7 @@ recovery exists. The most reliable cause is the popup self-closing
   or Playwright/Puppeteer with the bundled extension) once the surface
   area stabilizes.
 - Diff renderer coverage. Needs 2 versions of a doc the test user has
-  `drive.file` on — easiest via a real `bun margin version create` round
+  `drive.file` on — easiest via a real `deno task margin version create` round
   trip against a doc Margin itself created (via Picker or
   `drive.files.create`). See SPEC §9.2 for why `doc.new`-created docs
   don't qualify.
@@ -244,10 +244,10 @@ recovery exists. The most reliable cause is the popup self-closing
 
 ## Hooks for future work
 
-- A `bun margin e2e seed-project-with-two-versions <doc-id-from>
+- A `deno task margin e2e seed-project-with-two-versions <doc-id-from>
   <doc-id-to>` would unblock diff-view assertions. Once available, add
   step H: navigate to side-panel diff and assert the structured-diff DOM.
-- A `bun margin e2e reset` (truncate test user's projects) would let the
+- A `deno task margin e2e reset` (truncate test user's projects) would let the
   same playbook re-run cleanly without poking the DB by hand. Add when
   re-running starts hurting.
 - Real side-panel coverage (vs. standalone-tab) would mean driving a

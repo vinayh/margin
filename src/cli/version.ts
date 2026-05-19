@@ -5,8 +5,8 @@ import { usage, dispatchSubcommands, resolveUser } from "./util.ts";
 
 const USAGE = `\
 usage:
-  bun margin version create <project-id> [--label <label>] [--user <email>]
-  bun margin version list <project-id>`;
+  deno task margin version create <project-id> [--label <label>] [--user <email>]
+  deno task margin version list <project-id>`;
 
 export const run = (args: string[]) =>
   dispatchSubcommands(args, USAGE, {

@@ -1,7 +1,7 @@
 /**
- * Test setup. Bun ran this via `bunfig.toml preload`; under Deno there is
- * no preload, so every test file imports `./setup.ts` at the top — ES
- * module caching means the side effects run exactly once per test process.
+ * Test setup. Deno has no preload hook, so every test file imports
+ * `./setup.ts` at the top — ES module caching means the side effects
+ * run exactly once per test process.
  *
  * Pins `MARGIN_DB_PATH` to a per-process temp file before `src/db/client.ts`
  * opens its sqlite handle (the path is resolved at import time and never

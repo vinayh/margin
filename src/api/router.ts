@@ -14,15 +14,16 @@ export interface Dispatcher {
 }
 
 /**
- * Tiny replacement for Bun.serve's `routes:` table. Matches paths via
- * URLPattern (exact + `:param` + `*` wildcard), dispatches to method-keyed
- * handlers, auto-405s on verb mismatch. Routes are tried in insertion order:
+ * URLPattern-based route dispatcher. Matches paths via URLPattern
+ * (exact + `:param` + `*` wildcard), dispatches to method-keyed handlers,
+ * auto-405s on verb mismatch. Routes are tried in insertion order:
  * register exact paths BEFORE their `*` parent to avoid the wildcard
  * swallowing a more-specific match.
  *
- * `requestIP` mirrors Bun.serve.requestIP(req) so the rate-limit + CORS
- * code keeps working unchanged — the dispatcher caches each request's
- * remote address in a WeakMap and the adapter looks it up by Request.
+ * `requestIP` exposes the remote address per Request so the rate-limit + CORS
+ * code can read it without threading `Deno.ServeHandlerInfo` through every
+ * handler — the dispatcher caches each request's address in a WeakMap and
+ * the adapter looks it up by Request.
  */
 export function buildDispatcher(
   table: RouteTable,

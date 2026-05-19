@@ -4,7 +4,7 @@ import { usage } from "./util.ts";
 
 const USAGE = `\
 usage:
-  bun margin reanchor <target-version-id> [--quiet]
+  deno task margin reanchor <target-version-id> [--quiet]
 
 Re-projects every canonical comment in the version's project onto this version,
 updating comment_projection rows. Idempotent. Prints per-comment alignment by

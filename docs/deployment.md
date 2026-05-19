@@ -1,6 +1,6 @@
 # Deployment (Fly.io)
 
-The repo deploys as a single-region Fly.io app (see `Dockerfile` + `fly.toml`). Multi-stage Bun-on-Alpine image, 1GB volume mounted at `/data` for the SQLite file, `/healthz` check on `bun margin serve`. When `MARGIN_PUBLIC_BASE_URL` is set (it is, in `fly.toml`), the running server also auto-subscribes a Drive `files.watch` channel on every new version and runs the renew (~30 min) + polling (~10 min) loops in-process; no separate cron container needed.
+The repo deploys as a single-region Fly.io app (see `Dockerfile` + `fly.toml`). Multi-stage Deno-on-Alpine image (with a Node-based intermediate stage for the Tailwind CLI), 1GB volume mounted at `/data` for the SQLite file, `/healthz` check on `deno task serve`. When `MARGIN_PUBLIC_BASE_URL` is set (it is, in `fly.toml`), the running server also auto-subscribes a Drive `files.watch` channel on every new version and runs the renew (~30 min) + polling (~10 min) loops in-process; no separate cron container needed.
 
 ## Initial setup (once per deployment)
 
@@ -17,8 +17,8 @@ The repo deploys as a single-region Fly.io app (see `Dockerfile` + `fly.toml`). 
      GOOGLE_CLIENT_SECRET='<prod-client-secret>' \
      GOOGLE_API_KEY='<picker-api-key>' \
      GOOGLE_PROJECT_NUMBER='<gcp-project-number>' \
-     MARGIN_MASTER_KEY="$(bun -e 'console.log(Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString("base64"))')" \
-     BETTER_AUTH_SECRET="$(bun -e 'console.log(Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString("base64"))')"
+     MARGIN_MASTER_KEY="$(deno eval 'console.log(btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32)))))')" \
+     BETTER_AUTH_SECRET="$(deno eval 'console.log(btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32)))))')"
    ```
 
    Stash the master key in a password manager too; losing it makes existing encrypted refresh tokens unrecoverable. `BETTER_AUTH_SECRET` is rotatable (rotating it invalidates active sessions but doesn't lose data) and MUST be different from `MARGIN_MASTER_KEY` so that compromise of one doesn't cascade into the other.
@@ -27,7 +27,7 @@ The repo deploys as a single-region Fly.io app (see `Dockerfile` + `fly.toml`). 
 
 ## Auto-deploy via GitHub Actions
 
-`.github/workflows/ci.yml` runs on every push to `main`: typecheck → `bun test` (with coverage upload) → `flyctl deploy --remote-only`. Add the deploy token as the `FLY_API_TOKEN` repo secret:
+`.github/workflows/ci.yml` runs on every push to `main`: typecheck → `deno task test:coverage` (with coverage upload) → `flyctl deploy --remote-only`. Add the deploy token as the `FLY_API_TOKEN` repo secret:
 
 ```sh
 flyctl tokens create deploy --app <your-app-name> --expiry 8760h \

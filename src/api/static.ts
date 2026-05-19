@@ -4,7 +4,7 @@
  * tight allow-list keyed by filename, long-cache + immutable.
  *
  * The Dockerfile's styles stage emits `dist/backend.css`; locally the
- * developer runs `bunx tailwindcss -i src/api/styles/input.css -o
+ * developer runs `npx @tailwindcss/cli -i src/api/styles/input.css -o
  * dist/backend.css` once (or as part of a watch script). Paths are
  * resolved relative to the cwd (= repo root in dev, /app in the image).
  */

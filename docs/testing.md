@@ -1,10 +1,10 @@
 # CI & test tiers
 
-`bun test` runs every test in the repo. CI splits them across two GitHub Actions workflows:
+`deno task test` runs every test in the repo. CI splits them across two GitHub Actions workflows:
 
 | Workflow | Trigger | What it runs | Codecov flag |
 |---|---|---|---|
-| `.github/workflows/ci.yml` | Every push + PR | Typecheck, `bun test` (mocked transports + temp-DB), Fly deploy on `main`. Integration tests skip cleanly when the secrets below aren't set. | `unit` |
+| `.github/workflows/ci.yml` | Every push + PR | Typecheck, `deno task test:coverage` (mocked transports + temp-DB), Fly deploy on `main`. Integration tests skip cleanly when the secrets below aren't set. | `unit` |
 | `.github/workflows/integration.yml` | `workflow_dispatch` + nightly cron (07:00 UTC) | Live Google integration tests (`*.integration.test.ts`). | `integration` |
 
 Codecov merges both flagged uploads into the project total (see `codecov.yml`). The dashboard lets you filter by flag.
@@ -31,7 +31,7 @@ Set these under **Settings → Secrets and variables → Actions → New reposit
 3. Run the OAuth flow once locally as the CI account:
 
    ```sh
-   bun margin serve
+   deno task serve
    # then load the extension, set Backend URL = http://localhost:8787,
    # click "Sign in with Google" with the CI account.
    ```
@@ -41,7 +41,7 @@ Set these under **Settings → Secrets and variables → Actions → New reposit
 4. Decrypt the stored refresh token (uses the same `MARGIN_MASTER_KEY` that wrote it):
 
    ```sh
-   bun -e 'import("./src/auth/encryption.ts").then(async ({decryptWithMaster}) => { const {db} = await import("./src/db/client.ts"); const {account} = await import("./src/db/schema.ts"); const {eq} = await import("drizzle-orm"); const r = (await db.select().from(account).where(eq(account.providerId, "google")))[0]; console.log(await decryptWithMaster(r.refreshToken)); })'
+   deno eval --ext=ts --allow-env --allow-read --allow-write --allow-sys 'import("./src/auth/encryption.ts").then(async ({decryptWithMaster}) => { const {db} = await import("./src/db/client.ts"); const {account} = await import("./src/db/schema.ts"); const {eq} = await import("drizzle-orm"); const r = (await db.select().from(account).where(eq(account.providerId, "google")))[0]; console.log(await decryptWithMaster(r.refreshToken)); })'
    ```
 
    Paste the printed string into `GOOGLE_CI_REFRESH_TOKEN`.
@@ -52,6 +52,6 @@ The token is long-lived as long as the CI account stays in **Test users** and th
 
 ## Adding more integration tests
 
-Drop additional `*.integration.test.ts` files anywhere under `test/`, wrap each test body with `integrationTest()` from `test/integration.ts`, and update `package.json`'s `test:integration` script to widen the path glob if it grows beyond the current single file. They run in the same nightly job and contribute to the `integration` codecov flag.
+Drop additional `*.integration.test.ts` files anywhere under `test/`, wrap each test body with `integrationTest()` from `test/integration.ts`, and update the `test:integration` task in `deno.jsonc` to widen the path glob if it grows beyond the current single file. They run in the same nightly job and contribute to the `integration` codecov flag.
 
 The split is intentional: unit tests (transport-faked, temp-DB-backed) catch our own logic regressions on every push; integration tests catch Google-side drift on a cadence we control.

@@ -58,7 +58,7 @@ export async function firstUser(): Promise<User | null> {
 
 export async function requireFirstUser(): Promise<User> {
   const u = await firstUser();
-  if (!u) throw new Error("no user in db — run `bun margin connect` first");
+  if (!u) throw new Error("no user in db — run `deno task margin connect` first");
   return u;
 }
 

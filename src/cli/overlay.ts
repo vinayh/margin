@@ -13,15 +13,15 @@ import { usage, dispatchSubcommands, parseNumberArg } from "./util.ts";
 
 const USAGE = `\
 usage:
-  bun margin overlay create <project-id> --name <name>
-  bun margin overlay list <project-id>
-  bun margin overlay add-op <overlay-id> --type <redact|replace|insert|append>
+  deno task margin overlay create <project-id> --name <name>
+  deno task margin overlay list <project-id>
+  deno task margin overlay add-op <overlay-id> --type <redact|replace|insert|append>
                                           [--quoted <text>] [--payload <text>]
                                           [--threshold <0-100>]
-  bun margin overlay ops <overlay-id>
-  bun margin overlay apply <overlay-id> --version <source-version-id>
+  deno task margin overlay ops <overlay-id>
+  deno task margin overlay apply <overlay-id> --version <source-version-id>
                                          [--audience <label>]
-  bun margin derivative list <project-id>`;
+  deno task margin derivative list <project-id>`;
 
 const VALID_OPS: OverlayOpType[] = ["redact", "replace", "insert", "append"];
 
@@ -136,7 +136,7 @@ export const run = (args: string[]) =>
     },
   });
 
-const DERIVATIVE_USAGE = "usage: bun margin derivative list <project-id>";
+const DERIVATIVE_USAGE = "usage: deno task margin derivative list <project-id>";
 
 export const runDerivative = (args: string[]) =>
   dispatchSubcommands(args, DERIVATIVE_USAGE, {

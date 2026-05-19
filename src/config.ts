@@ -109,7 +109,7 @@ export const config = {
       envValue("MARGIN_PUBLIC_BASE_URL"),
     );
   },
-  // Required "1" gate for `bun margin e2e seed-project` — the seeder bypasses Drive validation.
+  // Required "1" gate for `deno task margin e2e seed-project` — the seeder bypasses Drive validation.
   get allowE2eSeed() {
     return Deno.env.get("MARGIN_ALLOW_E2E_SEED") === "1";
   },

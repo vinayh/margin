@@ -4,7 +4,7 @@ import { expect } from "@std/expect";
 import { parseDocx } from "../google/docx.ts";
 import { buildProbeDocx } from "./v2-check.ts";
 
-// The Drive-uploading path is exercised via `bun margin v2-check` (live
+// The Drive-uploading path is exercised via `deno task margin v2-check` (live
 // Google), but the probe-docx builder is pure and round-trips through
 // parseDocx — guard the OOXML shape so the smoke command can't quietly drift.
 

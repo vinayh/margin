@@ -1,10 +1,10 @@
 /**
  * Helpers for tests that read/write the DB. The DB itself is provisioned by
- * `test/setup.ts` (preloaded via `bunfig.toml`) — by the time these helpers
- * import `src/db/client.ts`, `MARGIN_DB_PATH` already points at a temp file
- * and `drizzle-kit` migrations have run.
+ * `test/setup.ts` (imported at the top of every test file under Deno) — by
+ * the time these helpers import `src/db/client.ts`, `MARGIN_DB_PATH` already
+ * points at a temp file and `drizzle-kit` migrations have run.
  *
- * Test isolation: every `bun test` process gets one shared temp DB. Tests
+ * Test isolation: every `deno test` process gets one shared temp DB. Tests
  * that need a clean slate call `cleanDb()` in `beforeEach` — there's no
  * cross-process state, so this is sufficient even with parallel test files.
  */

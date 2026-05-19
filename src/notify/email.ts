@@ -63,7 +63,7 @@ let testOverride: EmailTransport | null = null;
 
 /**
  * Resolve the active transport from env each call — config getters are lazy,
- * and tests may mutate `Bun.env` between cases. `_setEmailTransportForTests`
+ * and tests may mutate `Deno.env` between cases. `_setEmailTransportForTests`
  * takes precedence so tests don't need to set env at all.
  */
 export function getEmailTransport(): EmailTransport {

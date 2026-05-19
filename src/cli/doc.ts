@@ -5,7 +5,7 @@ import { dispatchSubcommands, resolveUser } from "./util.ts";
 
 const USAGE = `\
 usage:
-  bun margin doc create [--title <title>] [--seed] [--user <email>]`;
+  deno task margin doc create [--title <title>] [--seed] [--user <email>]`;
 
 export const run = (args: string[]) =>
   dispatchSubcommands(args, USAGE, {

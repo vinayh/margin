@@ -222,9 +222,9 @@ Drive `files.export?mimeType=…wordprocessingml.document` returns the doc as OO
 
 Question: if Margin uploads a `.docx` with anchored comments + tracked-change suggestions and tells Drive to convert it to a Google Doc, do the annotations survive? If yes, the "derivative Doc with materialized comments" path becomes viable for cross-org reviewers and side-steps canvas visualization for that cohort (Phase 6 V2 in §12).
 
-**How to run.** `bun margin v2-check` uploads a probe doc with three known anchors (start-of-paragraph, mid-paragraph, disjoint multi-range) plus one `<w:ins>` + one `<w:del>` suggestion to the operator's Drive, re-exports the converted Doc as `.docx`, and prints a structured observation report covering: (a) anchors landed at the right positions, (b) `w:author` preserved vs. rewritten, (c) `w:date` preserved vs. rewritten, (d) disjoint multi-range preserved / fragmented / lost, (e) suggestions round-trip as suggesting-mode edits.
+**How to run.** `deno task margin v2-check` uploads a probe doc with three known anchors (start-of-paragraph, mid-paragraph, disjoint multi-range) plus one `<w:ins>` + one `<w:del>` suggestion to the operator's Drive, re-exports the converted Doc as `.docx`, and prints a structured observation report covering: (a) anchors landed at the right positions, (b) `w:author` preserved vs. rewritten, (c) `w:date` preserved vs. rewritten, (d) disjoint multi-range preserved / fragmented / lost, (e) suggestions round-trip as suggesting-mode edits.
 
-**Findings.** Not yet recorded. Operator runs `bun margin v2-check` against a dev Drive account; once findings land, document them here and re-scope Phase 6 visualization gating accordingly.
+**Findings.** Not yet recorded. Operator runs `deno task margin v2-check` against a dev Drive account; once findings land, document them here and re-scope Phase 6 visualization gating accordingly.
 
 ## 10. Privacy and security
 
@@ -251,12 +251,12 @@ Phases 1 to 4 are the MVP. Phase 5 adds Slack. Phase 6 covers cross-org polish +
 ### Phase 1: Core engine
 **Status: shipped.** ✅
 
-Headless backend + CLI. Drizzle schema on `bun:sqlite` WAL; envelope-encrypted refresh tokens stored in `account.refresh_token`; Better Auth Google provider + per-user `TokenProvider`; Drive/Docs REST wrappers; domain primitives (`createProject`, `createVersion`); canonical comment ingest; reanchoring engine with confidence scoring; overlay applier; doc-watcher with channel renewer + polling fallback; `bun margin <subcommand>` CLI dispatcher.
+Headless backend + CLI. Drizzle schema on `node:sqlite` WAL; envelope-encrypted refresh tokens stored in `account.refresh_token`; Better Auth Google provider + per-user `TokenProvider`; Drive/Docs REST wrappers; domain primitives (`createProject`, `createVersion`); canonical comment ingest; reanchoring engine with confidence scoring; overlay applier; doc-watcher with channel renewer + polling fallback; `deno task margin <subcommand>` CLI dispatcher.
 
 ### Phase 2: Backend HTTP API + minimal web entry points
 **Status: shipped.** ✅
 
-Fly.io deploy + GitHub Actions auto-deploy on `main`. `bun margin serve` HTTP host: `/healthz`, `/api/auth/**` (Better Auth + tab-based OAuth bridge, §6.3), `/webhooks/drive`, `/api/picker/{page,register-doc}` (backend-hosted Drive Picker + register endpoint, §6.3). Better Auth sessions over the bearer plugin (`Authorization: Bearer <sessionToken>`). MV3 extension scaffolded (Chrome / Edge / Firefox). Auto-subscribe of Drive `files.watch` per new version + in-process renew + polling loops, gated on `MARGIN_PUBLIC_BASE_URL`.
+Fly.io deploy + GitHub Actions auto-deploy on `main`. `deno task margin serve` HTTP host: `/healthz`, `/api/auth/**` (Better Auth + tab-based OAuth bridge, §6.3), `/webhooks/drive`, `/api/picker/{page,register-doc}` (backend-hosted Drive Picker + register endpoint, §6.3). Better Auth sessions over the bearer plugin (`Authorization: Bearer <sessionToken>`). MV3 extension scaffolded (Chrome / Edge / Firefox). Auto-subscribe of Drive `files.watch` per new version + in-process renew + polling loops, gated on `MARGIN_PUBLIC_BASE_URL`.
 
 The extension originally carried a client-side capture role (sidebar `MutationObserver` scraping suggestion-thread replies). That whole pipeline was removed in Phase 4 once the docx-export ingest path (§9.8) covered the same data server-side with exact anchors and ISO timestamps. The extension is now a pure UI surface.
 
@@ -289,7 +289,7 @@ Shipped:
 - **Per-version "Request review"** (`POST /api/extension/review/request`): mints magic-link tokens, runs Drive `permissions.create`, renders the URLs inline. Email transport is log-only until Phase 5 wires Slack/email; magic links surface inline so they can be redeemed manually.
 - **Magic-link `/r/<token>` handlers.** `review_action_token` table keyed by `(reviewRequestId, assigneeUserId)`. `GET /r/<token>?action=<kind>` renders an HTML confirmation and transitions the matching `review_assignment.status`; missing or unknown `action` renders a chooser page. Multi-use until `expiresAt` so reviewers can change their response. Actions: `mark_reviewed`, `decline`, `request_changes`, `accept_reconciliation`.
 - **Settings** (`POST /api/extension/settings`, load + patch over `project.settings`). Side-panel Settings view covers notification prefs, default reviewer emails, Slack workspace linking (free-form placeholder until Phase 5 wires the bot). Patches are diff-applied; `audit_log` records before/after JSON.
-- **V2 validation tooling.** `bun margin v2-check` (see [§9.9](#99-docx-round-trip-on-drive-upload-v2-validation)).
+- **V2 validation tooling.** `deno task margin v2-check` (see [§9.9](#99-docx-round-trip-on-drive-upload-v2-validation)).
 
 The overlay applier + domain helpers stay shipped (§5, `src/domain/overlay.ts`); the editor surface is stretch (§13.3).
 
@@ -317,7 +317,7 @@ The overlay applier + domain helpers stay shipped (§5, `src/domain/overlay.ts`)
 **Pre-work / empirical validation.** Two assumptions underlying the visualization design need a 15-30 minute manual check before code lands; both shape architecture, not detail.
 
 - **V1: a11y-DOM mirror availability without the toggle.** Open a Google Doc in Chrome, DevTools → Elements, search for `aria-label` / `role="paragraph"` / equivalent paragraph-level nodes *before* toggling Tools → Accessibility → "Turn on screen reader support." Toggle on, re-inspect. Scroll. Confirm whether the mirror covers the full visible body or only the caret neighborhood. Outcome decides whether Phase 6 needs an onboarding nudge asking users to enable screen reader support, or whether the default tree is enough for gutter markers.
-- **V2: `.docx` upload preserves anchored comments.** Run via `bun margin v2-check` (§9.9). If anchors survive, this opens a "derivative Doc with materialized comments" path that sidesteps canvas overlay entirely for the review-only cohort (magic-link reviewers, mobile); see [§9.7](#97-documentsbatchupdate-is-sufficient-for-overlays) for the existing derivative infrastructure.
+- **V2: `.docx` upload preserves anchored comments.** Run via `deno task margin v2-check` (§9.9). If anchors survive, this opens a "derivative Doc with materialized comments" path that sidesteps canvas overlay entirely for the review-only cohort (magic-link reviewers, mobile); see [§9.7](#97-documentsbatchupdate-is-sufficient-for-overlays) for the existing derivative infrastructure.
 
 ### Phase 7: Workspace add-on, marketplace listings, advanced features
 **Status: not started.**
@@ -369,3 +369,28 @@ Extension side-panel chat with the canonical store wired in as live context (via
 - **"Explain this comment in context".** Pulls parent suggestion + surrounding paragraph + cross-version replies into a single summary.
 
 Privacy: LLM only sees what the calling user can already see. Doc body fetched fresh per turn through Margin's `drive.file`-scoped credentials. Provider choice (Claude / OpenAI / local) in extension settings; default "ask before sending."
+
+## 14. Operational follow-ups
+
+Tracking items that are intentionally deferred from the current Deno hardening pass. Already done in-tree: scoped `--allow-net` + `--deny-net` + `--allow-env=<list>` on `serve`/`migrate`, `--frozen` on `deno install`, `bun.lock` removed, URLPattern hardening tests in `src/api/router.test.ts`, `BETTER_AUTH_TELEMETRY=0` in `fly.toml`, `isUniqueConstraintError` recognizes SQLSTATE `23505` (forward-compatible for §14.2). The deno.jsonc and Dockerfile carry the production contract; see those for what's enforced today.
+
+### 14.1 Pre-launch hardening
+
+- **Litestream WAL replication to S3/R2.** Continuous SQLite backup with seconds-level RPO. Single high-leverage operational item before the first real user lands. Adds one sidecar process to the Fly image; configuration mirrors the project's MARGIN_DB_PATH.
+- **Drop container root.** `USER deno` (UID 1993, shipped by `denoland/deno:alpine`) in the final Dockerfile stage. Requires an entrypoint that `chown -R deno:deno /data` on first boot before exec-ing the deno user (Fly volumes mount as root). Skipped now because Fly already isolates the container on Firecracker and the Deno permission model is the primary defense; revisit when the entrypoint complexity is acceptable.
+- **Scope `--allow-read` / `--allow-write` to known paths.** Currently broad. Safe scoping needs an inventory of every directory Deno itself touches (cache dir, source maps under `$DENO_DIR`, `/tmp`, the SQLite WAL files at `/data`). Tackle as a single audit pass; cost is mostly investigation, not implementation.
+- **Drizzle off RC.** `drizzle-orm` and `drizzle-kit` are pinned at exact `1.0.0-rc.3`. No stable 1.0 has shipped yet; the `node-sqlite` adapter (which the Deno migration depends on) doesn't exist in the 0.x line. Watch `npm view drizzle-orm dist-tags`; switch to `1.0.0` the day it tags.
+- **`--allow-env` maintenance.** Today the allow-list enumerates every env name Better Auth's core/logger/telemetry + drizzle probe at module load (~95 names total). It's stable but tied to dep versions; a Better Auth upgrade may add a probe and break boot. Mitigation: a CI step that boots `serve` under the scoped env in `ci.yml`'s `prod-resolve` job would catch new probes before deploy.
+
+### 14.2 Postgres-swap follow-ups
+
+Coupled to the SQLite → Postgres migration. Triggers and timing in earlier prose; this is the checklist of code/infra changes once the trigger fires.
+
+- **Driver swap.** `drizzle-orm/node-sqlite` → `drizzle-orm/postgres-js` (battle-tested, single TCP client; preferred over `pg` to avoid the libpq native-binding surface). `src/db/client.ts`, `src/db/migrate.ts`, and `src/cli/serve.ts` all need the import + instantiation change.
+- **Audit read-then-write paths.** SQLite's single-writer property made SELECT-then-INSERT effectively serial. Under Postgres, all such paths need explicit `INSERT ... ON CONFLICT (...) DO UPDATE`. Start at `src/domain/comments/ingest.ts`, `src/domain/comments/upsert.ts`, anywhere using `requireProject` to mutate. (`isUniqueConstraintError` already recognizes SQLSTATE `23505` so existing callers' fallback paths keep working without code changes.)
+- **`--allow-net` additions.** Add `<pg-host>:5432` to the serve allow-list in `Dockerfile` CMD and `deno.jsonc` `serve` task.
+- **TLS pinning.** Fly Postgres in-VPC uses self-signed-style certs. Pass `ssl: 'verify-full'` to `postgres-js` and ship the Fly CA in the image (or `PGSSLROOTCERT` pointing at a baked-in cert). Otherwise a compromised neighbor on the 6PN network can MITM.
+- **Background-loop advisory locks.** Once two machines can both run `renewExpiringChannels` + `pollAllActiveVersions`, wrap each pass in `pg_try_advisory_lock(<channel>)` to dedupe. SQLite hid this because there's exactly one writer.
+- **PRAGMAs → Postgres equivalents.** Drop the WAL/foreign-keys/synchronous PRAGMAs in `src/db/client.ts`. Add `statement_timeout=5s` and `idle_in_transaction_session_timeout=30s` so a slow worker can't pin a connection.
+- **Move migrations to a Fly `release_command`.** Today `src/cli/serve.ts` calls `migrate(...)` at serve startup. Correct for SQLite-on-volume (a release-phase machine can't see the production volume). Becomes incorrect once Postgres is networked: switch to a `release_command` in `fly.toml` and drop the in-process `migrate()` call so two machines don't both race to apply migrations.
+- **Split background loops onto a separate Fly process group.** Smaller blast radius if a route handler is hijacked; the loops' permission profile (Google + Postgres) is then distinct from the request handler's (Google + Resend + Slack + Postgres). Wire via `[processes]` in `fly.toml`.

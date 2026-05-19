@@ -70,7 +70,7 @@ export async function handleReviewActionPost(req: Request): Promise<Response> {
 }
 
 function extractToken(pathname: string): string | null {
-  // Pathname is `/r/<token>` (Bun.serve route registration). Be defensive
+  // Pathname is `/r/<token>` (matched by the URLPattern dispatcher). Be defensive
   // against trailing slashes and stray segments.
   const m = /^\/r\/([^/]+)\/?$/.exec(pathname);
   if (!m) return null;

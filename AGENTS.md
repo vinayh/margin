@@ -105,7 +105,7 @@ Build pipeline, popup state machine, Picker mechanics, and toolbar-icon routing 
 - `deno task test` runs the suite; `deno task typecheck` runs `deno check src/ test/`.
 - Co-locate `*.test.ts` next to the module under test. Unit-test pure logic; exercise live Google APIs through CLI smoke commands rather than mocking `fetch`.
 - Every test file starts with `import "<…>/test/setup.ts";` — Deno has no preload hook, so each test imports the setup module for its side effects (env defaults + sqlite migrations against a per-process temp db).
-- Test framework: `@std/testing/bdd` for `describe` / hooks plus `@std/expect` for Jest-compatible `expect`. We alias `it as test` so the body reads like Jest/bun:test.
+- Test framework: `@std/testing/bdd` for `describe` / hooks plus `@std/expect` for Jest-compatible `expect`. We alias `it as test` so the body reads like Jest/Vitest.
 - Coverage today spans envelope encryption, anchor + OOXML docx parse, CORS allow-list + preflight, route auth/owner-scope + state transitions, settings round-trip, magic-link review-action redeem, and email transport. Better Auth's sign-in / session / OAuth flows are covered by the upstream package's tests; Margin tests use `issueTestSession` (`test/session.ts`) to bypass the OAuth dance for route tests.
 - `test/*.integration.test.ts` files run against live Google. Gated on `GOOGLE_CI_REFRESH_TOKEN` + client vars via `integrationTest` (`test/integration.ts`); tests skip cleanly when secrets aren't set. They run nightly via `.github/workflows/integration.yml`.
 

@@ -9,7 +9,7 @@ import tailwindcss from "@tailwindcss/vite";
  * `(env)` callback rather than separate JSON files.
  *
  * Output goes to `.output/{chrome,firefox}-mv3/` (WXT default). Build with
- * `bun run ext:build` / `bun run ext:build:firefox` from the repo root.
+ * `npm run ext:build` / `npm run ext:build:firefox` from the repo root.
  */
 export default defineConfig({
   // Vite, not Bun, runs the build — WXT is built on Vite. Bun still drives

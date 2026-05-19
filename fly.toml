@@ -26,6 +26,9 @@ primary_region = "lhr"
   # Fly's edge sets `Fly-Client-IP` / `X-Forwarded-For` for every request;
   # opt in so the rate limiter buckets per real client instead of per edge IP.
   MARGIN_TRUST_PROXY = "1"
+  # Opt out of Better Auth's telemetry. The runtime env doesn't otherwise
+  # set this; explicit "0" makes the intent durable.
+  BETTER_AUTH_TELEMETRY = "0"
 
 [[mounts]]
   source = "margin_data"
