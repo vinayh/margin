@@ -1,4 +1,6 @@
-import { test, expect, describe } from "bun:test";
+import "../../test/setup.ts";
+import { describe, it as test } from "@std/testing/bdd";
+import { expect } from "@std/expect";
 import { parseGoogleDocId, googleDocUrl } from "./google-doc-url.ts";
 import { parseDocIdFromUrl } from "../../surfaces/extension/utils/ids.ts";
 

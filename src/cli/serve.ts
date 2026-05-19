@@ -1,6 +1,6 @@
 import { parseArgs } from "node:util";
 import * as v from "valibot";
-import { migrate } from "drizzle-orm/bun-sqlite/migrator";
+import { migrate } from "drizzle-orm/node-sqlite/migrator";
 import { startServer } from "../api/server.ts";
 import { db, sqlite } from "../db/client.ts";
 import { parseNumberArg } from "./util.ts";

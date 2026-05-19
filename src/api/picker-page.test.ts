@@ -1,4 +1,6 @@
-import { afterEach, beforeEach, describe, expect, test } from "bun:test";
+import "../../test/setup.ts";
+import { afterEach, beforeEach, describe, it as test } from "@std/testing/bdd";
+import { expect } from "@std/expect";
 import { handlePickerPage } from "./picker-page.tsx";
 import { cleanDb, seedUser } from "../../test/db.ts";
 import { issueTestSession } from "../../test/session.ts";
@@ -29,14 +31,14 @@ const original: Record<PickerKey, string | undefined> = {
 
 beforeEach(() => {
   for (const k of PICKER_KEYS) {
-    original[k] = Bun.env[k];
+    original[k] = Deno.env.get(k);
   }
 });
 
 afterEach(() => {
   for (const k of PICKER_KEYS) {
-    if (original[k] === undefined) delete Bun.env[k];
-    else Bun.env[k] = original[k]!;
+    if (original[k] === undefined) Deno.env.delete(k);
+    else Deno.env.set(k, original[k]!);
   }
 });
 
@@ -50,7 +52,7 @@ describe("handlePickerPage", () => {
   });
 
   test("500 when Picker env vars are missing even with a valid session", async () => {
-    for (const k of PICKER_KEYS) delete Bun.env[k];
+    for (const k of PICKER_KEYS) Deno.env.delete(k);
     const u = await seedUser();
     const { token } = await issueTestSession({ userId: u.id });
     const req = new Request("http://localhost/api/picker/page", {
@@ -63,9 +65,9 @@ describe("handlePickerPage", () => {
   });
 
   test("500 when only some Picker env vars are set", async () => {
-    Bun.env.GOOGLE_CLIENT_ID = "client-123";
-    delete Bun.env.GOOGLE_API_KEY;
-    Bun.env.GOOGLE_PROJECT_NUMBER = "proj-789";
+    Deno.env.set("GOOGLE_CLIENT_ID", "client-123");
+    Deno.env.delete("GOOGLE_API_KEY");
+    Deno.env.set("GOOGLE_PROJECT_NUMBER", "proj-789");
     const u = await seedUser();
     const { token } = await issueTestSession({ userId: u.id });
     const req = new Request("http://localhost/api/picker/page", {
@@ -81,9 +83,9 @@ describe("handlePickerPage", () => {
     // row (we seed the user via `seedUser`, not via Better Auth's social
     // dance). `tokenProviderForUser` throws on read; the route maps that
     // to an explanatory 500 page rather than crashing.
-    Bun.env.GOOGLE_CLIENT_ID = "client-123";
-    Bun.env.GOOGLE_API_KEY = "api-456";
-    Bun.env.GOOGLE_PROJECT_NUMBER = "proj-789";
+    Deno.env.set("GOOGLE_CLIENT_ID", "client-123");
+    Deno.env.set("GOOGLE_API_KEY", "api-456");
+    Deno.env.set("GOOGLE_PROJECT_NUMBER", "proj-789");
     const u = await seedUser();
     const { token } = await issueTestSession({ userId: u.id });
     const req = new Request("http://localhost/api/picker/page", {

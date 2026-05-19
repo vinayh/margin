@@ -3,11 +3,11 @@ import { disallowedOriginResponse, preflight, withCors, withSecurity } from "./c
 import { authenticateBearer, internalError } from "./middleware.ts";
 import { IP_LIMIT, checkRateLimit, clientIp } from "./rate-limit.ts";
 
-// Method-keyed shape lets Bun.serve auto-405 on verb mismatch.
+// Method-keyed shape lets the dispatcher auto-405 on verb mismatch.
 export type Handler = (req: Request) => Response | Promise<Response>;
 export type MethodHandlers = Partial<Record<"GET" | "POST" | "OPTIONS", Handler>>;
 
-// Held via setter rather than a closure: wrappers are constructed before Bun.serve returns.
+// Held via setter rather than a closure: wrappers are constructed before the dispatcher is built.
 interface ServerWithIP {
   requestIP(req: Request): { address: string } | null;
 }

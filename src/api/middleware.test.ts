@@ -1,4 +1,6 @@
-import { describe, expect, test } from "bun:test";
+import "../../test/setup.ts";
+import { describe, it as test } from "@std/testing/bdd";
+import { expect } from "@std/expect";
 import * as v from "valibot";
 import {
   authenticateBearer,
@@ -59,9 +61,9 @@ describe("response helpers", () => {
 describe("id-length parity (backend ↔ extension)", () => {
   test("MAX_ID_LEN matches the extension's mirror", async () => {
     // String import keeps this file out of the extension's bundle graph.
-    const text = await Bun.file(
+    const text = await Deno.readTextFile(
       new URL("../../surfaces/extension/utils/messages.ts", import.meta.url),
-    ).text();
+    );
     const match = /const\s+MAX_ID_LEN\s*=\s*(\d+)\s*;/.exec(text);
     expect(match).not.toBeNull();
     expect(Number(match![1])).toBe(MAX_ID_LEN);

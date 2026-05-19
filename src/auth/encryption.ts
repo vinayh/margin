@@ -1,3 +1,4 @@
+import { Buffer } from "node:buffer";
 import { config } from "../config.ts";
 
 // Envelope encryption layout (binary, base64-encoded for storage):

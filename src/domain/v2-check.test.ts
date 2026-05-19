@@ -1,4 +1,6 @@
-import { describe, expect, test } from "bun:test";
+import "../../test/setup.ts";
+import { describe, it as test } from "@std/testing/bdd";
+import { expect } from "@std/expect";
 import { parseDocx } from "../google/docx.ts";
 import { buildProbeDocx } from "./v2-check.ts";
 

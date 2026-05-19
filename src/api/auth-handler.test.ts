@@ -1,4 +1,6 @@
-import { beforeEach, describe, expect, test } from "bun:test";
+import "../../test/setup.ts";
+import { beforeEach, describe, it as test } from "@std/testing/bdd";
+import { expect } from "@std/expect";
 import {
   _resetExtNoncesForTests,
   handleAuthExtLaunchTab,
@@ -7,8 +9,8 @@ import {
 import { cleanDb, seedUser } from "../../test/db.ts";
 import { issueTestSession } from "../../test/session.ts";
 
-beforeEach(() => {
-  cleanDb();
+beforeEach(async () => {
+  await cleanDb();
   _resetExtNoncesForTests();
 });
 

@@ -1,4 +1,6 @@
-import { beforeEach, describe, expect, test } from "bun:test";
+import "../../test/setup.ts";
+import { beforeEach, describe, it as test } from "@std/testing/bdd";
+import { expect } from "@std/expect";
 import { eq } from "drizzle-orm";
 import { cleanDb, seedUser } from "../../test/db.ts";
 import { runCli } from "../../test/cli.ts";

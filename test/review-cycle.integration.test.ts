@@ -16,7 +16,9 @@
  * even when the test body throws. Cleanup failures are logged but don't fail
  * the test (the docs are inert junk on the CI Drive account).
  */
-import { afterAll, beforeAll, describe, expect } from "bun:test";
+import "./setup.ts";
+import { afterAll, beforeAll, describe } from "@std/testing/bdd";
+import { expect } from "@std/expect";
 import { eq } from "drizzle-orm";
 import { hasIntegrationCreds, integrationTest } from "./integration.ts";
 import { cleanDb } from "./db.ts";
@@ -97,7 +99,7 @@ describe("review cycle (live Google)", () => {
       accountId: `sub-${userId}`,
       scope:
         "https://www.googleapis.com/auth/drive.file https://www.googleapis.com/auth/userinfo.email",
-      refreshToken: await encryptWithMaster(Bun.env.GOOGLE_CI_REFRESH_TOKEN!),
+      refreshToken: await encryptWithMaster(Deno.env.get("GOOGLE_CI_REFRESH_TOKEN")!),
     });
     const tp = tokenProviderForUser(userId);
     ownerEmail = await fetchOwnerEmail(tp);

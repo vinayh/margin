@@ -1,4 +1,4 @@
-import { test } from "bun:test";
+import { it } from "@std/testing/bdd";
 
 /**
  * Integration tests run against real Google APIs. They're gated on a
@@ -15,7 +15,7 @@ const REQUIRED_VARS = [
 ] as const;
 
 function missingVars(): string[] {
-  return REQUIRED_VARS.filter((k) => !Bun.env[k]);
+  return REQUIRED_VARS.filter((k) => !Deno.env.get(k));
 }
 
 export const hasIntegrationCreds = missingVars().length === 0;
@@ -25,7 +25,27 @@ export const integrationTest = (
   body: () => void | Promise<void>,
   timeoutMs?: number,
 ) => {
-  if (hasIntegrationCreds) return test(name, body, timeoutMs);
+  // @std/testing/bdd has no positional timeout; wrap the body in a Promise.race
+  // so slow Google round-trips fail loudly instead of stalling the suite.
+  const wrapped = timeoutMs === undefined
+    ? body
+    : async () => {
+        let timer: ReturnType<typeof setTimeout> | undefined;
+        try {
+          await Promise.race([
+            Promise.resolve().then(body),
+            new Promise<never>((_, reject) => {
+              timer = setTimeout(
+                () => reject(new Error(`integration test timed out after ${timeoutMs}ms`)),
+                timeoutMs,
+              );
+            }),
+          ]);
+        } finally {
+          if (timer !== undefined) clearTimeout(timer);
+        }
+      };
+  if (hasIntegrationCreds) return it(name, wrapped);
   const missing = missingVars().join(", ");
-  return test.skip(`${name} (skipped: missing ${missing})`, body, timeoutMs);
+  return it.skip(`${name} (skipped: missing ${missing})`, wrapped);
 };

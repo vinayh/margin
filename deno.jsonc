@@ -1,0 +1,83 @@
+{
+  // Hybrid repo: Deno owns the backend (src/, test/). The WXT extension and
+  // Astro site still build under Node — their scripts live in package.json.
+  "nodeModulesDir": "auto",
+
+  "tasks": {
+    // Scoped permission grants per task. The story is: a compromised dep
+    // can't reach env vars we didn't list, can't open files outside cwd,
+    // can't dial hosts outside the allowlist.
+    "margin": {
+      "description": "CLI dispatcher (bun margin → deno task margin)",
+      "command": "deno run --allow-env --allow-read --allow-write --allow-net --allow-sys src/cli/index.ts"
+    },
+    "migrate": {
+      "description": "Apply drizzle migrations",
+      "command": "deno run --allow-env --allow-read --allow-write --allow-sys src/db/migrate.ts"
+    },
+    "serve": {
+      "description": "HTTP API host",
+      "command": "deno run --allow-env --allow-read --allow-write --allow-net --allow-sys src/cli/index.ts serve"
+    },
+    "test": {
+      "description": "Unit + route tests",
+      "command": "deno test --allow-env --allow-read --allow-write --allow-net --allow-sys --allow-run --no-check"
+    },
+    "test:coverage": {
+      "description": "deno test with lcov coverage",
+      "command": "deno test --allow-env --allow-read --allow-write --allow-net --allow-sys --allow-run --no-check --coverage=coverage && deno coverage --lcov --output=coverage/lcov.info coverage"
+    },
+    "test:integration": {
+      "description": "Live-Google integration suite",
+      "command": "deno test --allow-env --allow-read --allow-write --allow-net --allow-sys --allow-run --no-check test/smoke.integration.test.ts"
+    },
+    "typecheck": {
+      "description": "Type-check the backend (src/ + test/)",
+      "command": "deno check src/ test/"
+    }
+  },
+
+  "imports": {
+    "@std/expect": "jsr:@std/expect@^1.0.18",
+    "@std/testing/bdd": "jsr:@std/testing@^1.0.18/bdd",
+    "@std/fs/walk": "jsr:@std/fs@^1.0.20/walk",
+    "@std/path": "jsr:@std/path@^1.1.2"
+  },
+
+  "compilerOptions": {
+    "jsx": "react-jsx",
+    "jsxImportSource": "preact",
+    "lib": ["esnext", "dom", "dom.iterable", "deno.ns"],
+    "strict": true,
+    "noUncheckedIndexedAccess": true,
+    "noFallthroughCasesInSwitch": true,
+    "noImplicitOverride": true
+  },
+
+  "fmt": {
+    "lineWidth": 100,
+    "indentWidth": 2,
+    "singleQuote": false,
+    "exclude": ["site/", "surfaces/extension/.output/", "surfaces/extension/.wxt/", "coverage/", "node_modules/", "drizzle/"]
+  },
+
+  "lint": {
+    "exclude": ["site/", "surfaces/extension/.output/", "surfaces/extension/.wxt/", "coverage/", "node_modules/", "drizzle/"]
+  },
+
+  // Don't typecheck or lint the Node-only surfaces; they have their own setup.
+  // surfaces/extension/ in full — the extension is WXT/Node-built and its
+  // *.test.ts files still target a Node test runner (or none at all).
+  "exclude": [
+    "site/",
+    "surfaces/",
+    "coverage/",
+    "node_modules/",
+    "dist/",
+    "drizzle/",
+    ".margin-test-chrome/"
+  ],
+  "test": {
+    "include": ["src/", "test/"]
+  }
+}

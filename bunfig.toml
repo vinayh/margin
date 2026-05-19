@@ -1,6 +1,0 @@
-[install]
-linker = "isolated"
-
-[test]
-# setup.ts must run before coverage.ts (which imports db/client.ts and opens sqlite on import).
-preload = ["./test/setup.ts", "./test/coverage.ts"]

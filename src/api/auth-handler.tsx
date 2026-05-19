@@ -1,3 +1,4 @@
+import { Buffer } from "node:buffer";
 import { auth } from "../auth/server.ts";
 import { db } from "../db/client.ts";
 import { session as sessionTable } from "../db/schema.ts";
@@ -26,7 +27,7 @@ function isAllowedExtId(id: string): boolean {
 // visitor to /success?ext=<their-extension-id> and harvest the session token
 // — the format regex alone doesn't prove the caller initiated the flow.
 //
-// The nonce is in-memory because Bun.serve is single-process; the TTL is
+// The nonce is in-memory because Deno.serve is single-process; the TTL is
 // short enough that prod restart loss is harmless (OAuth round-trips finish
 // in seconds, not minutes). Map iteration is insertion-ordered, so a small
 // FIFO prune covers worst-case spam.

@@ -1,4 +1,6 @@
-import { afterEach, describe, expect, test } from "bun:test";
+import "../../test/setup.ts";
+import { afterEach, describe, it as test } from "@std/testing/bdd";
+import { expect } from "@std/expect";
 import { setFetch } from "../../test/fetch.ts";
 import {
   LogSlackTransport,
@@ -11,7 +13,7 @@ const realFetch = globalThis.fetch;
 afterEach(() => {
   globalThis.fetch = realFetch;
   _setSlackTransportForTests(null);
-  delete (Bun.env as Record<string, string | undefined>).MARGIN_SLACK_WEBHOOK_URL;
+  Deno.env.delete("MARGIN_SLACK_WEBHOOK_URL");
 });
 
 describe("WebhookSlackTransport", () => {
@@ -48,7 +50,7 @@ describe("getSlackTransport", () => {
   });
 
   test("returns WebhookSlackTransport when MARGIN_SLACK_WEBHOOK_URL is set", () => {
-    Bun.env.MARGIN_SLACK_WEBHOOK_URL = "https://hooks.slack.com/services/A/B/C";
+    Deno.env.set("MARGIN_SLACK_WEBHOOK_URL", "https://hooks.slack.com/services/A/B/C");
     const t = getSlackTransport();
     expect(t).toBeInstanceOf(WebhookSlackTransport);
   });

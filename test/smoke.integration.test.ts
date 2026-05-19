@@ -1,4 +1,6 @@
-import { describe, expect } from "bun:test";
+import "./setup.ts";
+import { describe } from "@std/testing/bdd";
+import { expect } from "@std/expect";
 import { integrationTest } from "./integration.ts";
 
 /**
@@ -17,13 +19,13 @@ import { integrationTest } from "./integration.ts";
  */
 describe("smoke (live Google)", () => {
   integrationTest("refresh_token grants an access token", async () => {
-    const refreshToken = Bun.env.GOOGLE_CI_REFRESH_TOKEN!;
+    const refreshToken = Deno.env.get("GOOGLE_CI_REFRESH_TOKEN")!;
     const res = await fetch("https://oauth2.googleapis.com/token", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams({
-        client_id: Bun.env.GOOGLE_CLIENT_ID!,
-        client_secret: Bun.env.GOOGLE_CLIENT_SECRET!,
+        client_id: Deno.env.get("GOOGLE_CLIENT_ID")!,
+        client_secret: Deno.env.get("GOOGLE_CLIENT_SECRET")!,
         refresh_token: refreshToken,
         grant_type: "refresh_token",
       }),
