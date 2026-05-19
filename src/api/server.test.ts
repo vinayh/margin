@@ -33,6 +33,7 @@ describe("startServer route table", () => {
         },
       );
       expect(res.status).toBe(401);
+      await res.body?.cancel();
     } finally {
       await server.stop();
     }
@@ -53,6 +54,7 @@ describe("startServer route table", () => {
       );
       expect(res.status).toBe(204);
       expect(res.headers.get("access-control-allow-methods")).toContain("POST");
+      await res.body?.cancel();
     } finally {
       await server.stop();
     }
@@ -81,6 +83,7 @@ describe("startServer route table", () => {
     try {
       const res = await fetch(`http://${server.hostname}:${server.port}/no-such-route`);
       expect(res.status).toBe(404);
+      await res.body?.cancel();
     } finally {
       await server.stop();
     }
@@ -103,6 +106,7 @@ describe("startServer route table", () => {
       expect(a.status).toBe(401);
       const remA = Number(a.headers.get("x-margin-rate-limit-remaining"));
       expect(remA).toBe(IP_LIMIT - 1);
+      await a.body?.cancel();
 
       const b = await fetch(
         `http://${server.hostname}:${server.port}/api/picker/register-doc`,
@@ -116,6 +120,7 @@ describe("startServer route table", () => {
       expect(Number(b.headers.get("x-margin-rate-limit-remaining"))).toBe(
         IP_LIMIT - 2,
       );
+      await b.body?.cancel();
     } finally {
       await server.stop();
     }
@@ -168,6 +173,7 @@ describe("startServer route table", () => {
       for (const [k, v] of Object.entries(expected)) {
         expect(healthz.headers.get(k)).toBe(v);
       }
+      await healthz.body?.cancel();
       const preflight = await fetch(
         `http://${server.hostname}:${server.port}/api/picker/register-doc`,
         { method: "OPTIONS", headers: { origin: `chrome-extension://${"a".repeat(32)}` } },
@@ -175,6 +181,7 @@ describe("startServer route table", () => {
       for (const [k, v] of Object.entries(expected)) {
         expect(preflight.headers.get(k)).toBe(v);
       }
+      await preflight.body?.cancel();
     } finally {
       await server.stop();
     }

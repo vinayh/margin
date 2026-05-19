@@ -7,8 +7,8 @@ import {
 import { cleanDb, seedUser } from "../../test/db.ts";
 import { issueTestSession } from "../../test/session.ts";
 
-beforeEach(() => {
-  cleanDb();
+beforeEach(async () => {
+  await cleanDb();
   _resetExtNoncesForTests();
 });
 
