@@ -1,7 +1,7 @@
 import "../../test/setup.ts";
 import { describe, it as test } from "@std/testing/bdd";
 import { expect } from "@std/expect";
-import { parseGoogleDocId, googleDocUrl } from "./google-doc-url.ts";
+import { googleDocUrl, parseGoogleDocId } from "./google-doc-url.ts";
 import { parseDocIdFromUrl } from "../../../extension/utils/ids.ts";
 
 describe("parseGoogleDocId", () => {
@@ -38,9 +38,9 @@ describe("parseGoogleDocId", () => {
   });
 
   test("rejects a non-doc URL", () => {
-    expect(() =>
-      parseGoogleDocId("https://drive.google.com/file/d/abc/view"),
-    ).toThrow(/unrecognized/);
+    expect(() => parseGoogleDocId("https://drive.google.com/file/d/abc/view")).toThrow(
+      /unrecognized/,
+    );
   });
 
   test("rejects a short string that doesn't look like an id", () => {

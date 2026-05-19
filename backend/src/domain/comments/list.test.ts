@@ -11,10 +11,7 @@ import {
 } from "../../../test/db.ts";
 import { db } from "../../db/client.ts";
 import { canonicalComment } from "../../db/schema.ts";
-import {
-  listCommentsForProject,
-  listDeletedCommentsForProject,
-} from "./list.ts";
+import { listCommentsForProject, listDeletedCommentsForProject } from "./list.ts";
 
 beforeEach(cleanDb);
 

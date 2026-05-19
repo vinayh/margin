@@ -1,13 +1,13 @@
 import { tokenProviderForUser } from "../auth/credentials.ts";
 import {
   copyFile,
+  type DriveComment,
+  type DriveFile,
   exportDocx,
   getFile,
   listComments,
-  type DriveComment,
-  type DriveFile,
 } from "../google/drive.ts";
-import { parseDocx, type DocxAnnotations } from "../google/docx.ts";
+import { type DocxAnnotations, parseDocx } from "../google/docx.ts";
 
 export interface SmokeResult {
   file: DriveFile;

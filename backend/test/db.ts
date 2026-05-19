@@ -14,6 +14,8 @@ import {
   account,
   auditLog,
   canonicalComment,
+  type CanonicalCommentKind,
+  type CommentAnchor,
   commentProjection,
   derivative,
   driveWatchChannel,
@@ -21,17 +23,15 @@ import {
   overlay,
   overlayOperation,
   project,
+  type ProjectionStatus,
   reviewActionToken,
   reviewAssignment,
   reviewRequest,
+  type ReviewRequestStatus,
   session,
   user,
   verification,
   version,
-  type CanonicalCommentKind,
-  type CommentAnchor,
-  type ProjectionStatus,
-  type ReviewRequestStatus,
 } from "../src/db/schema.ts";
 
 /**
@@ -44,25 +44,27 @@ export async function cleanDb(): Promise<void> {
   // time would otherwise need careful child-first ordering on every schema
   // change.
   db.run(sql`PRAGMA foreign_keys = OFF`);
-  for (const t of [
-    auditLog,
-    notification,
-    reviewActionToken,
-    reviewAssignment,
-    reviewRequest,
-    commentProjection,
-    canonicalComment,
-    derivative,
-    overlayOperation,
-    overlay,
-    driveWatchChannel,
-    version,
-    project,
-    session,
-    account,
-    verification,
-    user,
-  ]) {
+  for (
+    const t of [
+      auditLog,
+      notification,
+      reviewActionToken,
+      reviewAssignment,
+      reviewRequest,
+      commentProjection,
+      canonicalComment,
+      derivative,
+      overlayOperation,
+      overlay,
+      driveWatchChannel,
+      version,
+      project,
+      session,
+      account,
+      verification,
+      user,
+    ]
+  ) {
     await db.delete(t);
   }
   db.run(sql`PRAGMA foreign_keys = ON`);
@@ -218,7 +220,9 @@ export async function seedDriveWatchChannel(opts: {
       resourceId: opts.resourceId ?? `resource-${crypto.randomUUID()}`,
       token: opts.token === undefined ? `token-${crypto.randomUUID()}` : opts.token,
       address: "https://example.com/webhooks/drive",
-      expiration: opts.expiration === undefined ? new Date(Date.now() + 86_400_000) : opts.expiration,
+      expiration: opts.expiration === undefined
+        ? new Date(Date.now() + 86_400_000)
+        : opts.expiration,
     })
     .returning();
   return inserted[0]!;

@@ -1,7 +1,7 @@
 import "../../test/setup.ts";
 import { describe, it as test } from "@std/testing/bdd";
 import { expect } from "@std/expect";
-import { zipSync, strToU8 } from "fflate";
+import { strToU8, zipSync } from "fflate";
 import { parseDocx } from "./docx.ts";
 
 /**

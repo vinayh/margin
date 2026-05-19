@@ -1,6 +1,12 @@
 import { useState } from "preact/hooks";
 import { sendMessage } from "../../../ui/sendMessage.ts";
-import { ArrowLeftRight, MessageSquare, RefreshCw, Send, Settings } from "lucide-preact";
+import {
+  ArrowLeftRight,
+  MessageSquare,
+  RefreshCw,
+  Send,
+  Settings,
+} from "lucide-preact";
 import { validateEmails } from "../../../utils/emails.ts";
 import { formatDate, formatRelative } from "../../../ui/format-time.ts";
 import type {
@@ -74,7 +80,10 @@ export function Dashboard({
     if (r?.kind !== "review/request") throw new Error("unexpected response");
     if (r.error) throw new Error(r.error);
     if (!r.result) throw new Error("no result returned");
-    setIssuedLinks((prev) => ({ ...prev, [r.result!.reviewRequestId]: r.result! }));
+    setIssuedLinks((prev) => ({
+      ...prev,
+      [r.result!.reviewRequestId]: r.result!,
+    }));
     await refreshAll();
   }
 
@@ -119,7 +128,10 @@ export function Dashboard({
         onOpenDiff={onOpenDiff}
         onOpenComments={onOpenComments}
       />
-      <ReviewsSection reviews={current.reviewRequests} issuedLinks={issuedLinks} />
+      <ReviewsSection
+        reviews={current.reviewRequests}
+        issuedLinks={issuedLinks}
+      />
       <DerivativesSection derivatives={current.derivatives} />
     </>
   );
@@ -153,75 +165,88 @@ function VersionsSection({
         </h2>
         <SnapshotVersionButton onSnapshot={onSnapshot} />
       </div>
-      {versions.length === 0 ? (
-        <EmptyVersions />
-      ) : (
+      {versions.length === 0 ? <EmptyVersions /> : (
         <>
-        {versions.length > 3 ? (
-          <input
-            type="search"
-            class="filter-input"
-            placeholder="Filter versions by label…"
-            value={filter}
-            onInput={(e) => setFilter((e.target as HTMLInputElement).value)}
-          />
-        ) : null}
-        <div class="table-scroll">
-        <table class="data">
-          <thead>
-            <tr>
-              <th scope="col">Label</th>
-              <th scope="col">Status</th>
-              <th scope="col" class="numeric">Comments</th>
-              <th scope="col">Last synced</th>
-              <th scope="col">Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {shown.length === 0 ? (
-              <tr><td colspan={5}><p class="muted">No versions match.</p></td></tr>
-            ) : null}
-            {shown.map((v) => (
-              <tr key={v.id}>
-                <td>
-                  <a href={docUrl(v.googleDocId)} target="_blank" rel="noreferrer">
-                    {v.label}
-                  </a>
-                </td>
-                <td>{v.status}</td>
-                <td class="numeric">{v.commentCount}</td>
-                <td>{formatRelative(v.lastSyncedAt)}</td>
-                <td>
-                  <div class="row-actions">
-                    <VersionSyncButton version={v} onSync={onSync} />
-                    <button
-                      type="button"
-                      class="icon-button"
-                      title="Comments"
-                      aria-label="Comments"
-                      onClick={() => onOpenComments(v.id, v.label)}
-                    >
-                      <MessageSquare />
-                    </button>
-                    {v.parentVersionId ? (
-                      <button
-                        type="button"
-                        onClick={() => onOpenDiff(v.parentVersionId!, v.id)}
+          {versions.length > 3
+            ? (
+              <input
+                type="search"
+                class="filter-input"
+                placeholder="Filter versions by label…"
+                value={filter}
+                onInput={(e) => setFilter((e.target as HTMLInputElement).value)}
+              />
+            )
+            : null}
+          <div class="table-scroll">
+            <table class="data">
+              <thead>
+                <tr>
+                  <th scope="col">Label</th>
+                  <th scope="col">Status</th>
+                  <th scope="col" class="numeric">Comments</th>
+                  <th scope="col">Last synced</th>
+                  <th scope="col">Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {shown.length === 0
+                  ? (
+                    <tr>
+                      <td colspan={5}>
+                        <p class="muted">No versions match.</p>
+                      </td>
+                    </tr>
+                  )
+                  : null}
+                {shown.map((v) => (
+                  <tr key={v.id}>
+                    <td>
+                      <a
+                        href={docUrl(v.googleDocId)}
+                        target="_blank"
+                        rel="noreferrer"
                       >
-                        Diff
-                      </button>
-                    ) : null}
-                    <RequestReviewButton
-                      versionId={v.id}
-                      onSubmit={onRequestReview}
-                    />
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        </div>
+                        {v.label}
+                      </a>
+                    </td>
+                    <td>{v.status}</td>
+                    <td class="numeric">{v.commentCount}</td>
+                    <td>{formatRelative(v.lastSyncedAt)}</td>
+                    <td>
+                      <div class="row-actions">
+                        <VersionSyncButton version={v} onSync={onSync} />
+                        <button
+                          type="button"
+                          class="icon-button"
+                          title="Comments"
+                          aria-label="Comments"
+                          onClick={() => onOpenComments(v.id, v.label)}
+                        >
+                          <MessageSquare />
+                        </button>
+                        {v.parentVersionId
+                          ? (
+                            <button
+                              type="button"
+                              onClick={() =>
+                                onOpenDiff(v.parentVersionId!, v.id)}
+                            >
+                              Diff
+                            </button>
+                          )
+                          : null}
+                        <RequestReviewButton
+                          versionId={v.id}
+                          onSubmit={onRequestReview}
+                        />
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </>
       )}
     </section>
@@ -387,25 +412,31 @@ function DerivativesSection({
         Derivatives <span class="count">{derivatives.length}</span>
         <span class="pending-tag">Coming soon</span>
       </h2>
-      {derivatives.length === 0 ? (
-        <div class="empty-state">
-          <p class="empty-state-body">
-            Audience-specific copies generated by applying an overlay to a
-            version.
-          </p>
-        </div>
-      ) : (
-        <ul class="rows">
-          {derivatives.map((d) => (
-            <li key={d.id}>
-              <a href={docUrl(d.googleDocId)} target="_blank" rel="noreferrer">
-                {d.audienceLabel ?? d.googleDocId}
-              </a>
-              <span class="muted"> · {formatDate(d.createdAt)}</span>
-            </li>
-          ))}
-        </ul>
-      )}
+      {derivatives.length === 0
+        ? (
+          <div class="empty-state">
+            <p class="empty-state-body">
+              Audience-specific copies generated by applying an overlay to a
+              version.
+            </p>
+          </div>
+        )
+        : (
+          <ul class="rows">
+            {derivatives.map((d) => (
+              <li key={d.id}>
+                <a
+                  href={docUrl(d.googleDocId)}
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  {d.audienceLabel ?? d.googleDocId}
+                </a>
+                <span class="muted">· {formatDate(d.createdAt)}</span>
+              </li>
+            ))}
+          </ul>
+        )}
     </section>
   );
 }
@@ -422,25 +453,27 @@ function ReviewsSection({
       <h2 class="section-heading">
         Open reviews <span class="count">{reviews.length}</span>
       </h2>
-      {reviews.length === 0 ? (
-        <div class="empty-state">
-          <p class="empty-state-title">No open review requests.</p>
-          <p class="empty-state-body">
-            Use the Request review action on a version to send magic-link
-            review invitations.
-          </p>
-        </div>
-      ) : (
-        <ul class="rows">
-          {reviews.map((r) => (
-            <ReviewRow
-              key={r.id}
-              review={r}
-              issued={issuedLinks[r.id] ?? null}
-            />
-          ))}
-        </ul>
-      )}
+      {reviews.length === 0
+        ? (
+          <div class="empty-state">
+            <p class="empty-state-title">No open review requests.</p>
+            <p class="empty-state-body">
+              Use the Request review action on a version to send magic-link
+              review invitations.
+            </p>
+          </div>
+        )
+        : (
+          <ul class="rows">
+            {reviews.map((r) => (
+              <ReviewRow
+                key={r.id}
+                review={r}
+                issued={issuedLinks[r.id] ?? null}
+              />
+            ))}
+          </ul>
+        )}
     </section>
   );
 }
@@ -473,54 +506,68 @@ function ReviewRow({
           {review.deadline ? ` · due ${formatDate(review.deadline)}` : ""}
         </span>
       </button>
-      {expanded ? (
-        <div class="review-row-body">
-          {review.assignees.length === 0 ? (
-            <p class="muted">No reviewers assigned.</p>
-          ) : (
-            <ul class="review-assignees">
-              {review.assignees.map((a) => (
-                <li key={a.userId}>
-                  <span>{a.email}</span>
-                  <span class={`status-badge status-assignment-${a.status}`}>
-                    {ASSIGNMENT_STATUS_LABEL[a.status]}
-                  </span>
-                  {a.respondedAt ? (
-                    <span class="muted">
-                      {" "}
-                      · responded {formatDate(a.respondedAt)}
-                    </span>
-                  ) : null}
-                  {issuedByUser.has(a.userId) ? (
-                    <>
-                      {issuedByUser.get(a.userId)!.shareError ? (
-                        <p class="muted error review-share-error">
-                          Drive share failed:{" "}
-                          {issuedByUser.get(a.userId)!.shareError}
-                        </p>
-                      ) : null}
-                      {issuedByUser.get(a.userId)!.emailError ? (
-                        <p class="muted error review-share-error">
-                          Email send failed:{" "}
-                          {issuedByUser.get(a.userId)!.emailError}
-                        </p>
-                      ) : null}
-                      <ul class="review-magic-links">
-                        {issuedByUser.get(a.userId)!.links.map((l) => (
-                          <li key={l.action}>
-                            <code class="muted">{ACTION_LABEL[l.action]}: </code>
-                            <code>{l.url}</code>
-                          </li>
-                        ))}
-                      </ul>
-                    </>
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      ) : null}
+      {expanded
+        ? (
+          <div class="review-row-body">
+            {review.assignees.length === 0
+              ? <p class="muted">No reviewers assigned.</p>
+              : (
+                <ul class="review-assignees">
+                  {review.assignees.map((a) => (
+                    <li key={a.userId}>
+                      <span>{a.email}</span>
+                      <span
+                        class={`status-badge status-assignment-${a.status}`}
+                      >
+                        {ASSIGNMENT_STATUS_LABEL[a.status]}
+                      </span>
+                      {a.respondedAt
+                        ? (
+                          <span class="muted">
+                            {" "}
+                            · responded {formatDate(a.respondedAt)}
+                          </span>
+                        )
+                        : null}
+                      {issuedByUser.has(a.userId)
+                        ? (
+                          <>
+                            {issuedByUser.get(a.userId)!.shareError
+                              ? (
+                                <p class="muted error review-share-error">
+                                  Drive share failed:{" "}
+                                  {issuedByUser.get(a.userId)!.shareError}
+                                </p>
+                              )
+                              : null}
+                            {issuedByUser.get(a.userId)!.emailError
+                              ? (
+                                <p class="muted error review-share-error">
+                                  Email send failed:{" "}
+                                  {issuedByUser.get(a.userId)!.emailError}
+                                </p>
+                              )
+                              : null}
+                            <ul class="review-magic-links">
+                              {issuedByUser.get(a.userId)!.links.map((l) => (
+                                <li key={l.action}>
+                                  <code class="muted">
+                                    {ACTION_LABEL[l.action]}:
+                                  </code>
+                                  <code>{l.url}</code>
+                                </li>
+                              ))}
+                            </ul>
+                          </>
+                        )
+                        : null}
+                    </li>
+                  ))}
+                </ul>
+              )}
+          </div>
+        )
+        : null}
     </li>
   );
 }
@@ -540,7 +587,7 @@ const ACTION_LABEL: Record<ReviewActionKind, string> = {
 };
 
 function docUrl(googleDocId: string): string {
-  return `https://docs.google.com/document/d/${encodeURIComponent(googleDocId)}/edit`;
+  return `https://docs.google.com/document/d/${
+    encodeURIComponent(googleDocId)
+  }/edit`;
 }
-
-

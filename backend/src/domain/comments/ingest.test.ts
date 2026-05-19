@@ -3,12 +3,7 @@ import { afterEach, beforeEach, describe, it as test } from "@std/testing/bdd";
 import { expect } from "@std/expect";
 import { eq } from "drizzle-orm";
 import { strToU8, zipSync } from "fflate";
-import {
-  cleanDb,
-  seedProject,
-  seedUser,
-  seedVersion,
-} from "../../../test/db.ts";
+import { cleanDb, seedProject, seedUser, seedVersion } from "../../../test/db.ts";
 import { setFetch } from "../../../test/fetch.ts";
 import { db } from "../../db/client.ts";
 import { encryptWithMaster } from "../../auth/encryption.ts";
@@ -76,8 +71,7 @@ function stubGoogle(byDocId: Record<string, FixtureOpts>): void {
       return new Response(fx.docxBytes as Uint8Array<ArrayBuffer>, {
         status: 200,
         headers: {
-          "content-type":
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          "content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         },
       });
     }

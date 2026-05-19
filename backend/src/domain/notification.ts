@@ -1,10 +1,6 @@
 import { and, count, desc, eq, inArray, isNull } from "drizzle-orm";
 import { db } from "../db/client.ts";
-import {
-  notification,
-  type NotificationKind,
-  type NotificationPayload,
-} from "../db/schema.ts";
+import { notification, type NotificationKind, type NotificationPayload } from "../db/schema.ts";
 
 type Notification = typeof notification.$inferSelect;
 

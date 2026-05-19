@@ -194,4 +194,3 @@ export async function handleAuthExtSuccess(req: Request): Promise<Response> {
     ].join("; "),
   });
 }
-

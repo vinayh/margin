@@ -98,7 +98,9 @@ describe("planOverlay", () => {
     const plan = planOverlay(ops, doc);
     expect(plan.ops[0]!.status).toBe("clean");
     expect(plan.ops[0]!.requests).toHaveLength(1);
-    const req = plan.ops[0]!.requests[0]! as { deleteContentRange?: { range?: { startIndex: number; endIndex: number } } };
+    const req = plan.ops[0]!.requests[0]! as {
+      deleteContentRange?: { range?: { startIndex: number; endIndex: number } };
+    };
     // "First paragraph here.\n" is 1..23 → "Confidential..." paragraph starts at 23
     expect(req.deleteContentRange?.range?.startIndex).toBe(23);
     expect(req.deleteContentRange?.range?.endIndex).toBe(23 + "Confidential note".length);
@@ -115,7 +117,10 @@ describe("planOverlay", () => {
     ];
     const plan = planOverlay(ops, doc);
     expect(plan.ops[0]!.requests).toHaveLength(2);
-    expect((plan.ops[0]!.requests[1]! as { insertText?: { text: string; location: { index: number } } }).insertText?.text).toBe("[REDACTED]");
+    expect(
+      (plan.ops[0]!.requests[1]! as { insertText?: { text: string; location: { index: number } } })
+        .insertText?.text,
+    ).toBe("[REDACTED]");
   });
 
   test("replace becomes delete + insert at the same index", () => {
@@ -129,8 +134,12 @@ describe("planOverlay", () => {
     ];
     const plan = planOverlay(ops, doc);
     expect(plan.ops[0]!.requests).toHaveLength(2);
-    const del = plan.ops[0]!.requests[0]! as { deleteContentRange?: { range?: { startIndex: number; endIndex: number } } };
-    const ins = plan.ops[0]!.requests[1]! as { insertText?: { text: string; location: { index: number } } };
+    const del = plan.ops[0]!.requests[0]! as {
+      deleteContentRange?: { range?: { startIndex: number; endIndex: number } };
+    };
+    const ins = plan.ops[0]!.requests[1]! as {
+      insertText?: { text: string; location: { index: number } };
+    };
     expect(del.deleteContentRange?.range?.startIndex).toBe(1);
     expect(ins.insertText?.location.index).toBe(1);
     expect(ins.insertText?.text).toBe("Opening line");
@@ -146,14 +155,18 @@ describe("planOverlay", () => {
       }),
     ];
     const plan = planOverlay(ops, doc);
-    const ins = plan.ops[0]!.requests[0]! as { insertText?: { text: string; location: { index: number } } };
+    const ins = plan.ops[0]!.requests[0]! as {
+      insertText?: { text: string; location: { index: number } };
+    };
     expect(ins.insertText?.location.index).toBe(1 + "First paragraph".length);
   });
 
   test("append targets the end-of-body index", () => {
     const ops = [op({ type: "append", orderIndex: 0, payload: " — fin" })];
     const plan = planOverlay(ops, doc);
-    const ins = plan.ops[0]!.requests[0]! as { insertText?: { text: string; location: { index: number } } };
+    const ins = plan.ops[0]!.requests[0]! as {
+      insertText?: { text: string; location: { index: number } };
+    };
     expect(ins.insertText?.location.index).toBe(endOfBodyIndex(doc));
   });
 
@@ -364,7 +377,10 @@ describe("flattenPlan", () => {
     const plan = planOverlay(ops, doc);
     const flat = flattenPlan(plan);
     const indices = flat.map((r) => {
-      const x = r as { deleteContentRange?: { range?: { startIndex: number } }; insertText?: { location?: { index: number } } };
+      const x = r as {
+        deleteContentRange?: { range?: { startIndex: number } };
+        insertText?: { location?: { index: number } };
+      };
       return x.deleteContentRange?.range?.startIndex ?? x.insertText?.location?.index ?? -1;
     });
     expect(indices).toEqual([...indices].sort((a, b) => b - a));

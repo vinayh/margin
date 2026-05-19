@@ -40,7 +40,10 @@ async function seedDriveCredential(userId: string): Promise<void> {
 }
 
 interface DriveStubState {
-  watchCalls: { fileId: string; body: { id: string; address: string; token?: string; expiration?: string } }[];
+  watchCalls: {
+    fileId: string;
+    body: { id: string; address: string; token?: string; expiration?: string };
+  }[];
   stopCalls: { id: string; resourceId: string }[];
   /** When set, the next watch call returns this status + body instead of 200 OK. */
   watchError?: { status: number; body: string };

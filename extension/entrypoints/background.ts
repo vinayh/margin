@@ -1,7 +1,11 @@
 import { defineBackground } from "wxt/utils/define-background";
 import { browser } from "wxt/browser";
 import * as v from "valibot";
-import { MessageSchema, type Message, type MessageResponse } from "../utils/messages.ts";
+import {
+  type Message,
+  type MessageResponse,
+  MessageSchema,
+} from "../utils/messages.ts";
 import { parseDocIdFromUrl } from "../utils/ids.ts";
 import { getBackendUrl, getSettings, patchSettings } from "../utils/storage.ts";
 import { DEFAULT_BACKEND_URL } from "../utils/types.ts";
@@ -15,16 +19,16 @@ import {
   createReviewRequest,
   createVersion,
   deleteProject,
-  fetchNotifications,
-  markNotificationsRead,
-  renameProject,
   fetchDocState,
+  fetchNotifications,
   fetchProjectDetail,
   fetchVersionComments,
   fetchVersionDiff,
   fetchWhoami,
   listProjects,
   loadProjectSettings,
+  markNotificationsRead,
+  renameProject,
   runCommentAction,
   runDocSync,
   signOutFromBackend,
@@ -63,12 +67,19 @@ export default defineBackground(() => {
   // We allow-list on backend origin. Firefox can't reach this listener (Bugzilla 1319168);
   // see the tabs.onUpdated handler below for its fragment fallback.
   browser.runtime.onMessageExternal.addListener(
-    (msg, sender, sendResponse: (r: { ok: boolean; error?: string }) => void) => {
+    (
+      msg,
+      sender,
+      sendResponse: (r: { ok: boolean; error?: string }) => void,
+    ) => {
       void handleExternal(msg, sender)
         .then(sendResponse)
         .catch((err) => {
           console.error("[margin] external message handler:", err);
-          sendResponse({ ok: false, error: err instanceof Error ? err.message : String(err) });
+          sendResponse({
+            ok: false,
+            error: err instanceof Error ? err.message : String(err),
+          });
         });
       return true;
     },
@@ -199,7 +210,10 @@ async function isDocTracked(docId: string): Promise<boolean> {
   return tracked;
 }
 
-async function evaluateAction(tabId: number, url: string | undefined): Promise<void> {
+async function evaluateAction(
+  tabId: number,
+  url: string | undefined,
+): Promise<void> {
   const docId = url ? parseDocIdFromUrl(url) : null;
   if (!docId) {
     await safeSetPopup(tabId, DEFAULT_POPUP_PATH);
@@ -311,7 +325,8 @@ interface ExternalAuthMessage {
 function isExternalAuthMessage(msg: unknown): msg is ExternalAuthMessage {
   if (!msg || typeof msg !== "object") return false;
   const m = msg as { kind?: unknown; token?: unknown };
-  return m.kind === "auth/token" && typeof m.token === "string" && m.token.length > 0;
+  return m.kind === "auth/token" && typeof m.token === "string" &&
+    m.token.length > 0;
 }
 
 function originOf(url: string | null | undefined): string | null {
@@ -372,7 +387,10 @@ async function handleAuthFragment(tabId: number, url: string): Promise<void> {
   }
 }
 
-function errorResponseFor(message: Message | unknown, error: string): MessageResponse {
+function errorResponseFor(
+  message: Message | unknown,
+  error: string,
+): MessageResponse {
   const kind =
     typeof message === "object" && message !== null && "kind" in message
       ? (message as { kind: unknown }).kind
@@ -383,7 +401,13 @@ function errorResponseFor(message: Message | unknown, error: string): MessageRes
     case "auth/sign-out":
       return { kind: "auth/sign-out", ok: true, error };
     case "auth/whoami":
-      return { kind: "auth/whoami", email: null, name: null, image: null, error };
+      return {
+        kind: "auth/whoami",
+        email: null,
+        name: null,
+        image: null,
+        error,
+      };
     case "doc/state":
       return { kind: "doc/state", state: null, error };
     case "doc/sync":
@@ -525,7 +549,10 @@ async function handleMessage(message: Message): Promise<MessageResponse> {
       return { kind: "settings/load", settings };
     }
     case "settings/update": {
-      const settings = await updateProjectSettings(message.projectId, message.patch);
+      const settings = await updateProjectSettings(
+        message.projectId,
+        message.patch,
+      );
       return { kind: "settings/update", settings };
     }
     case "review/request": {

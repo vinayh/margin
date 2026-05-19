@@ -6,7 +6,8 @@ import { formatRelative } from "./format-time.ts";
 // shared across that boundary, so we share the class strings + meta
 // formatter and let each surface lay out the row in its native idiom.
 
-export const PROJECT_LIST_CLASS = "list-none p-0 m-0 flex flex-col gap-[0.4rem]";
+export const PROJECT_LIST_CLASS =
+  "list-none p-0 m-0 flex flex-col gap-[0.4rem]";
 
 export const PROJECT_ROW_CONTAINER_CLASS =
   "flex items-baseline gap-3 px-[0.7rem] py-[0.55rem] border border-rule rounded bg-cream";
@@ -24,8 +25,9 @@ export function projectRowLabel(p: ProjectListEntry): string {
 }
 
 export function formatProjectMeta(p: ProjectListEntry): string {
-  const versions =
-    p.versionCount === 1 ? "1 version" : `${p.versionCount} versions`;
+  const versions = p.versionCount === 1
+    ? "1 version"
+    : `${p.versionCount} versions`;
   return `${versions} · last sync ${formatRelative(p.lastSyncedAt)}`;
 }
 

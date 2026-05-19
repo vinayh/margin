@@ -1,13 +1,6 @@
-import {
-  authenticateBearer,
-  jsonOk,
-  unauthorized,
-} from "./middleware.ts";
+import { authenticateBearer, jsonOk, unauthorized } from "./middleware.ts";
 import { listProjectsOwnedBy } from "../domain/project.ts";
-import {
-  countVersionsByProject,
-  pickLastSyncedAtByProject,
-} from "../domain/stats.ts";
+import { countVersionsByProject, pickLastSyncedAtByProject } from "../domain/stats.ts";
 
 /**
  * POST /api/extension/projects — list projects owned by the caller, with

@@ -1,29 +1,25 @@
 import { and, eq, inArray, isNotNull, isNull } from "drizzle-orm";
 import { db } from "../../db/client.ts";
 import {
+  type AnchorRange,
   canonicalComment,
+  type CommentAnchor,
   commentProjection,
   version,
-  type AnchorRange,
-  type CommentAnchor,
 } from "../../db/schema.ts";
-import { listComments, exportDocx } from "../../google/drive.ts";
-import {
-  parseDocx,
-  type DocxComment,
-  type DocxRange,
-} from "../../google/docx.ts";
+import { exportDocx, listComments } from "../../google/drive.ts";
+import { type DocxComment, type DocxRange, parseDocx } from "../../google/docx.ts";
 import { tokenProviderForProject } from "../project.ts";
 import { requireVersion } from "../version.ts";
 import { buildAnchor } from "./anchor-build.ts";
 import {
+  type AuthorIndex,
   buildAuthorIndex,
   buildDriveIndex,
-  driveLookupKey,
-  resolveIdentity,
-  type AuthorIndex,
   type DriveEntry,
   type DriveIndex,
+  driveLookupKey,
+  resolveIdentity,
 } from "./drive-index.ts";
 import { ingestSuggestions } from "./suggestions.ts";
 import { upsertCanonical } from "./upsert.ts";

@@ -6,8 +6,8 @@
  */
 export { ingestVersionComments } from "./comments/ingest.ts";
 export {
+  type CanonicalComment,
   listCommentsForProject,
   listDeletedCommentsForProject,
-  type CanonicalComment,
 } from "./comments/list.ts";
 export type { IngestResult } from "./comments/types.ts";

@@ -37,7 +37,9 @@ export async function run(args: string[]): Promise<void> {
         ? `"${clip(cc.anchor.quotedText, 40)}"`
         : "(unanchored)";
       console.log(
-        `${cc.id.slice(0, 8)}  ${res.status.padEnd(8)} conf=${String(res.confidence).padStart(3)}  ${cc.kind.padEnd(18)} ${author}`,
+        `${cc.id.slice(0, 8)}  ${res.status.padEnd(8)} conf=${
+          String(res.confidence).padStart(3)
+        }  ${cc.kind.padEnd(18)} ${author}`,
       );
       console.log(`  src: ${sourceQuoted}`);
       console.log(`  body: ${clip(cc.body, 80)}`);
@@ -49,7 +51,9 @@ export async function run(args: string[]): Promise<void> {
         const matched = p.text.slice(offset, matchEnd);
         const after = p.text.slice(matchEnd, matchEnd + 24);
         console.log(
-          `  → para[${p.paragraphIndex}] @${offset}: …${clip(before, 24)}«${clip(matched, 40)}»${clip(after, 24)}…`,
+          `  → para[${p.paragraphIndex}] @${offset}: …${clip(before, 24)}«${clip(matched, 40)}»${
+            clip(after, 24)
+          }…`,
         );
       } else {
         console.log(`  → no aligned paragraph (orphaned)`);

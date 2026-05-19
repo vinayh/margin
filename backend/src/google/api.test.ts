@@ -2,12 +2,7 @@ import "../../test/setup.ts";
 import { afterEach, describe, it as test } from "@std/testing/bdd";
 import { expect } from "@std/expect";
 import { setFetch } from "../../test/fetch.ts";
-import {
-  GoogleApiError,
-  authedFetch,
-  authedJson,
-  type TokenProvider,
-} from "./api.ts";
+import { authedFetch, authedJson, GoogleApiError, type TokenProvider } from "./api.ts";
 
 /**
  * Tiny token-provider stub that records refresh invocations so tests can
@@ -119,7 +114,7 @@ describe("authedJson", () => {
       new Response(JSON.stringify({ ok: true, n: 7 }), {
         status: 200,
         headers: { "content-type": "application/json" },
-      }),
+      })
     );
     const out = await authedJson<{ ok: boolean; n: number }>(tp, "https://x");
     expect(out).toEqual({ ok: true, n: 7 });

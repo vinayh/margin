@@ -2,9 +2,9 @@ import { and, eq } from "drizzle-orm";
 import { db, isUniqueConstraintError } from "../../db/client.ts";
 import {
   canonicalComment,
-  commentProjection,
   type CanonicalCommentKind,
   type CommentAnchor,
+  commentProjection,
   type ProjectionStatus,
 } from "../../db/schema.ts";
 import { userIdByEmail } from "../user.ts";

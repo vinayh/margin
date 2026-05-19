@@ -9,11 +9,11 @@ import {
   seedVersion,
 } from "../../test/db.ts";
 import {
-  countCommentsByOriginVersion,
   countComments,
+  countCommentsByOriginVersion,
   countOpenReviews,
-  pickLastSyncedAtByVersion,
   pickLastSyncedAt,
+  pickLastSyncedAtByVersion,
 } from "./stats.ts";
 import { seedReviewRequest } from "../../test/db.ts";
 

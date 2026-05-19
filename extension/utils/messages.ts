@@ -38,8 +38,12 @@ const SettingsPatchSchema = v.partial(
       v.array(v.pipe(v.string(), v.maxLength(MAX_FIELD_LEN))),
       v.maxLength(MAX_REVIEWERS),
     ),
-    defaultOverlayId: v.nullable(v.pipe(v.string(), v.maxLength(MAX_FIELD_LEN))),
-    slackWorkspaceRef: v.nullable(v.pipe(v.string(), v.maxLength(MAX_FIELD_LEN))),
+    defaultOverlayId: v.nullable(
+      v.pipe(v.string(), v.maxLength(MAX_FIELD_LEN)),
+    ),
+    slackWorkspaceRef: v.nullable(
+      v.pipe(v.string(), v.maxLength(MAX_FIELD_LEN)),
+    ),
   }),
 );
 
@@ -120,81 +124,81 @@ export type Message = v.InferOutput<typeof MessageSchema>;
  */
 export type MessageResponse =
   | {
-      kind: "settings/get";
-      settings: Settings | null;
-      /**
-       * The persisted backend URL, returned even when `settings` is null
-       * because the user has saved a backend URL but not yet signed in.
-       * The popup uses this to distinguish "needs Open Options" from
-       * "needs sign-in" without a second round-trip.
-       */
-      backendUrl: string | null;
-      error?: string;
-    }
+    kind: "settings/get";
+    settings: Settings | null;
+    /**
+     * The persisted backend URL, returned even when `settings` is null
+     * because the user has saved a backend URL but not yet signed in.
+     * The popup uses this to distinguish "needs Open Options" from
+     * "needs sign-in" without a second round-trip.
+     */
+    backendUrl: string | null;
+    error?: string;
+  }
   | { kind: "auth/sign-out"; ok: true; error?: string }
   | {
-      kind: "auth/whoami";
-      email: string | null;
-      name: string | null;
-      image: string | null;
-      error?: string;
-    }
+    kind: "auth/whoami";
+    email: string | null;
+    name: string | null;
+    image: string | null;
+    error?: string;
+  }
   | { kind: "doc/state"; state: DocState | null; error?: string }
   | { kind: "doc/sync"; state: DocState | null; error?: string }
   | { kind: "project/detail"; detail: ProjectDetail | null; error?: string }
   | { kind: "project/delete"; deleted: boolean; error?: string }
   | {
-      kind: "project/rename";
-      project: { projectId: string; name: string } | null;
-      error?: string;
-    }
+    kind: "project/rename";
+    project: { projectId: string; name: string } | null;
+    error?: string;
+  }
   | {
-      kind: "projects/list";
-      projects: ProjectListEntry[] | null;
-      error?: string;
-    }
+    kind: "projects/list";
+    projects: ProjectListEntry[] | null;
+    error?: string;
+  }
   | {
-      kind: "version/create";
-      result: VersionCreateResult | null;
-      error?: string;
-    }
+    kind: "version/create";
+    result: VersionCreateResult | null;
+    error?: string;
+  }
   | { kind: "version/diff"; payload: VersionDiffPayload | null; error?: string }
   | {
-      kind: "version/comments";
-      payload: VersionCommentsPayload | null;
-      error?: string;
-    }
+    kind: "version/comments";
+    payload: VersionCommentsPayload | null;
+    error?: string;
+  }
   | {
-      kind: "comment/action";
-      result: CommentActionResult | null;
-      error?: string;
-    }
+    kind: "comment/action";
+    result: CommentActionResult | null;
+    error?: string;
+  }
   | {
-      kind: "settings/load";
-      settings: ProjectSettingsView | null;
-      error?: string;
-    }
+    kind: "settings/load";
+    settings: ProjectSettingsView | null;
+    error?: string;
+  }
   | {
-      kind: "settings/update";
-      settings: ProjectSettingsView | null;
-      error?: string;
-    }
+    kind: "settings/update";
+    settings: ProjectSettingsView | null;
+    error?: string;
+  }
   | {
-      kind: "review/request";
-      result: ReviewRequestResult | null;
-      error?: string;
-    }
+    kind: "review/request";
+    result: ReviewRequestResult | null;
+    error?: string;
+  }
   | {
-      kind: "notifications/list";
-      items: NotificationView[];
-      unread: number;
-      error?: string;
-    }
+    kind: "notifications/list";
+    items: NotificationView[];
+    unread: number;
+    error?: string;
+  }
   | {
-      kind: "notifications/mark-read";
-      marked: number;
-      error?: string;
-    };
+    kind: "notifications/mark-read";
+    marked: number;
+    error?: string;
+  };
 
 export interface NotificationView {
   id: string;

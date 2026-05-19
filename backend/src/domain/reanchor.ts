@@ -2,7 +2,7 @@ import { diffChars } from "diff";
 import type { CommentAnchor } from "../db/schema.ts";
 import type { Document } from "../google/docs.ts";
 import { extractAllParagraphs, type RegionParagraphText } from "../google/docs.ts";
-import { anchorAt, paragraphHash, orphanAnchor } from "./anchor.ts";
+import { anchorAt, orphanAnchor, paragraphHash } from "./anchor.ts";
 
 /**
  * Result of projecting a source anchor onto a target document.
@@ -67,11 +67,11 @@ export function reanchor(doc: Document, source: CommentAnchor): ReanchorResult {
   const sameRegion = all.filter((p) => p.region === sourceRegion);
   return (
     tryMatch(sameRegion, source, quoted) ??
-    tryMatch(
-      all.filter((p) => p.region !== sourceRegion),
-      source,
-      quoted,
-    ) ?? { anchor: orphanAnchor(quoted), confidence: 0, status: "orphaned" }
+      tryMatch(
+        all.filter((p) => p.region !== sourceRegion),
+        source,
+        quoted,
+      ) ?? { anchor: orphanAnchor(quoted), confidence: 0, status: "orphaned" }
   );
 }
 
@@ -220,4 +220,3 @@ function contextMatches(
     : true;
   return beforeOk && afterOk;
 }
-

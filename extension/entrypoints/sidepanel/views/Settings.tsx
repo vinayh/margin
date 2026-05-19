@@ -107,7 +107,9 @@ export function Settings({
 
   async function onDelete(): Promise<void> {
     const label = projectName ?? "this project";
-    if (!window.confirm(`Delete "${label}"? This cannot be undone.`)) return;
+    if (!globalThis.confirm(`Delete "${label}"? This cannot be undone.`)) {
+      return;
+    }
     setError(null);
     setDeleting(true);
     try {
@@ -127,7 +129,9 @@ export function Settings({
     setError(null);
     const { valid, invalid } = validateEmails(reviewerEmailsRaw);
     if (invalid.length > 0) {
-      setError(`Invalid email${invalid.length > 1 ? "s" : ""}: ${invalid.join(", ")}`);
+      setError(
+        `Invalid email${invalid.length > 1 ? "s" : ""}: ${invalid.join(", ")}`,
+      );
       return;
     }
     setSaving(true);
@@ -141,7 +145,11 @@ export function Settings({
         setSaving(false);
         return;
       }
-      const r = await sendMessage({ kind: "settings/update", projectId, patch });
+      const r = await sendMessage({
+        kind: "settings/update",
+        projectId,
+        patch,
+      });
       if (r?.kind !== "settings/update") throw new Error("unexpected response");
       if (r.error) throw new Error(r.error);
       if (!r.settings) throw new Error("no settings returned");
@@ -181,7 +189,8 @@ export function Settings({
     ...form,
     defaultReviewerEmails: parseEmails(reviewerEmailsRaw),
   };
-  const dirty = Object.keys(diffSettings(state.settings, formWithParsedEmails)).length > 0;
+  const dirty =
+    Object.keys(diffSettings(state.settings, formWithParsedEmails)).length > 0;
 
   return (
     <section class="settings-view">
@@ -195,49 +204,49 @@ export function Settings({
               type="text"
               value={nameDraft}
               onInput={(ev) =>
-                setNameDraft((ev.currentTarget as HTMLInputElement).value)
-              }
+                setNameDraft((ev.currentTarget as HTMLInputElement).value)}
               disabled={renaming}
             />
             <button
               type="button"
-              disabled={
-                renaming ||
+              disabled={renaming ||
                 nameDraft.trim().length === 0 ||
-                nameDraft.trim() === (projectName ?? "")
-              }
+                nameDraft.trim() === (projectName ?? "")}
               onClick={() => void onRename()}
             >
               {renaming ? "Saving…" : "Rename"}
             </button>
           </div>
-          <small>Displayed in the side panel header. Doesn't rename the Google Doc.</small>
+          <small>
+            Displayed in the side panel header. Doesn't rename the Google Doc.
+          </small>
           {renameError ? <p class="muted error">{renameError}</p> : null}
         </div>
 
         <label class="settings-toggle">
           <input
             type="checkbox"
+            name="notifyOnComment"
             checked={form.notifyOnComment}
             onChange={(ev) =>
               setForm({
                 ...form,
                 notifyOnComment: (ev.currentTarget as HTMLInputElement).checked,
-              })
-            }
+              })}
           />
           Notify me when a new comment arrives
         </label>
         <label class="settings-toggle">
           <input
             type="checkbox"
+            name="notifyOnReviewComplete"
             checked={form.notifyOnReviewComplete}
             onChange={(ev) =>
               setForm({
                 ...form,
-                notifyOnReviewComplete: (ev.currentTarget as HTMLInputElement).checked,
-              })
-            }
+                notifyOnReviewComplete:
+                  (ev.currentTarget as HTMLInputElement).checked,
+              })}
           />
           Notify me when a review request finishes
         </label>
@@ -248,8 +257,9 @@ export function Settings({
             id="defaultReviewerEmails"
             value={reviewerEmailsRaw}
             onInput={(ev) =>
-              setReviewerEmailsRaw((ev.currentTarget as HTMLTextAreaElement).value)
-            }
+              setReviewerEmailsRaw(
+                (ev.currentTarget as HTMLTextAreaElement).value,
+              )}
           />
           <small>One email per line. Pre-fills new review requests.</small>
         </div>
@@ -265,13 +275,13 @@ export function Settings({
               setForm({
                 ...form,
                 slackWorkspaceRef:
-                  ((ev.currentTarget as HTMLInputElement).value || "").trim() || null,
-              })
-            }
+                  ((ev.currentTarget as HTMLInputElement).value || "").trim() ||
+                  null,
+              })}
           />
           <small>
-            Links this project to a Slack workspace. Margin's Slack bot ships in Phase 5;
-            for now this is a free-form identifier.
+            Links this project to a Slack workspace. Margin's Slack bot ships in
+            Phase 5; for now this is a free-form identifier.
           </small>
         </div>
 
@@ -291,7 +301,9 @@ export function Settings({
             disabled={saving || !dirty}
             onClick={() => {
               setForm(state.settings);
-              setReviewerEmailsRaw(state.settings.defaultReviewerEmails.join("\n"));
+              setReviewerEmailsRaw(
+                state.settings.defaultReviewerEmails.join("\n"),
+              );
             }}
           >
             Reset
@@ -301,8 +313,8 @@ export function Settings({
 
       <div class="danger-zone">
         <p class="muted text-[12px]">
-          Removes the project from Margin (versions, comments, review
-          requests). Your Google Doc isn't touched.
+          Removes the project from Margin (versions, comments, review requests).
+          Your Google Doc isn't touched.
         </p>
         <button
           type="button"

@@ -2,12 +2,15 @@ import { browser } from "wxt/browser";
 import { createElement, Trash2 } from "lucide";
 import { detectAndPersistBrowserQuirks } from "../../utils/browser-detect.ts";
 import type { Message, MessageResponse } from "../../utils/messages.ts";
-import { DEFAULT_BACKEND_URL, type ProjectListEntry } from "../../utils/types.ts";
 import {
+  DEFAULT_BACKEND_URL,
+  type ProjectListEntry,
+} from "../../utils/types.ts";
+import {
+  formatProjectMeta,
   PROJECT_ROW_CONTAINER_CLASS,
   PROJECT_ROW_META_CLASS,
   PROJECT_ROW_NAME_CLASS,
-  formatProjectMeta,
   projectRowLabel,
   sortProjectsByLastSync,
 } from "../../ui/project-row.ts";
@@ -30,7 +33,9 @@ const docsEmptyEl = document.getElementById("docsEmpty") as HTMLElement;
 const status = document.getElementById("status") as HTMLParagraphElement;
 const devBanner = document.getElementById("devBanner") as HTMLElement;
 const devBackendEl = document.getElementById("devBackend") as HTMLElement;
-const extensionVersionEl = document.getElementById("extensionVersion") as HTMLElement;
+const extensionVersionEl = document.getElementById(
+  "extensionVersion",
+) as HTMLElement;
 
 extensionVersionEl.textContent = `v${browser.runtime.getManifest().version}`;
 
@@ -44,11 +49,14 @@ if (import.meta.env.DEV) {
 void hydrate();
 
 async function hydrate(): Promise<void> {
-  const r = (await browser.runtime.sendMessage({ kind: "settings/get" } satisfies Message)) as
+  const r = (await browser.runtime.sendMessage(
+    { kind: "settings/get" } satisfies Message,
+  )) as
     | MessageResponse
     | undefined;
-  const signedIn =
-    r?.kind === "settings/get" ? Boolean(r.settings?.sessionToken) : false;
+  const signedIn = r?.kind === "settings/get"
+    ? Boolean(r.settings?.sessionToken)
+    : false;
   await renderAuthState(signedIn);
 }
 
@@ -62,7 +70,9 @@ async function renderAuthState(signedIn: boolean): Promise<void> {
 }
 
 async function fillIdentity(): Promise<void> {
-  const r = (await browser.runtime.sendMessage({ kind: "auth/whoami" } satisfies Message)) as
+  const r = (await browser.runtime.sendMessage(
+    { kind: "auth/whoami" } satisfies Message,
+  )) as
     | MessageResponse
     | undefined;
   if (r?.kind !== "auth/whoami") return;
@@ -78,7 +88,9 @@ async function fillIdentity(): Promise<void> {
 }
 
 async function fillDocs(): Promise<void> {
-  const r = (await browser.runtime.sendMessage({ kind: "projects/list" } satisfies Message)) as
+  const r = (await browser.runtime.sendMessage(
+    { kind: "projects/list" } satisfies Message,
+  )) as
     | MessageResponse
     | undefined;
   if (r?.kind !== "projects/list" || !r.projects) return;
@@ -93,7 +105,9 @@ function renderDocRow(p: ProjectListEntry): HTMLLIElement {
   li.className = PROJECT_ROW_CONTAINER_CLASS;
 
   const link = document.createElement("a");
-  link.href = `https://docs.google.com/document/d/${encodeURIComponent(p.parentDocId)}/edit`;
+  link.href = `https://docs.google.com/document/d/${
+    encodeURIComponent(p.parentDocId)
+  }/edit`;
   link.target = "_blank";
   link.rel = "noreferrer";
   link.className = PROJECT_ROW_NAME_CLASS;
@@ -123,15 +137,19 @@ async function confirmAndDelete(
   const label = p.name ?? p.parentDocId;
   // `confirm` is sync + blocking; that's the right shape for a one-off
   // destructive action and avoids hand-rolling a modal for a single use site.
-  if (!window.confirm(`Delete project "${label}"? This cannot be undone.`)) {
+  if (
+    !globalThis.confirm(`Delete project "${label}"? This cannot be undone.`)
+  ) {
     return;
   }
   button.disabled = true;
   try {
-    const r = (await browser.runtime.sendMessage({
-      kind: "project/delete",
-      projectId: p.id,
-    } satisfies Message)) as MessageResponse | undefined;
+    const r = (await browser.runtime.sendMessage(
+      {
+        kind: "project/delete",
+        projectId: p.id,
+      } satisfies Message,
+    )) as MessageResponse | undefined;
     if (r?.kind !== "project/delete" || !r.deleted) {
       setStatus(r?.error ?? "delete failed", "error");
       button.disabled = false;
@@ -156,9 +174,11 @@ signInBtn.addEventListener("click", async () => {
     return;
   }
   setStatus("Opening Google sign-in in a new tab…", null);
-  const launchUrl = `${DEFAULT_BACKEND_URL}/api/auth/ext/launch-tab?ext=${encodeURIComponent(
-    browser.runtime.id,
-  )}`;
+  const launchUrl = `${DEFAULT_BACKEND_URL}/api/auth/ext/launch-tab?ext=${
+    encodeURIComponent(
+      browser.runtime.id,
+    )
+  }`;
   await browser.tabs.create({ url: launchUrl });
 });
 
@@ -178,9 +198,11 @@ browser.storage.onChanged.addListener((changes, areaName) => {
 });
 
 signOutBtn.addEventListener("click", async () => {
-  const r = (await browser.runtime.sendMessage({
-    kind: "auth/sign-out",
-  } satisfies Message)) as MessageResponse | undefined;
+  const r = (await browser.runtime.sendMessage(
+    {
+      kind: "auth/sign-out",
+    } satisfies Message,
+  )) as MessageResponse | undefined;
   if (r?.kind === "auth/sign-out" && r.ok) {
     setStatus("Signed out.", "ok");
     void renderAuthState(false);
@@ -205,13 +227,18 @@ async function ensureBackendOrigin(
   const has = await browser.permissions.contains({ origins: [pattern] });
   if (has) return { ok: true };
   const granted = await browser.permissions.request({ origins: [pattern] });
-  if (!granted) return { ok: false, reason: `permission denied for ${pattern}` };
+  if (!granted) {
+    return { ok: false, reason: `permission denied for ${pattern}` };
+  }
   return { ok: true };
 }
 
 function setStatus(message: string, tone: "ok" | "error" | null): void {
   status.textContent = message;
-  const toneClass =
-    tone === "error" ? "text-bad" : tone === "ok" ? "text-good" : "text-ink";
+  const toneClass = tone === "error"
+    ? "text-bad"
+    : tone === "ok"
+    ? "text-good"
+    : "text-ink";
   status.className = `min-h-[1.4em] mt-4 mb-0 font-semibold ${toneClass}`;
 }

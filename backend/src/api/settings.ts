@@ -8,9 +8,9 @@ import {
   unauthorized,
 } from "./middleware.ts";
 import {
+  loadProjectSettings,
   ProjectSettingsPatchSchema,
   SettingsNotFoundError,
-  loadProjectSettings,
   updateProjectSettings,
 } from "../domain/settings.ts";
 

@@ -1,15 +1,12 @@
 import {
   parseReviewActionKind,
-  redeemReviewActionToken,
   type RedeemOutcome,
+  redeemReviewActionToken,
 } from "../domain/review-action.ts";
 import type { ReviewActionKind } from "../db/schema.ts";
 import { renderPage } from "./render.ts";
 import { ReviewActionPage } from "./pages/ReviewActionPage.tsx";
-import {
-  ReviewActionChooserPage,
-  type ChooserAction,
-} from "./pages/ReviewActionChooserPage.tsx";
+import { type ChooserAction, ReviewActionChooserPage } from "./pages/ReviewActionChooserPage.tsx";
 import { ReviewActionConfirmPage } from "./pages/ReviewActionConfirmPage.tsx";
 
 /**
@@ -110,19 +107,22 @@ function copyFor(page: PageState): PageCopy {
     case "invalid":
       return {
         title: "Link not recognized",
-        body: "This link doesn't look like a Margin action URL. Check the original email — links are case-sensitive and shouldn't be edited.",
+        body:
+          "This link doesn't look like a Margin action URL. Check the original email — links are case-sensitive and shouldn't be edited.",
         tone: "err",
       };
     case "expired":
       return {
         title: "Link expired",
-        body: "This action link is no longer valid. Ask the requester to resend the review request, or sign in to the Margin web app to respond directly.",
+        body:
+          "This action link is no longer valid. Ask the requester to resend the review request, or sign in to the Margin web app to respond directly.",
         tone: "err",
       };
     case "assignment_missing":
       return {
         title: "Assignment unavailable",
-        body: "The review assignment this link points to is no longer available — it may have been cancelled. Contact the requester for an updated link.",
+        body:
+          "The review assignment this link points to is no longer available — it may have been cancelled. Contact the requester for an updated link.",
         tone: "err",
       };
   }
@@ -154,8 +154,7 @@ function actionBody(action: ReviewActionKind): string {
   }
 }
 
-const STATIC_CSP =
-  "default-src 'none'; style-src 'self'; font-src 'self'; frame-ancestors 'none'";
+const STATIC_CSP = "default-src 'none'; style-src 'self'; font-src 'self'; frame-ancestors 'none'";
 
 function renderResult(page: PageState): Response {
   const copy = copyFor(page);

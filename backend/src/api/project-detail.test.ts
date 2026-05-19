@@ -1,12 +1,7 @@
 import "../../test/setup.ts";
 import { beforeEach, describe, it as test } from "@std/testing/bdd";
 import { expect } from "@std/expect";
-import {
-  cleanDb,
-  seedProject,
-  seedUser,
-  seedVersion,
-} from "../../test/db.ts";
+import { cleanDb, seedProject, seedUser, seedVersion } from "../../test/db.ts";
 import { issueTestSession } from "../../test/session.ts";
 import { postJsonRequest } from "../../test/fetch.ts";
 import { handleProjectDetailPost } from "./project-detail.ts";

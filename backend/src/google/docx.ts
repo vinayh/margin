@@ -1,4 +1,4 @@
-import { unzipSync, strFromU8 } from "fflate";
+import { strFromU8, unzipSync } from "fflate";
 import { XMLParser } from "fast-xml-parser";
 import type { DocRegion } from "../db/schema.ts";
 
@@ -565,6 +565,8 @@ function stripRange(r: CompletedRange): DocxRange {
 function compareRanges(a: DocxRange, b: DocxRange): number {
   if (a.region !== b.region) return a.region < b.region ? -1 : 1;
   if (a.regionId !== b.regionId) return a.regionId < b.regionId ? -1 : 1;
-  if (a.startParagraphIndex !== b.startParagraphIndex) return a.startParagraphIndex - b.startParagraphIndex;
+  if (a.startParagraphIndex !== b.startParagraphIndex) {
+    return a.startParagraphIndex - b.startParagraphIndex;
+  }
   return a.startOffset - b.startOffset;
 }

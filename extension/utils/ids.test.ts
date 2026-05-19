@@ -26,7 +26,10 @@ describe("parseDocIdFromUrl", () => {
   });
 
   test("returns null when the id is too short", () => {
-    assert.equal(parseDocIdFromUrl("https://docs.google.com/document/d/short/edit"), null);
+    assert.equal(
+      parseDocIdFromUrl("https://docs.google.com/document/d/short/edit"),
+      null,
+    );
   });
 });
 
@@ -36,15 +39,27 @@ describe("cleanDocTitleFallback", () => {
   });
 
   test("strips localized variants — the brand 'Google' is the anchor", () => {
-    assert.equal(cleanDocTitleFallback("Mon Doc - Documents Google"), "Mon Doc");
-    assert.equal(cleanDocTitleFallback("Mi Doc - Documentos de Google"), "Mi Doc");
-    assert.equal(cleanDocTitleFallback("Mein Doc - Google Dokumente"), "Mein Doc");
+    assert.equal(
+      cleanDocTitleFallback("Mon Doc - Documents Google"),
+      "Mon Doc",
+    );
+    assert.equal(
+      cleanDocTitleFallback("Mi Doc - Documentos de Google"),
+      "Mi Doc",
+    );
+    assert.equal(
+      cleanDocTitleFallback("Mein Doc - Google Dokumente"),
+      "Mein Doc",
+    );
     assert.equal(
       cleanDocTitleFallback("私のドキュメント - Google ドキュメント"),
       "私のドキュメント",
     );
     assert.equal(cleanDocTitleFallback("我的文件 - Google 文档"), "我的文件");
-    assert.equal(cleanDocTitleFallback("Мой документ - Google Документы"), "Мой документ");
+    assert.equal(
+      cleanDocTitleFallback("Мой документ - Google Документы"),
+      "Мой документ",
+    );
   });
 
   test("strips only the Docs suffix, preserving in-name dashes", () => {
@@ -57,7 +72,10 @@ describe("cleanDocTitleFallback", () => {
   });
 
   test("returns the original when there is no ' - ' separator", () => {
-    assert.equal(cleanDocTitleFallback("Untitled document"), "Untitled document");
+    assert.equal(
+      cleanDocTitleFallback("Untitled document"),
+      "Untitled document",
+    );
   });
 
   test("falls back to the original when stripping would leave an empty name", () => {

@@ -175,8 +175,7 @@ describe("createProject", () => {
 
     const proj = await createProject({
       ownerUserId: u.id,
-      parentDocUrlOrId:
-        "https://docs.google.com/document/d/1aB-cD_0123456789zZyXwVu/edit",
+      parentDocUrlOrId: "https://docs.google.com/document/d/1aB-cD_0123456789zZyXwVu/edit",
     });
     expect(proj.ownerUserId).toBe(u.id);
     expect(proj.parentDocId).toBe("1aB-cD_0123456789zZyXwVu");

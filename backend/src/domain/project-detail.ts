@@ -1,10 +1,7 @@
 import { ensureMainVersion, getOwnedProject } from "./project.ts";
 import { listVersions, type Version } from "./version.ts";
-import { listDerivatives, type Derivative } from "./overlay.ts";
-import {
-  countCommentsByOriginVersion,
-  pickLastSyncedAtByVersion,
-} from "./stats.ts";
+import { type Derivative, listDerivatives } from "./overlay.ts";
+import { countCommentsByOriginVersion, pickLastSyncedAtByVersion } from "./stats.ts";
 import {
   listAssigneesForRequests,
   listOpenReviewRequests,
@@ -103,9 +100,7 @@ export async function getProjectDetail(opts: {
     },
     versions: versions.map((v) => versionDetail(v, commentCounts, lastSynced)),
     derivatives: derivatives.map(derivativeDetail),
-    reviewRequests: reviewRequests.map((r) =>
-      reviewRequestDetail(r, assignees.get(r.id) ?? []),
-    ),
+    reviewRequests: reviewRequests.map((r) => reviewRequestDetail(r, assignees.get(r.id) ?? [])),
   };
 }
 
@@ -155,4 +150,3 @@ function reviewRequestDetail(
     })),
   };
 }
-

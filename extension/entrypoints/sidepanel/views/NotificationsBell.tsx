@@ -31,7 +31,9 @@ export function NotificationsBell({
     setState({ kind: "loading" });
     try {
       const r = await sendMessage({ kind: "notifications/list" });
-      if (r?.kind !== "notifications/list") throw new Error("unexpected response");
+      if (r?.kind !== "notifications/list") {
+        throw new Error("unexpected response");
+      }
       if (r.error) throw new Error(r.error);
       setState({ kind: "loaded", items: r.items, unread: r.unread });
     } catch (err) {
@@ -54,8 +56,8 @@ export function NotificationsBell({
       if (!containerRef.current) return;
       if (!containerRef.current.contains(ev.target as Node)) setOpen(false);
     };
-    window.addEventListener("click", handler);
-    return () => window.removeEventListener("click", handler);
+    globalThis.addEventListener("click", handler);
+    return () => globalThis.removeEventListener("click", handler);
   }, [open]);
 
   async function markAllRead(): Promise<void> {
@@ -82,7 +84,9 @@ export function NotificationsBell({
       <button
         type="button"
         class="icon-button notifications-toggle"
-        aria-label={unread > 0 ? `Notifications (${unread} unread)` : "Notifications"}
+        aria-label={unread > 0
+          ? `Notifications (${unread} unread)`
+          : "Notifications"}
         title="Notifications"
         onClick={(ev) => {
           ev.stopPropagation();
@@ -91,56 +95,66 @@ export function NotificationsBell({
         }}
       >
         {unread > 0 ? <BellRing /> : <Bell />}
-        {unread > 0 ? (
-          <span class="notifications-badge">{unread > 99 ? "99+" : unread}</span>
-        ) : null}
+        {unread > 0
+          ? (
+            <span class="notifications-badge">
+              {unread > 99 ? "99+" : unread}
+            </span>
+          )
+          : null}
       </button>
-      {open ? (
-        <div class="notifications-pop">
-          <div class="notifications-pop-head">
-            <p class="title">Notifications</p>
-            {unread > 0 ? (
-              <button
-                type="button"
-                class="text-only"
-                onClick={() => void markAllRead()}
-              >
-                <Check size={12} /> Mark all read
-              </button>
-            ) : null}
-          </div>
-          {state.kind === "loading" ? <p class="muted">Loading…</p> : null}
-          {state.kind === "error" ? (
-            <p class="muted error">{state.message}</p>
-          ) : null}
-          {state.kind === "loaded" && state.items.length === 0 ? (
-            <p class="muted">You're all caught up.</p>
-          ) : null}
-          {state.kind === "loaded" && state.items.length > 0 ? (
-            <ul class="notifications-list">
-              {state.items.map((item) => (
-                <li
-                  key={item.id}
-                  class={item.readAt ? undefined : "is-unread"}
-                >
+      {open
+        ? (
+          <div class="notifications-pop">
+            <div class="notifications-pop-head">
+              <p class="title">Notifications</p>
+              {unread > 0
+                ? (
                   <button
                     type="button"
-                    class="notification-item"
-                    onClick={() => void clickItem(item)}
+                    class="text-only"
+                    onClick={() => void markAllRead()}
                   >
-                    <span class="notification-body">
-                      {renderBody(item)}
-                    </span>
-                    <span class="notification-meta">
-                      {formatRelative(item.createdAt)}
-                    </span>
+                    <Check size={12} /> Mark all read
                   </button>
-                </li>
-              ))}
-            </ul>
-          ) : null}
-        </div>
-      ) : null}
+                )
+                : null}
+            </div>
+            {state.kind === "loading" ? <p class="muted">Loading…</p> : null}
+            {state.kind === "error"
+              ? <p class="muted error">{state.message}</p>
+              : null}
+            {state.kind === "loaded" && state.items.length === 0
+              ? <p class="muted">You're all caught up.</p>
+              : null}
+            {state.kind === "loaded" && state.items.length > 0
+              ? (
+                <ul class="notifications-list">
+                  {state.items.map((item) => (
+                    <li
+                      key={item.id}
+                      class={item.readAt ? undefined : "is-unread"}
+                    >
+                      <button
+                        type="button"
+                        class="notification-item"
+                        onClick={() => void clickItem(item)}
+                      >
+                        <span class="notification-body">
+                          {renderBody(item)}
+                        </span>
+                        <span class="notification-meta">
+                          {formatRelative(item.createdAt)}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )
+              : null}
+          </div>
+        )
+        : null}
     </div>
   );
 }
@@ -159,4 +173,3 @@ function renderBody(n: NotificationView): string {
       return `New review request on ${project}.`;
   }
 }
-

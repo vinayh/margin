@@ -17,32 +17,32 @@ export const DEFAULT_BACKEND_URL = import.meta.env.DEV
 export type DocState =
   | { tracked: false; docId: string }
   | {
-      tracked: true;
-      docId: string;
-      role: "parent" | "version";
-      // Authoritative Drive name. Prefer this over tab.title for tracked docs.
-      // Null only for legacy rows pre-dating the `project.name` / `version.name`
-      // columns — fall back to cleanDocTitleFallback(tab.title) in that case.
-      title: string | null;
-      project: {
-        id: string;
-        parentDocId: string;
-        name: string | null;
-        ownerEmail: string | null;
-        createdAt: number;
-      };
-      version: {
-        id: string;
-        label: string;
-        googleDocId: string;
-        name: string | null;
-        status: "active" | "archived";
-        createdAt: number;
-      } | null;
-      lastSyncedAt: number | null;
-      commentCount: number;
-      openReviewCount: number;
+    tracked: true;
+    docId: string;
+    role: "parent" | "version";
+    // Authoritative Drive name. Prefer this over tab.title for tracked docs.
+    // Null only for legacy rows pre-dating the `project.name` / `version.name`
+    // columns — fall back to cleanDocTitleFallback(tab.title) in that case.
+    title: string | null;
+    project: {
+      id: string;
+      parentDocId: string;
+      name: string | null;
+      ownerEmail: string | null;
+      createdAt: number;
     };
+    version: {
+      id: string;
+      label: string;
+      googleDocId: string;
+      name: string | null;
+      status: "active" | "archived";
+      createdAt: number;
+    } | null;
+    lastSyncedAt: number | null;
+    commentCount: number;
+    openReviewCount: number;
+  };
 
 export interface ProjectListEntry {
   id: string;

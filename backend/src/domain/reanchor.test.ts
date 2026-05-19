@@ -1,12 +1,7 @@
 import "../../test/setup.ts";
 import { describe, it as test } from "@std/testing/bdd";
 import { expect } from "@std/expect";
-import {
-  CLEAN_THRESHOLD,
-  FUZZY_THRESHOLD,
-  matchSpan,
-  reanchor,
-} from "./reanchor.ts";
+import { CLEAN_THRESHOLD, FUZZY_THRESHOLD, matchSpan, reanchor } from "./reanchor.ts";
 import { paragraphHash } from "./anchor.ts";
 import type { Document, StructuralElement } from "../google/docs.ts";
 import type { CommentAnchor } from "../db/schema.ts";

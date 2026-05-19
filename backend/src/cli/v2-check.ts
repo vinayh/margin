@@ -35,7 +35,9 @@ export async function run(_args: string[]): Promise<void> {
   }
   for (const s of r.output.suggestions) {
     console.log(
-      `  - [${s.kind}] "${s.text.slice(0, 60)}" by ${s.author} @ ${s.date} :: para#${s.paragraphIndex}@${s.offset}`,
+      `  - [${s.kind}] "${
+        s.text.slice(0, 60)
+      }" by ${s.author} @ ${s.date} :: para#${s.paragraphIndex}@${s.offset}`,
     );
   }
 

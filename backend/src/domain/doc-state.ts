@@ -2,11 +2,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { db } from "../db/client.ts";
 import { project, version } from "../db/schema.ts";
 import { ensureMainVersion } from "./project.ts";
-import {
-  countComments,
-  countOpenReviews,
-  pickLastSyncedAt,
-} from "./stats.ts";
+import { countComments, countOpenReviews, pickLastSyncedAt } from "./stats.ts";
 import { userEmailById } from "./user.ts";
 
 /**
@@ -27,33 +23,33 @@ import { userEmailById } from "./user.ts";
 export type DocStateResponse =
   | { tracked: false; docId: string }
   | {
-      tracked: true;
-      docId: string;
-      role: "parent" | "version";
-      // Authoritative Drive name for the doc the user is currently viewing —
-      // `version.name` when role=version, else `project.name`. Null only for
-      // pre-name-column rows; the extension falls back to the tab-title
-      // heuristic in that case.
-      title: string | null;
-      project: {
-        id: string;
-        parentDocId: string;
-        name: string | null;
-        ownerEmail: string | null;
-        createdAt: number;
-      };
-      version: {
-        id: string;
-        label: string;
-        googleDocId: string;
-        name: string | null;
-        status: "active" | "archived";
-        createdAt: number;
-      } | null;
-      lastSyncedAt: number | null;
-      commentCount: number;
-      openReviewCount: number;
+    tracked: true;
+    docId: string;
+    role: "parent" | "version";
+    // Authoritative Drive name for the doc the user is currently viewing —
+    // `version.name` when role=version, else `project.name`. Null only for
+    // pre-name-column rows; the extension falls back to the tab-title
+    // heuristic in that case.
+    title: string | null;
+    project: {
+      id: string;
+      parentDocId: string;
+      name: string | null;
+      ownerEmail: string | null;
+      createdAt: number;
     };
+    version: {
+      id: string;
+      label: string;
+      googleDocId: string;
+      name: string | null;
+      status: "active" | "archived";
+      createdAt: number;
+    } | null;
+    lastSyncedAt: number | null;
+    commentCount: number;
+    openReviewCount: number;
+  };
 
 export async function getDocState(opts: {
   docId: string;
@@ -171,13 +167,13 @@ async function buildTrackedState(
     },
     version: ver
       ? {
-          id: ver.id,
-          label: ver.label,
-          googleDocId: ver.googleDocId,
-          name: ver.name,
-          status: ver.status,
-          createdAt: ver.createdAt.getTime(),
-        }
+        id: ver.id,
+        label: ver.label,
+        googleDocId: ver.googleDocId,
+        name: ver.name,
+        status: ver.status,
+        createdAt: ver.createdAt.getTime(),
+      }
       : null,
     lastSyncedAt: lastSynced,
     commentCount,
@@ -212,4 +208,3 @@ async function pickRelevantVersion(
     .limit(1);
   return any[0] ?? null;
 }
-

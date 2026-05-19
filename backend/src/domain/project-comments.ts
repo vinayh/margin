@@ -1,10 +1,6 @@
 import { and, eq, inArray, ne } from "drizzle-orm";
 import { db } from "../db/client.ts";
-import {
-  canonicalComment,
-  commentProjection,
-  type ProjectionStatus,
-} from "../db/schema.ts";
+import { canonicalComment, commentProjection, type ProjectionStatus } from "../db/schema.ts";
 import { tokenProviderForProject } from "./project.ts";
 import { requireVersion } from "./version.ts";
 import { getDocument } from "../google/docs.ts";

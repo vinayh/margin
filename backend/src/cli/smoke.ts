@@ -40,11 +40,8 @@ export async function run(args: string[]): Promise<void> {
       .slice(rng.startOffset, rng.endOffset)
       .replace(/\s+/g, " ")
       .slice(0, 60);
-    const where =
-      rng.region === "body" ? "body" : `${rng.region}(${rng.regionId})`;
-    const reply = c.overlapsSuggestionId
-      ? ` reply→sug:${c.overlapsSuggestionId}`
-      : "";
+    const where = rng.region === "body" ? "body" : `${rng.region}(${rng.regionId})`;
+    const reply = c.overlapsSuggestionId ? ` reply→sug:${c.overlapsSuggestionId}` : "";
     console.log(
       `- ${c.author} @ ${c.date} ${where}/para#${rng.startParagraphIndex}@${rng.startOffset}${reply}: "${quoted}"`,
     );

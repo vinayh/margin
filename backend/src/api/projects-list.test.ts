@@ -8,8 +8,7 @@ import { handleProjectsListPost } from "./projects-list.ts";
 
 beforeEach(cleanDb);
 
-const post = (opts?: { auth?: string }) =>
-  postJsonRequest("/api/extension/projects", {}, opts);
+const post = (opts?: { auth?: string }) => postJsonRequest("/api/extension/projects", {}, opts);
 
 describe("handleProjectsListPost", () => {
   test("401 without Authorization", async () => {

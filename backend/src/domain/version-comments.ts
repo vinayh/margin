@@ -2,12 +2,12 @@ import { and, desc, eq, isNull } from "drizzle-orm";
 import { db } from "../db/client.ts";
 import {
   canonicalComment,
-  commentProjection,
-  version,
   type CanonicalCommentKind,
   type CanonicalCommentStatus,
   type CommentAnchor,
+  commentProjection,
   type ProjectionStatus,
+  version,
 } from "../db/schema.ts";
 import { loadOwnedVersion } from "./version.ts";
 

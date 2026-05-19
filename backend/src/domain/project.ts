@@ -1,6 +1,6 @@
 import { and, desc, eq } from "drizzle-orm";
 import { db, isUniqueConstraintError } from "../db/client.ts";
-import { project, version, type ProjectSettings } from "../db/schema.ts";
+import { project, type ProjectSettings, version } from "../db/schema.ts";
 import { tokenProviderForUser } from "../auth/credentials.ts";
 import type { TokenProvider } from "../google/api.ts";
 import { getFile } from "../google/drive.ts";

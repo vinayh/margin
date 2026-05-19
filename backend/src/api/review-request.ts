@@ -9,9 +9,9 @@ import {
   unauthorized,
 } from "./middleware.ts";
 import {
+  createReviewRequest,
   ReviewRequestBadRequestError,
   ReviewRequestNotFoundError,
-  createReviewRequest,
 } from "../domain/review.ts";
 
 const MAX_BODY_BYTES = 16 * 1024;

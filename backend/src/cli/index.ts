@@ -11,6 +11,7 @@ import { run as runOverlay, runDerivative } from "./overlay.ts";
 import { run as runWatcher } from "./watcher.ts";
 import { run as runServe } from "./serve.ts";
 import { run as runE2E } from "./e2e.ts";
+import process from "node:process";
 
 const commands: Record<string, (args: string[]) => Promise<void>> = {
   smoke: runSmoke,

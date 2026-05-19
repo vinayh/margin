@@ -5,8 +5,7 @@ import { nonce, renderPage } from "./render.ts";
 import { PickerPage } from "./pages/PickerPage.tsx";
 import { PickerErrorPage, type PickerErrorVariant } from "./pages/PickerErrorPage.tsx";
 
-const STATIC_CSP =
-  "default-src 'none'; style-src 'self'; font-src 'self'; frame-ancestors 'none'";
+const STATIC_CSP = "default-src 'none'; style-src 'self'; font-src 'self'; frame-ancestors 'none'";
 
 function renderError(variant: PickerErrorVariant, status: number): Response {
   return renderPage(<PickerErrorPage variant={variant} />, {
@@ -52,7 +51,12 @@ export async function handlePickerPage(req: Request): Promise<Response> {
 
   const n = nonce();
   return renderPage(
-    <PickerPage apiKey={apiKey} projectNumber={projectNumber} accessToken={accessToken} nonce={n} />,
+    <PickerPage
+      apiKey={apiKey}
+      projectNumber={projectNumber}
+      accessToken={accessToken}
+      nonce={n}
+    />,
     {
       csp: [
         "default-src 'none'",

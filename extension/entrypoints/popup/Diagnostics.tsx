@@ -58,10 +58,15 @@ async function probeBackend(
       signal: AbortSignal.timeout(3000),
     });
     if (!res.ok) {
-      setConn({ tone: "error", text: `${capitalize(label)} responded ${res.status}` });
+      setConn({
+        tone: "error",
+        text: `${capitalize(label)} responded ${res.status}`,
+      });
       return;
     }
-    const json = (await res.json().catch(() => null)) as { ok?: boolean } | null;
+    const json = (await res.json().catch(() => null)) as
+      | { ok?: boolean }
+      | null;
     if (!json?.ok) {
       setConn({
         tone: "error",

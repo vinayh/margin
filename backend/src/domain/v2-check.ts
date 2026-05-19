@@ -1,11 +1,7 @@
 import { strToU8, zipSync } from "fflate";
 import { tokenProviderForUser } from "../auth/credentials.ts";
 import { exportDocx, uploadFileMultipart } from "../google/drive.ts";
-import {
-  parseDocx,
-  type DocxComment,
-  type DocxSuggestion,
-} from "../google/docx.ts";
+import { type DocxComment, type DocxSuggestion, parseDocx } from "../google/docx.ts";
 
 /**
  * Empirical validation: when we upload a `.docx` to Drive with "Convert to
@@ -62,8 +58,7 @@ export async function runV2Check(opts: { userId: string }): Promise<V2CheckRepor
   const file = await uploadFileMultipart(tp, {
     name: `${DOC_TITLE_PREFIX} ${new Date().toISOString()}`,
     bytes: inputBytes,
-    sourceMimeType:
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    sourceMimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     targetMimeType: "application/vnd.google-apps.document",
   });
 
@@ -106,28 +101,31 @@ function compareAnnotations(
   const inputCommentCount = input.comments.length;
   const outputCommentCount = output.comments.length;
 
-  const a_anchorsLanded =
-    inputCommentCount === outputCommentCount
-      ? `all ${inputCommentCount} comments round-tripped — see ranges below for exact positions`
-      : `mismatch: ${inputCommentCount} in / ${outputCommentCount} out — see output.comments[] for what survived`;
+  const a_anchorsLanded = inputCommentCount === outputCommentCount
+    ? `all ${inputCommentCount} comments round-tripped — see ranges below for exact positions`
+    : `mismatch: ${inputCommentCount} in / ${outputCommentCount} out — see output.comments[] for what survived`;
 
   const authorMatches = output.comments.every((c) => c.author === KNOWN_AUTHOR);
   const b_authorPreserved = output.comments.length === 0
     ? "n/a (no comments survived)"
     : authorMatches
-      ? `original w:author "${KNOWN_AUTHOR}" preserved on every round-tripped comment`
-      : `w:author rewritten: original "${KNOWN_AUTHOR}", observed [${[
-          ...new Set(output.comments.map((c) => c.author ?? "")),
-        ].join(", ")}]`;
+    ? `original w:author "${KNOWN_AUTHOR}" preserved on every round-tripped comment`
+    : `w:author rewritten: original "${KNOWN_AUTHOR}", observed [${
+      [
+        ...new Set(output.comments.map((c) => c.author ?? "")),
+      ].join(", ")
+    }]`;
 
   const datesMatch = output.comments.every((c) => c.date === KNOWN_DATE);
   const c_timestampPreserved = output.comments.length === 0
     ? "n/a (no comments survived)"
     : datesMatch
-      ? `original w:date "${KNOWN_DATE}" preserved`
-      : `w:date rewritten on upload: original "${KNOWN_DATE}", observed [${[
-          ...new Set(output.comments.map((c) => c.date ?? "")),
-        ].join(", ")}]`;
+    ? `original w:date "${KNOWN_DATE}" preserved`
+    : `w:date rewritten on upload: original "${KNOWN_DATE}", observed [${
+      [
+        ...new Set(output.comments.map((c) => c.date ?? "")),
+      ].join(", ")
+    }]`;
 
   // Disjoint multi-range: one comment with two ranges in the input.
   const inputDisjoint = input.comments.find((c) => c.ranges.length > 1);
@@ -137,21 +135,27 @@ function compareAnnotations(
   const d_disjointMultiRange = !inputDisjoint
     ? "n/a (no disjoint input)"
     : outputDisjointMatches.length === 0
-      ? "lost: disjoint comment body not found in output"
-      : outputDisjointMatches.length === 1 &&
-          outputDisjointMatches[0]!.ranges.length === inputDisjoint.ranges.length
-        ? `preserved: single comment with ${outputDisjointMatches[0]!.ranges.length} ranges`
-        : `fragmented: input was 1 comment / ${inputDisjoint.ranges.length} ranges, output is ${outputDisjointMatches.length} comments / ${outputDisjointMatches.map((c) => c.ranges.length).join("+")} ranges`;
+    ? "lost: disjoint comment body not found in output"
+    : outputDisjointMatches.length === 1 &&
+        outputDisjointMatches[0]!.ranges.length === inputDisjoint.ranges.length
+    ? `preserved: single comment with ${outputDisjointMatches[0]!.ranges.length} ranges`
+    : `fragmented: input was 1 comment / ${inputDisjoint.ranges.length} ranges, output is ${outputDisjointMatches.length} comments / ${
+      outputDisjointMatches.map((c) => c.ranges.length).join("+")
+    } ranges`;
 
   const inSug = input.suggestions.length;
   const outSug = output.suggestions.length;
   const e_suggestionsRoundTrip = inSug === 0
     ? "n/a (no suggestions in input)"
     : outSug === 0
-      ? `lost: ${inSug} suggestions in input, 0 in output`
-      : outSug === inSug
-        ? `preserved: ${outSug} suggestions, kinds=[${output.suggestions.map((s) => s.kind).join(", ")}]`
-        : `partial: ${inSug} in / ${outSug} out (kinds=[${output.suggestions.map((s) => s.kind).join(", ")}])`;
+    ? `lost: ${inSug} suggestions in input, 0 in output`
+    : outSug === inSug
+    ? `preserved: ${outSug} suggestions, kinds=[${
+      output.suggestions.map((s) => s.kind).join(", ")
+    }]`
+    : `partial: ${inSug} in / ${outSug} out (kinds=[${
+      output.suggestions.map((s) => s.kind).join(", ")
+    }])`;
 
   return {
     a_anchorsLanded,

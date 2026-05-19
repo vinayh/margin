@@ -16,10 +16,7 @@ import { handleCommentActionPost } from "./comment-action.ts";
 import { handleCommentActionBatchPost } from "./comment-action-batch.ts";
 import { handleSettingsPost } from "./settings.ts";
 import { handleWhoamiPost } from "./whoami.ts";
-import {
-  handleNotificationsPost,
-  handleNotificationsMarkReadPost,
-} from "./notifications.ts";
+import { handleNotificationsMarkReadPost, handleNotificationsPost } from "./notifications.ts";
 import { handleReviewActionGet, handleReviewActionPost } from "./review-action.tsx";
 import { handleReviewRequestPost } from "./review-request.ts";
 import { handlePickerPage } from "./picker-page.tsx";
@@ -61,7 +58,9 @@ export interface StartServerResult {
   stop(): Promise<void>;
 }
 
-export function startServer(opts: ServeOptions & { backgroundLoops?: boolean } = {}): StartServerResult {
+export function startServer(
+  opts: ServeOptions & { backgroundLoops?: boolean } = {},
+): StartServerResult {
   const port = opts.port ?? config.port;
 
   const routes: RouteTable = {

@@ -45,7 +45,10 @@ export function VersionDiff({ fromVersionId, toVersionId, onClose }: Props) {
           setState({ kind: "error", message: "diff payload unavailable" });
           return;
         }
-        const rows = alignParagraphs(r.payload.from.paragraphs, r.payload.to.paragraphs);
+        const rows = alignParagraphs(
+          r.payload.from.paragraphs,
+          r.payload.to.paragraphs,
+        );
         setState({ kind: "loaded", payload: r.payload, rows });
       } catch (err) {
         if (cancelled) return;
@@ -86,15 +89,21 @@ export function VersionDiff({ fromVersionId, toVersionId, onClose }: Props) {
         onClose={onClose}
       />
       <p class="muted">
-        {summary.modified} modified · {summary.added} added · {summary.removed} removed
-        {summary.styleChanged > 0 ? ` · ${summary.styleChanged} style only` : ""}
+        {summary.modified} modified · {summary.added} added · {summary.removed}
+        {" "}
+        removed
+        {summary.styleChanged > 0
+          ? ` · ${summary.styleChanged} style only`
+          : ""}
       </p>
       <DiffTable rows={rows} />
     </section>
   );
 }
 
-function DiffHeader({ title, onClose }: { title: string; onClose: () => void }) {
+function DiffHeader(
+  { title, onClose }: { title: string; onClose: () => void },
+) {
   return (
     <div class="diff-header">
       <p class="title">{title}</p>
@@ -115,9 +124,7 @@ function DiffTable({ rows }: { rows: DiffRow[] }) {
         </tr>
       </thead>
       <tbody>
-        {rows.map((row, i) => (
-          <DiffRowView key={i} row={row} />
-        ))}
+        {rows.map((row, i) => <DiffRowView key={i} row={row} />)}
       </tbody>
     </table>
   );
@@ -192,14 +199,13 @@ function Paragraph({
   children?: ComponentChildren;
 }) {
   const heading = p.namedStyleType;
-  const headingTag =
-    heading === "TITLE" || heading === "HEADING_1"
-      ? "h1"
-      : heading === "HEADING_2"
-        ? "h2"
-        : heading === "HEADING_3"
-          ? "h3"
-          : null;
+  const headingTag = heading === "TITLE" || heading === "HEADING_1"
+    ? "h1"
+    : heading === "HEADING_2"
+    ? "h2"
+    : heading === "HEADING_3"
+    ? "h3"
+    : null;
   // If a heading-tag mapping applies, render the children/runs inside it
   // so the visual prominence matches the doc structure.
   const body = children ? children : <Runs runs={p.runs} />;
@@ -212,9 +218,7 @@ function Paragraph({
 function Runs({ runs }: { runs: RunSummary[] }) {
   return (
     <>
-      {runs.map((r, i) => (
-        <RunSpan key={i} run={r} />
-      ))}
+      {runs.map((r, i) => <RunSpan key={i} run={r} />)}
     </>
   );
 }
@@ -227,9 +231,9 @@ function RunSpan({ run }: { run: RunSummary }) {
   if (s?.foregroundColorHex) style.color = s.foregroundColorHex;
   if (s?.bold) style.fontWeight = "bold";
   if (s?.italic) style.fontStyle = "italic";
-  if (s?.underline && s?.strikethrough)
+  if (s?.underline && s?.strikethrough) {
     style.textDecoration = "underline line-through";
-  else if (s?.underline) style.textDecoration = "underline";
+  } else if (s?.underline) style.textDecoration = "underline";
   else if (s?.strikethrough) style.textDecoration = "line-through";
   return <span style={style}>{stripParaNewline(run.content)}</span>;
 }

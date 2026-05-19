@@ -30,7 +30,7 @@ describe("buildPickerScript", () => {
     // JSON.stringify escapes the inner `"` and `\n` so the JS literal stays valid
     // and `</script>` cannot end the surrounding `<script>` tag.
     expect(script).toContain('"oops\\"\\n+evil"');
-    expect(script).not.toContain("oops\"\n+evil");
+    expect(script).not.toContain('oops"\n+evil');
   });
 
   test("references the runtime API surface the picker needs", () => {

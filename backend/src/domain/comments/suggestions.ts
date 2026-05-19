@@ -2,7 +2,7 @@ import type { CommentAnchor } from "../../db/schema.ts";
 import type { DocxSuggestion } from "../../google/docx.ts";
 import { upsertCanonical } from "./upsert.ts";
 import { buildAnchor } from "./anchor-build.ts";
-import { resolveIdentity, type AuthorIndex } from "./drive-index.ts";
+import { type AuthorIndex, resolveIdentity } from "./drive-index.ts";
 import { hashShort, type IngestResult } from "./types.ts";
 
 export interface SuggestionIngestArgs {
@@ -78,7 +78,9 @@ function suggestionIdempotencyKey(s: DocxSuggestion): string {
   // OOXML rewrites the suggestion timestamp on every export, which would
   // otherwise make a static revision produce a fresh canonical row on every
   // ingest.
-  return `mgn:sug:${hashShort(
-    `${s.kind} ${s.author} ${s.region} ${s.regionId} ${s.paragraphIndex} ${s.offset} ${s.text}`,
-  )}`;
+  return `mgn:sug:${
+    hashShort(
+      `${s.kind} ${s.author} ${s.region} ${s.regionId} ${s.paragraphIndex} ${s.offset} ${s.text}`,
+    )
+  }`;
 }

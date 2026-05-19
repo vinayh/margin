@@ -3,11 +3,11 @@ import { browser } from "wxt/browser";
 import { parseDocIdFromUrl } from "../../utils/ids.ts";
 import { Header } from "../../ui/Header.tsx";
 import {
+  formatProjectMeta,
   PROJECT_LIST_CLASS,
   PROJECT_ROW_CONTAINER_CLASS,
   PROJECT_ROW_META_CLASS,
   PROJECT_ROW_NAME_CLASS,
-  formatProjectMeta,
   projectRowLabel,
   sortProjectsByLastSync,
 } from "../../ui/project-row.ts";
@@ -36,13 +36,18 @@ type View =
   | { kind: "no-settings" }
   | { kind: "picker"; projects: ProjectListEntry[] }
   | { kind: "loaded"; detail: ProjectDetail }
-  | { kind: "diff"; detail: ProjectDetail; fromVersionId: string; toVersionId: string }
   | {
-      kind: "comments";
-      detail: ProjectDetail;
-      versionId: string;
-      versionLabel: string;
-    }
+    kind: "diff";
+    detail: ProjectDetail;
+    fromVersionId: string;
+    toVersionId: string;
+  }
+  | {
+    kind: "comments";
+    detail: ProjectDetail;
+    versionId: string;
+    versionLabel: string;
+  }
   | { kind: "settings"; detail: ProjectDetail }
   | { kind: "error"; message: string };
 
@@ -109,10 +114,12 @@ export function App() {
       areaName: chrome.storage.AreaName,
     ): void => {
       if (areaName !== "local" || !changes.settings) return;
-      const before = (changes.settings.oldValue as { sessionToken?: string } | undefined)
-        ?.sessionToken ?? "";
-      const after = (changes.settings.newValue as { sessionToken?: string } | undefined)
-        ?.sessionToken ?? "";
+      const before =
+        (changes.settings.oldValue as { sessionToken?: string } | undefined)
+          ?.sessionToken ?? "";
+      const after =
+        (changes.settings.newValue as { sessionToken?: string } | undefined)
+          ?.sessionToken ?? "";
       if (before === after) return;
       void refreshWhoami();
       runBoot();
@@ -175,8 +182,7 @@ function Body({
         <>
           <p class="title">Side panel</p>
           <p class="muted">
-            Configure the backend URL + API token in Options to load project
-            data.
+            Sign in with Google in Options to load project data.
           </p>
         </>
       );
@@ -201,19 +207,16 @@ function Body({
               detail: view.detail,
               fromVersionId,
               toVersionId,
-            })
-          }
+            })}
           onOpenComments={(versionId, versionLabel) =>
             setView({
               kind: "comments",
               detail: view.detail,
               versionId,
               versionLabel,
-            })
-          }
+            })}
           onOpenSettings={() =>
-            setView({ kind: "settings", detail: view.detail })
-          }
+            setView({ kind: "settings", detail: view.detail })}
           onSwitchProject={() => {
             setView({ kind: "loading" });
             void (async () => {
@@ -326,7 +329,9 @@ async function getActiveDocId(): Promise<string | null> {
   // targeting. The query-string lets the harness inject the doc id
   // directly. Guarded by the `?activeDocId=` presence — production
   // side-panel opens don't pass it.
-  const override = new URLSearchParams(window.location.search).get("activeDocId");
+  const override = new URLSearchParams(globalThis.location.search).get(
+    "activeDocId",
+  );
   if (override) return parseDocIdFromUrl(override) ?? override;
 
   const tabs = await browser.tabs.query({ active: true, currentWindow: true });
@@ -342,7 +347,9 @@ async function fetchDocState(docId: string): Promise<DocState | null> {
   return r.state;
 }
 
-async function fetchProjectDetail(projectId: string): Promise<ProjectDetail | null> {
+async function fetchProjectDetail(
+  projectId: string,
+): Promise<ProjectDetail | null> {
   const r = await sendMessage({ kind: "project/detail", projectId });
   if (r?.kind !== "project/detail") return null;
   if (r.error) throw new Error(r.error);

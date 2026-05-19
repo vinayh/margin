@@ -3,11 +3,11 @@ import { beforeAll, describe, it as test } from "@std/testing/bdd";
 import { expect } from "@std/expect";
 import { Buffer } from "node:buffer";
 import {
-  importMasterKey,
-  encrypt,
   decrypt,
-  encryptWithMaster,
   decryptWithMaster,
+  encrypt,
+  encryptWithMaster,
+  importMasterKey,
 } from "./encryption.ts";
 
 const validKeyB64 = Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString("base64");
@@ -80,9 +80,12 @@ describe("master-key roundtrip", () => {
     // `getMasterKey` reads `config.masterKeyB64`, which calls `required(...)`.
     // The repo's `.env` already provides this, but pin a deterministic value
     // here so the test doesn't depend on the developer's local env.
-    Deno.env.set("MARGIN_MASTER_KEY", Buffer.from(
-      crypto.getRandomValues(new Uint8Array(32)),
-    ).toString("base64"));
+    Deno.env.set(
+      "MARGIN_MASTER_KEY",
+      Buffer.from(
+        crypto.getRandomValues(new Uint8Array(32)),
+      ).toString("base64"),
+    );
   });
 
   test("encryptWithMaster → decryptWithMaster round-trips", async () => {

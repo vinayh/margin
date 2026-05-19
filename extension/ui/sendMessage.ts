@@ -7,8 +7,12 @@ import type { Settings } from "../utils/types.ts";
  * (popup, side panel). Centralizes the cast so each call site doesn't
  * repeat it.
  */
-export function sendMessage(msg: Message): Promise<MessageResponse | undefined> {
-  return browser.runtime.sendMessage(msg) as Promise<MessageResponse | undefined>;
+export function sendMessage(
+  msg: Message,
+): Promise<MessageResponse | undefined> {
+  return browser.runtime.sendMessage(msg) as Promise<
+    MessageResponse | undefined
+  >;
 }
 
 /**

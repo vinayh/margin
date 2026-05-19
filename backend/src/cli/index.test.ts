@@ -1,12 +1,7 @@
 import "../../test/setup.ts";
 import { beforeEach, describe, it as test } from "@std/testing/bdd";
 import { expect } from "@std/expect";
-import {
-  cleanDb,
-  seedProject,
-  seedUser,
-  seedVersion,
-} from "../../test/db.ts";
+import { cleanDb, seedProject, seedUser, seedVersion } from "../../test/db.ts";
 import { runCli } from "../../test/cli.ts";
 
 beforeEach(cleanDb);
@@ -86,4 +81,3 @@ describe("version list", () => {
     expect(r.stdout.indexOf(v1.id)).toBeGreaterThan(r.stdout.indexOf(v2.id));
   });
 });
-

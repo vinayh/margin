@@ -1,5 +1,8 @@
 import { browser } from "wxt/browser";
-import { detectNativeSidebarSupport, getBrowserQuirks } from "./browser-detect.ts";
+import {
+  detectNativeSidebarSupport,
+  getBrowserQuirks,
+} from "./browser-detect.ts";
 
 // Detached-window fallback for the dashboard. Sized to feel like a side panel,
 // not a full popup window. Users can resize/move it.
@@ -48,19 +51,27 @@ export async function openDashboard(opts: {
     const api = browser as unknown as SidebarApi;
     if (api.sidePanel?.open) {
       const param: { windowId?: number; tabId?: number } =
-        opts.windowId !== undefined ? { windowId: opts.windowId } : { tabId: opts.tabId };
+        opts.windowId !== undefined
+          ? { windowId: opts.windowId }
+          : { tabId: opts.tabId };
       try {
         await api.sidePanel.open(param);
         return;
       } catch (err) {
-        console.warn("[margin] sidePanel.open rejected, falling back to window:", err);
+        console.warn(
+          "[margin] sidePanel.open rejected, falling back to window:",
+          err,
+        );
       }
     } else if (api.sidebarAction?.open) {
       try {
         await api.sidebarAction.open();
         return;
       } catch (err) {
-        console.warn("[margin] sidebarAction.open rejected, falling back to window:", err);
+        console.warn(
+          "[margin] sidebarAction.open rejected, falling back to window:",
+          err,
+        );
       }
     }
     // Fall through to the detached-window path if the native API rejected
@@ -99,5 +110,7 @@ async function openOrFocusSidepanelWindow(): Promise<void> {
  * rendering anything. `tabs.create` is reliable everywhere.
  */
 export async function openOptions(): Promise<void> {
-  await browser.tabs.create({ url: browser.runtime.getURL(`/${OPTIONS_PATH}`) });
+  await browser.tabs.create({
+    url: browser.runtime.getURL(`/${OPTIONS_PATH}`),
+  });
 }

@@ -1,4 +1,4 @@
-import { getDocument, type Document, type TextRun } from "../google/docs.ts";
+import { type Document, getDocument, type TextRun } from "../google/docs.ts";
 import { tokenProviderForProject } from "./project.ts";
 import { loadOwnedVersion } from "./version.ts";
 
@@ -83,7 +83,9 @@ export function summarizeDocument(doc: Document): ParagraphSummary[] {
   return out;
 }
 
-function summarizeParagraph(p: NonNullable<Document["body"]>["content"][number]["paragraph"]): ParagraphSummary {
+function summarizeParagraph(
+  p: NonNullable<Document["body"]>["content"][number]["paragraph"],
+): ParagraphSummary {
   const runs: RunSummary[] = [];
   let plaintext = "";
   for (const pe of p?.elements ?? []) {
@@ -99,8 +101,9 @@ function summarizeParagraph(p: NonNullable<Document["body"]>["content"][number][
   if (plaintext.endsWith("\n")) plaintext = plaintext.slice(0, -1);
 
   const paraStyle = (p?.paragraphStyle ?? {}) as { namedStyleType?: unknown };
-  const namedStyleType =
-    typeof paraStyle.namedStyleType === "string" ? paraStyle.namedStyleType : null;
+  const namedStyleType = typeof paraStyle.namedStyleType === "string"
+    ? paraStyle.namedStyleType
+    : null;
 
   return { plaintext, namedStyleType, runs };
 }

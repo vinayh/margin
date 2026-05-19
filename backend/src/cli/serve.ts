@@ -4,10 +4,7 @@ import { migrate } from "drizzle-orm/node-sqlite/migrator";
 import { startServer } from "../api/server.ts";
 import { db, sqlite } from "../db/client.ts";
 import { parseNumberArg } from "./util.ts";
-
-const USAGE = `\
-usage:
-  deno task serve [--port <n>]`;
+import process from "node:process";
 
 export async function run(args: string[]): Promise<void> {
   const { values } = parseArgs({

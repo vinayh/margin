@@ -3,17 +3,17 @@ import { db } from "../db/client.ts";
 import {
   derivative,
   overlay,
-  overlayOperation,
   type OverlayAnchor,
+  overlayOperation,
   type OverlayOpType,
 } from "../db/schema.ts";
 import { copyFile, getFile } from "../google/drive.ts";
 import {
   batchUpdate,
-  getDocument,
-  op as docsOp,
   type BatchUpdateRequest,
   type Document,
+  getDocument,
+  op as docsOp,
 } from "../google/docs.ts";
 import { requireProject, tokenProviderForProject } from "./project.ts";
 import { requireVersion } from "./version.ts";
@@ -151,15 +151,13 @@ function translateOp(o: OverlayOperation, doc: Document): PlannedOp {
       requests: [],
       confidence: anchorResult.confidence,
       status: "skipped",
-      reason:
-        anchorResult.status === "orphaned"
-          ? "anchor not found in target"
-          : `confidence ${anchorResult.confidence} < threshold ${threshold}`,
+      reason: anchorResult.status === "orphaned"
+        ? "anchor not found in target"
+        : `confidence ${anchorResult.confidence} < threshold ${threshold}`,
     };
   }
 
-  const docCoord =
-    anchorResult.paragraph.startIndex +
+  const docCoord = anchorResult.paragraph.startIndex +
     (anchorResult.anchor.structuralPosition?.offset ?? 0);
   const matchLen = o.anchor.quotedText.length;
 
@@ -182,7 +180,13 @@ function translateOp(o: OverlayOperation, doc: Document): PlannedOp {
     case "insert": {
       const text = o.payload ?? "";
       if (!text) {
-        return { op: o, requests: [], confidence: anchorResult.confidence, status: "skipped", reason: "empty payload" };
+        return {
+          op: o,
+          requests: [],
+          confidence: anchorResult.confidence,
+          status: "skipped",
+          reason: "empty payload",
+        };
       }
       return {
         op: o,

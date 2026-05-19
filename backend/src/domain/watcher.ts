@@ -1,14 +1,10 @@
-import { asc, eq, lt, or, isNull } from "drizzle-orm";
+import { asc, eq, isNull, lt, or } from "drizzle-orm";
 import { db } from "../db/client.ts";
-import {
-  driveWatchChannel,
-  version,
-  type VersionStatus,
-} from "../db/schema.ts";
-import { stopChannel, watchFile, type WatchChannel } from "../google/drive.ts";
+import { driveWatchChannel, version, type VersionStatus } from "../db/schema.ts";
+import { stopChannel, type WatchChannel, watchFile } from "../google/drive.ts";
 import { tokenProviderForProject } from "./project.ts";
-import { requireVersion, getVersion } from "./version.ts";
-import { ingestVersionComments, type IngestResult } from "./comments.ts";
+import { getVersion, requireVersion } from "./version.ts";
+import { type IngestResult, ingestVersionComments } from "./comments.ts";
 
 export type DriveWatchChannel = typeof driveWatchChannel.$inferSelect;
 
@@ -233,4 +229,3 @@ async function replaceWatchChannel(oldRow: DriveWatchChannel): Promise<void> {
     );
   }
 }
-

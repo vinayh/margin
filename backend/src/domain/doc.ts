@@ -1,5 +1,5 @@
 import { tokenProviderForUser } from "../auth/credentials.ts";
-import { batchUpdate, createDocument, op, type Document } from "../google/docs.ts";
+import { batchUpdate, createDocument, type Document, op } from "../google/docs.ts";
 
 const SEED_PARAGRAPHS: readonly string[] = [
   "Introduction. This is a Margin test document.",

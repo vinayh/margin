@@ -73,7 +73,9 @@ export const auth = betterAuth({
  * without standing up Better Auth's full social flow — this hook is the
  * only thing standing between a plaintext refresh token and disk.
  */
-export async function encryptAccountRefreshToken<T extends { refreshToken?: string | null | undefined }>(
+export async function encryptAccountRefreshToken<
+  T extends { refreshToken?: string | null | undefined },
+>(
   data: T,
 ): Promise<{ data: T }> {
   if (typeof data.refreshToken === "string" && data.refreshToken.length > 0) {

@@ -1,6 +1,6 @@
 import { parseArgs } from "node:util";
 import { createProject, listAllProjects } from "../domain/project.ts";
-import { usage, dispatchSubcommands, resolveUser } from "./util.ts";
+import { dispatchSubcommands, resolveUser, usage } from "./util.ts";
 
 const USAGE = `\
 usage:

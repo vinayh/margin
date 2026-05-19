@@ -222,7 +222,6 @@ describe("getVersion / requireVersion / listVersions", () => {
     const inA = await listVersions(a.id);
     expect(inA.map((v) => v.id)).toEqual([va.id]);
   });
-
 });
 
 describe("createVersion", () => {
@@ -235,7 +234,9 @@ describe("createVersion", () => {
     const log = stubDriveAndDocs({
       parents: { "parent-doc-id-0123456789": "Original" },
       newCopyId: "copy-id-aaaaaaaaaaaaaaaaaa",
-      copies: { "copy-id-aaaaaaaaaaaaaaaaaa": singleParaDoc("copy-id-aaaaaaaaaaaaaaaaaa", "hello world") },
+      copies: {
+        "copy-id-aaaaaaaaaaaaaaaaaa": singleParaDoc("copy-id-aaaaaaaaaaaaaaaaaa", "hello world"),
+      },
     });
 
     const ver = await createVersion({

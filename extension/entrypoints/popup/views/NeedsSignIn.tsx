@@ -22,14 +22,14 @@ export function NeedsSignIn({ backendUrl, onSignedIn: _onSignedIn }: Props) {
   return (
     <>
       <p class="muted">
-        {import.meta.env.DEV ? (
-          <>
-            Connected to <code>{backendUrl}</code>. Finish setup by signing
-            in with Google.
-          </>
-        ) : (
-          <>Finish setup by signing in with Google.</>
-        )}
+        {import.meta.env.DEV
+          ? (
+            <>
+              Connected to{" "}
+              <code>{backendUrl}</code>. Finish setup by signing in with Google.
+            </>
+          )
+          : <>Finish setup by signing in with Google.</>}
       </p>
       <div class="actions">
         <button
@@ -46,8 +46,10 @@ export function NeedsSignIn({ backendUrl, onSignedIn: _onSignedIn }: Props) {
 
 async function startTabSignIn(backendUrl: string): Promise<void> {
   const trimmed = backendUrl.trim().replace(/\/+$/, "");
-  const url = `${trimmed}/api/auth/ext/launch-tab?ext=${encodeURIComponent(
-    browser.runtime.id,
-  )}`;
+  const url = `${trimmed}/api/auth/ext/launch-tab?ext=${
+    encodeURIComponent(
+      browser.runtime.id,
+    )
+  }`;
   await browser.tabs.create({ url });
 }

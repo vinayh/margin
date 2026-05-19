@@ -92,8 +92,7 @@ describe("exportDocx", () => {
       new Response(bytes, {
         status: 200,
         headers: {
-          "content-type":
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+          "content-type": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         },
       }),
     );
@@ -290,8 +289,7 @@ describe("uploadFileMultipart", () => {
     await uploadFileMultipart(tp, {
       name: "test.docx",
       bytes: payload,
-      sourceMimeType:
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      sourceMimeType: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
       targetMimeType: "application/vnd.google-apps.document",
     });
     expect(reqs[0]!.method).toBe("POST");

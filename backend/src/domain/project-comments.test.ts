@@ -13,7 +13,7 @@ import {
 import { setFetch } from "../../test/fetch.ts";
 import { db } from "../db/client.ts";
 import { encryptWithMaster } from "../auth/encryption.ts";
-import { account, commentProjection, type CommentAnchor } from "../db/schema.ts";
+import { account, type CommentAnchor, commentProjection } from "../db/schema.ts";
 import type { Document } from "../google/docs.ts";
 import { projectCommentsOntoVersion } from "./project-comments.ts";
 

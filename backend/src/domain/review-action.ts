@@ -3,14 +3,14 @@ import { and, eq } from "drizzle-orm";
 import { db } from "../db/client.ts";
 import {
   auditLog,
+  type NotificationKind,
   project,
+  type ReviewActionKind,
   reviewActionToken,
   reviewAssignment,
+  type ReviewAssignmentStatus,
   reviewRequest,
   user,
-  type NotificationKind,
-  type ReviewActionKind,
-  type ReviewAssignmentStatus,
 } from "../db/schema.ts";
 import { sha256Hex } from "./anchor.ts";
 import { createNotification } from "./notification.ts";
@@ -270,9 +270,7 @@ const KNOWN_ACTIONS: ReadonlySet<ReviewActionKind> = new Set([
 
 export function parseReviewActionKind(raw: string | null): ReviewActionKind | null {
   if (!raw) return null;
-  return KNOWN_ACTIONS.has(raw as ReviewActionKind)
-    ? (raw as ReviewActionKind)
-    : null;
+  return KNOWN_ACTIONS.has(raw as ReviewActionKind) ? (raw as ReviewActionKind) : null;
 }
 
 function toBase64Url(bytes: Uint8Array): string {

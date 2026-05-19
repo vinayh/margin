@@ -3,10 +3,10 @@ import { afterEach, describe, it as test } from "@std/testing/bdd";
 import { expect } from "@std/expect";
 import { setFetch } from "../../test/fetch.ts";
 import {
-  LogEmailTransport,
-  ResendEmailTransport,
   _setEmailTransportForTests,
   getEmailTransport,
+  LogEmailTransport,
+  ResendEmailTransport,
 } from "./email.ts";
 
 const realFetch = globalThis.fetch;

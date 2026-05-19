@@ -17,7 +17,11 @@ import type {
 // Authenticated client used only from the SW. Popup / sidepanel never see the session token —
 // they sendMessage to the SW and the SW attaches the Bearer header here.
 
-async function postJson<T>(path: string, body: unknown, settings: Settings): Promise<T> {
+async function postJson<T>(
+  path: string,
+  body: unknown,
+  settings: Settings,
+): Promise<T> {
   const res = await postJsonRaw(path, body, settings);
   if (!res.ok) {
     const text = await res.text().catch(() => "");
@@ -118,7 +122,9 @@ export async function listProjects(): Promise<ProjectListEntry[] | null> {
   return r?.projects ?? null;
 }
 
-export async function fetchProjectDetail(projectId: string): Promise<ProjectDetail | null> {
+export async function fetchProjectDetail(
+  projectId: string,
+): Promise<ProjectDetail | null> {
   const settings = await getSettings();
   if (!settings) return null;
   return postJsonOrNull<ProjectDetail>(
@@ -152,10 +158,12 @@ export async function renameProject(
   );
 }
 
-export async function fetchNotifications(): Promise<{
-  items: NotificationView[];
-  unread: number;
-} | null> {
+export async function fetchNotifications(): Promise<
+  {
+    items: NotificationView[];
+    unread: number;
+  } | null
+> {
   const settings = await getSettings();
   if (!settings) return null;
   return postJsonOrNull<{ items: NotificationView[]; unread: number }>(

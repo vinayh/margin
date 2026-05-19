@@ -1,7 +1,7 @@
 import { parseArgs } from "node:util";
 import { createVersion, listVersions } from "../domain/version.ts";
 import { googleDocUrl } from "../domain/google-doc-url.ts";
-import { usage, dispatchSubcommands, resolveUser } from "./util.ts";
+import { dispatchSubcommands, resolveUser, usage } from "./util.ts";
 
 const USAGE = `\
 usage:
@@ -43,11 +43,11 @@ export const run = (args: string[]) =>
         return;
       }
       for (const v of versions) {
-        const parent = v.parentVersionId
-          ? `parent=${v.parentVersionId.slice(0, 8)}`
-          : "root";
+        const parent = v.parentVersionId ? `parent=${v.parentVersionId.slice(0, 8)}` : "root";
         console.log(
-          `${v.label.padEnd(8)} ${v.id}  ${parent}  doc=${v.googleDocId}  ${v.status}  ${v.createdAt.toISOString()}`,
+          `${
+            v.label.padEnd(8)
+          } ${v.id}  ${parent}  doc=${v.googleDocId}  ${v.status}  ${v.createdAt.toISOString()}`,
         );
         console.log(`  ${googleDocUrl(v.googleDocId)}`);
       }

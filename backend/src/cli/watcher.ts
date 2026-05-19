@@ -8,7 +8,7 @@ import {
   subscribeVersionWatch,
   unsubscribeVersionWatch,
 } from "../domain/watcher.ts";
-import { usage, dispatchSubcommands, parseNumberArg } from "./util.ts";
+import { dispatchSubcommands, parseNumberArg, usage } from "./util.ts";
 
 const USAGE = `\
 usage:
@@ -62,7 +62,9 @@ export const run = (args: string[]) =>
         const exp = c.expiration ? c.expiration.toISOString() : "—";
         const lastEvent = c.lastEventAt ? c.lastEventAt.toISOString() : "—";
         console.log(
-          `${c.id}  version=${c.versionId.slice(0, 8)}  channel=${c.channelId.slice(0, 8)}  exp=${exp}  last_event=${lastEvent}`,
+          `${c.id}  version=${c.versionId.slice(0, 8)}  channel=${
+            c.channelId.slice(0, 8)
+          }  exp=${exp}  last_event=${lastEvent}`,
         );
       }
     },

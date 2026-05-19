@@ -9,7 +9,7 @@ import {
   listOverlays,
 } from "../domain/overlay.ts";
 import type { OverlayOpType } from "../db/schema.ts";
-import { usage, dispatchSubcommands, parseNumberArg } from "./util.ts";
+import { dispatchSubcommands, parseNumberArg, usage } from "./util.ts";
 
 const USAGE = `\
 usage:
@@ -95,12 +95,9 @@ export const run = (args: string[]) =>
         return;
       }
       for (const op of ops) {
-        const quoted = op.anchor.quotedText
-          ? `"${op.anchor.quotedText.slice(0, 40)}"`
-          : "(none)";
+        const quoted = op.anchor.quotedText ? `"${op.anchor.quotedText.slice(0, 40)}"` : "(none)";
         const payload = op.payload ? `→ "${op.payload.slice(0, 40)}"` : "";
-        const threshold =
-          op.confidenceThreshold !== null ? ` [≥${op.confidenceThreshold}]` : "";
+        const threshold = op.confidenceThreshold !== null ? ` [≥${op.confidenceThreshold}]` : "";
         console.log(`#${op.orderIndex}  ${op.type.padEnd(8)} ${quoted} ${payload}${threshold}`);
       }
     },
@@ -127,10 +124,9 @@ export const run = (args: string[]) =>
       console.log(`  source version: ${r.derivative.versionId}`);
       console.log(`  requests applied: ${r.requestsApplied}`);
       for (const p of r.plan.ops) {
-        const status =
-          p.status === "skipped"
-            ? `skipped (${p.reason})`
-            : `${p.status} (${p.confidence})`;
+        const status = p.status === "skipped"
+          ? `skipped (${p.reason})`
+          : `${p.status} (${p.confidence})`;
         console.log(`  #${p.op.orderIndex} ${p.op.type.padEnd(8)} → ${status}`);
       }
     },
@@ -150,7 +146,9 @@ export const runDerivative = (args: string[]) =>
       for (const d of derivatives) {
         const audience = d.audienceLabel ? `audience="${d.audienceLabel}"` : "";
         console.log(
-          `${d.id}  doc=${d.googleDocId}  src_version=${d.versionId.slice(0, 8)}  overlay=${d.overlayId.slice(0, 8)} ${audience}  ${d.createdAt.toISOString()}`,
+          `${d.id}  doc=${d.googleDocId}  src_version=${d.versionId.slice(0, 8)}  overlay=${
+            d.overlayId.slice(0, 8)
+          } ${audience}  ${d.createdAt.toISOString()}`,
         );
       }
     },

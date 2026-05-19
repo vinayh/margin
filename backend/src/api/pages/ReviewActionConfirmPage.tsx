@@ -20,8 +20,8 @@ export function ReviewActionConfirmPage(props: ReviewActionConfirmPageProps) {
     <Layout title={`Margin — ${props.label.toLowerCase()}`}>
       <h1 class="font-display text-3xl leading-tight tracking-tight">{props.label}</h1>
       <p class="mt-4 text-ink-2">
-        Click the button to record this response. You can change it later by re-clicking a
-        different link from the original email.
+        Click the button to record this response. You can change it later by re-clicking a different
+        link from the original email.
       </p>
       <form method="POST" action={`/r/${encodedToken}`} class="mt-6">
         <input type="hidden" name="action" value={props.action} />

@@ -29,10 +29,8 @@ export function anchorAt(
   offset: number,
   opts: { matchLen?: number; region?: DocRegion; regionId?: string } = {},
 ): CommentAnchor {
-  const region: DocRegion =
-    opts.region ?? ("region" in paragraph ? paragraph.region : "body");
-  const regionId =
-    opts.regionId ?? ("regionId" in paragraph ? paragraph.regionId : "");
+  const region: DocRegion = opts.region ?? ("region" in paragraph ? paragraph.region : "body");
+  const regionId = opts.regionId ?? ("regionId" in paragraph ? paragraph.regionId : "");
   const len = opts.matchLen ?? quoted.length;
   const before = paragraph.text.slice(Math.max(0, offset - CONTEXT_CHARS), offset);
   const after = paragraph.text.slice(offset + len, offset + len + CONTEXT_CHARS);

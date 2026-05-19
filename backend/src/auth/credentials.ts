@@ -105,4 +105,3 @@ function buildTokenProvider(userId: string): TokenProvider {
     },
   };
 }
-

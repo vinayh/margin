@@ -1,5 +1,6 @@
 import * as v from "valibot";
 import { requireFirstUser, resolveUserByEmailOrFirst } from "../domain/user.ts";
+import process from "node:process";
 
 /**
  * Friendlier aliases for the most common CLI lookup patterns. New code is

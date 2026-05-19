@@ -33,7 +33,9 @@ export function startBackgroundLoops(): BackgroundLoops {
   }
 
   console.log(
-    `background loops: renew every ${RENEW_INTERVAL_MS / 60000}m, poll every ${POLL_INTERVAL_MS / 60000}m`,
+    `background loops: renew every ${RENEW_INTERVAL_MS / 60000}m, poll every ${
+      POLL_INTERVAL_MS / 60000
+    }m`,
   );
 
   let stopped = false;

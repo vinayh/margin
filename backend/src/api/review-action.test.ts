@@ -2,14 +2,11 @@ import "../../test/setup.ts";
 import { beforeEach, describe, it as test } from "@std/testing/bdd";
 import { expect } from "@std/expect";
 import { eq } from "drizzle-orm";
-import { cleanDb, seedProject, seedUser, seedVersion, seedReviewRequest } from "../../test/db.ts";
+import { cleanDb, seedProject, seedReviewRequest, seedUser, seedVersion } from "../../test/db.ts";
 import { db } from "../db/client.ts";
 import { reviewAssignment } from "../db/schema.ts";
 import { issueReviewActionToken } from "../domain/review-action.ts";
-import {
-  handleReviewActionGet,
-  handleReviewActionPost,
-} from "./review-action.tsx";
+import { handleReviewActionGet, handleReviewActionPost } from "./review-action.tsx";
 
 beforeEach(cleanDb);
 

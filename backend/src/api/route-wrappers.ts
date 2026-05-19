@@ -1,7 +1,7 @@
 import { config } from "../config.ts";
 import { disallowedOriginResponse, preflight, withCors, withSecurity } from "./cors.ts";
 import { authenticateBearer, internalError } from "./middleware.ts";
-import { IP_LIMIT, checkRateLimit, clientIp } from "./rate-limit.ts";
+import { checkRateLimit, clientIp, IP_LIMIT } from "./rate-limit.ts";
 
 // Method-keyed shape lets the dispatcher auto-405 on verb mismatch.
 export type Handler = (req: Request) => Response | Promise<Response>;
@@ -50,10 +50,12 @@ export function secured(handler: Handler, opts: SecuredOptions = {}): Handler {
  */
 export function corsRoute(handlers: MethodHandlers): MethodHandlers {
   const out: MethodHandlers = { OPTIONS: preflight };
-  for (const [method, handler] of Object.entries(handlers) as [
-    keyof MethodHandlers,
-    Handler,
-  ][]) {
+  for (
+    const [method, handler] of Object.entries(handlers) as [
+      keyof MethodHandlers,
+      Handler,
+    ][]
+  ) {
     out[method] = async (req: Request) => {
       const blocked = disallowedOriginResponse(req);
       if (blocked) return blocked;
@@ -103,12 +105,10 @@ async function rateLimitGate(req: Request): Promise<RateLimitGate> {
   // surface (the limiter is meant to be cheap).
   const hasBearer = req.headers.has("authorization");
   const session = hasBearer ? await authenticateBearer(req).catch(() => null) : null;
-  const { key, limit } = session
-    ? { key: `u:${session.userId}`, limit: undefined }
-    : {
-        key: `ip:${clientIp(req, { server: serverRef ?? undefined, trustProxy: config.trustProxy })}`,
-        limit: IP_LIMIT,
-      };
+  const { key, limit } = session ? { key: `u:${session.userId}`, limit: undefined } : {
+    key: `ip:${clientIp(req, { server: serverRef ?? undefined, trustProxy: config.trustProxy })}`,
+    limit: IP_LIMIT,
+  };
   const decision = checkRateLimit(key, limit);
   if (!decision.allowed) {
     return {

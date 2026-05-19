@@ -38,16 +38,16 @@ export function Layout(props: LayoutProps) {
       </head>
       <body class="bg-cream text-ink font-sans antialiased">
         <main class="max-w-lg mx-auto px-6 py-16">{props.children}</main>
-        {externals.map((src) => (
-          <script src={src} async defer />
-        ))}
-        {props.inlineScript ? (
-          <script
-            nonce={props.nonce}
-            // eslint-disable-next-line react/no-danger
-            dangerouslySetInnerHTML={{ __html: props.inlineScript }}
-          />
-        ) : null}
+        {externals.map((src) => <script key={src} src={src} async defer />)}
+        {props.inlineScript
+          ? (
+            <script
+              nonce={props.nonce}
+              // eslint-disable-next-line react/no-danger
+              dangerouslySetInnerHTML={{ __html: props.inlineScript }}
+            />
+          )
+          : null}
       </body>
     </html>
   );

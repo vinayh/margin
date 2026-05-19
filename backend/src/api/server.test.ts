@@ -2,7 +2,7 @@ import "../../test/setup.ts";
 import { beforeEach, describe, it as test } from "@std/testing/bdd";
 import { expect } from "@std/expect";
 import { startServer } from "./server.ts";
-import { IP_LIMIT, _resetRateLimitForTests } from "./rate-limit.ts";
+import { _resetRateLimitForTests, IP_LIMIT } from "./rate-limit.ts";
 
 beforeEach(_resetRateLimitForTests);
 
@@ -191,7 +191,6 @@ describe("startServer route table", () => {
       await server.stop();
     }
   });
-
 });
 
 describe("startServer background loops", () => {

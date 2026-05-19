@@ -46,10 +46,12 @@ export function Popup() {
       areaName: chrome.storage.AreaName,
     ) => {
       if (areaName !== "local" || !changes.settings) return;
-      const before = (changes.settings.oldValue as { sessionToken?: string } | undefined)
-        ?.sessionToken ?? "";
-      const after = (changes.settings.newValue as { sessionToken?: string } | undefined)
-        ?.sessionToken ?? "";
+      const before =
+        (changes.settings.oldValue as { sessionToken?: string } | undefined)
+          ?.sessionToken ?? "";
+      const after =
+        (changes.settings.newValue as { sessionToken?: string } | undefined)
+          ?.sessionToken ?? "";
       if (before !== after) void boot(setView);
     };
     browser.storage.onChanged.addListener(listener);
@@ -107,9 +109,9 @@ function ViewBody({ view, setView }: BodyProps) {
         <ErrorView
           tab={view.tab}
           message={view.message}
-          onRetry={
-            view.tab ? () => void renderDocState(view.tab!, setView) : null
-          }
+          onRetry={view.tab
+            ? () => void renderDocState(view.tab!, setView)
+            : null}
         />
       );
   }
@@ -215,7 +217,7 @@ async function startAddFlow(
   const base = backendUrl.replace(/\/+$/, "");
   const url = `${base}/api/picker/page?docId=${encodeURIComponent(tab.docId)}`;
   await browser.tabs.create({ url });
-  window.close();
+  globalThis.close();
 }
 
 // ---- helpers -------------------------------------------------------------

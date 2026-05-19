@@ -1,11 +1,8 @@
 import { parseArgs } from "node:util";
 import { config } from "../config.ts";
 import { googleDocUrl, parseGoogleDocId } from "../domain/google-doc-url.ts";
-import {
-  seedDevProject,
-  SeedOwnerMismatchError,
-} from "../domain/dev-seed.ts";
-import { fatal, usage, dispatchSubcommands } from "./util.ts";
+import { seedDevProject, SeedOwnerMismatchError } from "../domain/dev-seed.ts";
+import { dispatchSubcommands, fatal, usage } from "./util.ts";
 
 const USAGE = `\
 usage:

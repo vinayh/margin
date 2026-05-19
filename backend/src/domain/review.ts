@@ -1,17 +1,17 @@
 import { and, desc, eq, inArray } from "drizzle-orm";
 import { db } from "../db/client.ts";
 import {
+  type ReviewActionKind,
   reviewAssignment,
+  type ReviewAssignmentStatus,
   reviewRequest,
   user,
-  type ReviewActionKind,
-  type ReviewAssignmentStatus,
 } from "../db/schema.ts";
 import { writeAudit } from "../db/audit.ts";
 import { tokenProviderForUser } from "../auth/credentials.ts";
 import { createPermission } from "../google/drive.ts";
 import { config } from "../config.ts";
-import { getEmailTransport, type EmailTransport } from "../notify/email.ts";
+import { type EmailTransport, getEmailTransport } from "../notify/email.ts";
 import { getSlackTransport, type SlackTransport } from "../notify/slack.ts";
 import { requireProject } from "./project.ts";
 import { loadOwnedVersion } from "./version.ts";
@@ -134,7 +134,7 @@ export async function createReviewRequest(opts: {
         transport,
         requesterEmail,
         deadline: opts.deadline ?? null,
-      }),
+      })
     ),
   );
 
@@ -166,7 +166,7 @@ export async function createReviewRequest(opts: {
             projectName: proj.name,
             requesterEmail,
           },
-        }),
+        })
       ),
   );
 

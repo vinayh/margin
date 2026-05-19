@@ -2,9 +2,9 @@ import { and, eq } from "drizzle-orm";
 import { db } from "../db/client.ts";
 import {
   canonicalComment,
+  type CanonicalCommentStatus,
   commentProjection,
   project,
-  type CanonicalCommentStatus,
   type ProjectionStatus,
 } from "../db/schema.ts";
 import { writeAudit } from "../db/audit.ts";
@@ -255,9 +255,9 @@ async function reanchorProjection(
     targetId: `${ctx.comment.id}:${targetVersionId}`,
     before: existing
       ? {
-          projectionStatus: existing.projectionStatus,
-          anchorMatchConfidence: existing.anchorMatchConfidence,
-        }
+        projectionStatus: existing.projectionStatus,
+        anchorMatchConfidence: existing.anchorMatchConfidence,
+      }
       : null,
     after: {
       projectionStatus: result.status,
@@ -295,4 +295,3 @@ function projectionResult(
 ): CommentActionResult {
   return { canonicalCommentId, status, projection };
 }
-

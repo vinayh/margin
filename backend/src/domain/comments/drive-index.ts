@@ -1,7 +1,4 @@
-import type {
-  DriveComment,
-  DriveCommentAuthor,
-} from "../../google/drive.ts";
+import type { DriveComment, DriveCommentAuthor } from "../../google/drive.ts";
 import { hashShort } from "./types.ts";
 
 /**

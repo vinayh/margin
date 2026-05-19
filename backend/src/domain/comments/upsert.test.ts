@@ -4,11 +4,7 @@ import { expect } from "@std/expect";
 import { and, eq } from "drizzle-orm";
 import { cleanDb, seedProject, seedUser, seedVersion } from "../../../test/db.ts";
 import { db } from "../../db/client.ts";
-import {
-  canonicalComment,
-  commentProjection,
-  type CommentAnchor,
-} from "../../db/schema.ts";
+import { canonicalComment, type CommentAnchor, commentProjection } from "../../db/schema.ts";
 import { upsertCanonical } from "./upsert.ts";
 import type { IngestResult } from "./types.ts";
 

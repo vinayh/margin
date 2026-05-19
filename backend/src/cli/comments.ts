@@ -1,5 +1,5 @@
 import { ingestVersionComments, listCommentsForProject } from "../domain/comments.ts";
-import { usage, dispatchSubcommands } from "./util.ts";
+import { dispatchSubcommands, usage } from "./util.ts";
 
 const USAGE = `\
 usage:
@@ -30,7 +30,9 @@ export const run = (args: string[]) =>
           : "(unanchored)";
         const parent = c.parentCommentId ? ` reply→${c.parentCommentId.slice(0, 8)}` : "";
         console.log(
-          `${c.id}  ${c.kind.padEnd(18)}  ${c.status.padEnd(10)}  ${author}  ${quoted}${parent}\n  ${c.body.slice(0, 80)}`,
+          `${c.id}  ${c.kind.padEnd(18)}  ${
+            c.status.padEnd(10)
+          }  ${author}  ${quoted}${parent}\n  ${c.body.slice(0, 80)}`,
         );
       }
     },

@@ -28,7 +28,9 @@ export function parseDocIdFromUrl(href: string): string | null {
 // Something" would mis-strip.
 const DOCS_SUFFIX = /\s-\s[^-]*\bGoogle\b[^-]*$/i;
 
-export function cleanDocTitleFallback(rawTitle: string | undefined | null): string {
+export function cleanDocTitleFallback(
+  rawTitle: string | undefined | null,
+): string {
   if (!rawTitle) return "";
   const trimmed = rawTitle.trim();
   const stripped = trimmed.replace(DOCS_SUFFIX, "").trim();

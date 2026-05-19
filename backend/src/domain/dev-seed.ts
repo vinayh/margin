@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { db } from "../db/client.ts";
 import { project, version } from "../db/schema.ts";
 import { requireUserByEmail } from "./user.ts";

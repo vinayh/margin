@@ -9,8 +9,8 @@ import {
 import {
   CommentActionBadRequestError,
   CommentActionNotFoundError,
-  performCommentAction,
   type CommentActionResult,
+  performCommentAction,
 } from "../domain/comment-action.ts";
 
 const MAX_BATCH_SIZE = 64;

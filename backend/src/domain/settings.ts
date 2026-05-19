@@ -131,10 +131,8 @@ async function loadOwnedProject(
 function hydrateView(stored: ProjectSettings): ProjectSettingsView {
   return {
     notifyOnComment: stored.notifyOnComment ?? DEFAULTS.notifyOnComment,
-    notifyOnReviewComplete:
-      stored.notifyOnReviewComplete ?? DEFAULTS.notifyOnReviewComplete,
-    defaultReviewerEmails:
-      stored.defaultReviewerEmails ?? DEFAULTS.defaultReviewerEmails,
+    notifyOnReviewComplete: stored.notifyOnReviewComplete ?? DEFAULTS.notifyOnReviewComplete,
+    defaultReviewerEmails: stored.defaultReviewerEmails ?? DEFAULTS.defaultReviewerEmails,
     defaultOverlayId: stored.defaultOverlayId ?? DEFAULTS.defaultOverlayId,
     slackWorkspaceRef: stored.slackWorkspaceRef ?? DEFAULTS.slackWorkspaceRef,
   };

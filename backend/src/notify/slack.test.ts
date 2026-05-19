@@ -3,10 +3,10 @@ import { afterEach, describe, it as test } from "@std/testing/bdd";
 import { expect } from "@std/expect";
 import { setFetch } from "../../test/fetch.ts";
 import {
-  LogSlackTransport,
-  WebhookSlackTransport,
   _setSlackTransportForTests,
   getSlackTransport,
+  LogSlackTransport,
+  WebhookSlackTransport,
 } from "./slack.ts";
 
 const realFetch = globalThis.fetch;

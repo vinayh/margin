@@ -1,11 +1,11 @@
 import {
-  sqliteTable,
-  text,
+  foreignKey,
+  index,
   integer,
   primaryKey,
-  index,
+  sqliteTable,
+  text,
   uniqueIndex,
-  foreignKey,
 } from "drizzle-orm/sqlite-core";
 
 const newId = () => crypto.randomUUID();

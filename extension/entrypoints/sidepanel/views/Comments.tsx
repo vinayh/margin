@@ -99,7 +99,10 @@ export function Comments({ versionId, versionLabel, onClose }: Props) {
   if (state.kind === "loading") {
     return (
       <section class="comments-view">
-        <CommentsHeader title={`Comments on ${versionLabel}`} onClose={onClose} />
+        <CommentsHeader
+          title={`Comments on ${versionLabel}`}
+          onClose={onClose}
+        />
         <ul class="comment-list">
           <SkeletonCommentCard />
           <SkeletonCommentCard />
@@ -134,38 +137,42 @@ export function Comments({ versionId, versionLabel, onClose }: Props) {
           : ""}
       </p>
       {actionError ? <p class="muted error">{actionError}</p> : null}
-      {ordered.length > 0 ? (
-        <input
-          type="search"
-          class="filter-input"
-          placeholder="Filter comments by body, author, or quoted text…"
-          value={filter}
-          onInput={(e) => setFilter((e.target as HTMLInputElement).value)}
-        />
-      ) : null}
-      {ordered.length === 0 ? (
-        <div class="empty-state">
-          <p class="empty-state-title">No comments on this version yet.</p>
-          <p class="empty-state-body">
-            Sync this version to ingest comments and suggestions from the
-            Google Doc, or project comments from an earlier version.
-          </p>
-        </div>
-      ) : filtered.length === 0 ? (
-        <p class="muted">No comments match.</p>
-      ) : (
-        <ul class="comment-list">
-          {filtered.map((c) => (
-            <CommentCard
-              key={c.canonicalCommentId}
-              entry={c}
-              targetVersionLabel={state.payload.versionLabel}
-              pending={pendingId === c.canonicalCommentId}
-              onAction={(action) => runAction(c, action)}
-            />
-          ))}
-        </ul>
-      )}
+      {ordered.length > 0
+        ? (
+          <input
+            type="search"
+            class="filter-input"
+            placeholder="Filter comments by body, author, or quoted text…"
+            value={filter}
+            onInput={(e) => setFilter((e.target as HTMLInputElement).value)}
+          />
+        )
+        : null}
+      {ordered.length === 0
+        ? (
+          <div class="empty-state">
+            <p class="empty-state-title">No comments on this version yet.</p>
+            <p class="empty-state-body">
+              Sync this version to ingest comments and suggestions from the
+              Google Doc, or project comments from an earlier version.
+            </p>
+          </div>
+        )
+        : filtered.length === 0
+        ? <p class="muted">No comments match.</p>
+        : (
+          <ul class="comment-list">
+            {filtered.map((c) => (
+              <CommentCard
+                key={c.canonicalCommentId}
+                entry={c}
+                targetVersionLabel={state.payload.versionLabel}
+                pending={pendingId === c.canonicalCommentId}
+                onAction={(action) => runAction(c, action)}
+              />
+            ))}
+          </ul>
+        )}
     </section>
   );
 }
@@ -232,8 +239,7 @@ function CommentCard({
   onAction: (action: CommentActionKind) => void;
 }) {
   const isOriginVersion = entry.originVersionLabel === targetVersionLabel;
-  const author =
-    entry.originUserDisplayName ??
+  const author = entry.originUserDisplayName ??
     entry.originUserEmail ??
     "Unknown author";
   return (
@@ -242,28 +248,36 @@ function CommentCard({
         <StatusBadge status={entry.projection.status} />
         <CommentStatusBadge status={entry.status} />
         <KindTag kind={entry.kind} />
-        {entry.parentCanonicalCommentId ? (
-          <span class="comment-tag">reply</span>
-        ) : null}
-        {isOriginVersion ? null : (
-          <span class="comment-tag" title="Projected from an earlier version">
-            from {entry.originVersionLabel}
-          </span>
-        )}
+        {entry.parentCanonicalCommentId
+          ? <span class="comment-tag">reply</span>
+          : null}
+        {isOriginVersion
+          ? null
+          : (
+            <span class="comment-tag" title="Projected from an earlier version">
+              from {entry.originVersionLabel}
+            </span>
+          )}
       </div>
       <p class="comment-meta">
         <span>{author}</span>
-        <span class="muted"> · {formatDateTime(entry.originTimestamp)}</span>
-        {entry.projection.anchorMatchConfidence !== null ? (
-          <span class="muted">
-            {" "}
-            · match {entry.projection.anchorMatchConfidence}%
-          </span>
-        ) : null}
+        <span class="muted">· {formatDateTime(entry.originTimestamp)}</span>
+        {entry.projection.anchorMatchConfidence !== null
+          ? (
+            <span class="muted">
+              {" "}
+              · match {entry.projection.anchorMatchConfidence}%
+            </span>
+          )
+          : null}
       </p>
-      {entry.anchor.quotedText ? (
-        <blockquote class="comment-quote">{entry.anchor.quotedText}</blockquote>
-      ) : null}
+      {entry.anchor.quotedText
+        ? (
+          <blockquote class="comment-quote">
+            {entry.anchor.quotedText}
+          </blockquote>
+        )
+        : null}
       <p class="comment-body">{entry.body}</p>
       <CommentActions
         entry={entry}
@@ -284,20 +298,21 @@ function CommentActions({
   onAction: (action: CommentActionKind) => void;
 }) {
   const isOpen = entry.status === "open";
-  const needsAnchorWork =
-    entry.projection.status === "fuzzy" ||
+  const needsAnchorWork = entry.projection.status === "fuzzy" ||
     entry.projection.status === "orphaned";
   return (
     <div class="comment-actions">
-      {needsAnchorWork ? (
-        <button
-          type="button"
-          disabled={pending}
-          onClick={() => onAction("accept_projection")}
-        >
-          Accept anchor
-        </button>
-      ) : null}
+      {needsAnchorWork
+        ? (
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => onAction("accept_projection")}
+          >
+            Accept anchor
+          </button>
+        )
+        : null}
       <button
         type="button"
         disabled={pending}
@@ -305,32 +320,34 @@ function CommentActions({
       >
         Re-anchor
       </button>
-      {isOpen ? (
-        <>
+      {isOpen
+        ? (
+          <>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => onAction("mark_resolved")}
+            >
+              Resolve
+            </button>
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => onAction("mark_wontfix")}
+            >
+              Won't fix
+            </button>
+          </>
+        )
+        : (
           <button
             type="button"
             disabled={pending}
-            onClick={() => onAction("mark_resolved")}
+            onClick={() => onAction("reopen")}
           >
-            Resolve
+            Reopen
           </button>
-          <button
-            type="button"
-            disabled={pending}
-            onClick={() => onAction("mark_wontfix")}
-          >
-            Won't fix
-          </button>
-        </>
-      ) : (
-        <button
-          type="button"
-          disabled={pending}
-          onClick={() => onAction("reopen")}
-        >
-          Reopen
-        </button>
-      )}
+        )}
     </div>
   );
 }
@@ -354,8 +371,9 @@ function CommentStatusBadge({ status }: { status: CanonicalCommentStatus }) {
 
 function KindTag({ kind }: { kind: CanonicalCommentKind }) {
   if (kind === "comment") return null;
-  const label =
-    kind === "suggestion_insert" ? "suggested insert" : "suggested delete";
+  const label = kind === "suggestion_insert"
+    ? "suggested insert"
+    : "suggested delete";
   return <span class="comment-tag">{label}</span>;
 }
 
@@ -396,7 +414,9 @@ function sortForReconciliation(
   });
 }
 
-function summarize(entries: VersionCommentEntry[]): Record<ProjectionStatus, number> {
+function summarize(
+  entries: VersionCommentEntry[],
+): Record<ProjectionStatus, number> {
   const out: Record<ProjectionStatus, number> = {
     clean: 0,
     fuzzy: 0,
@@ -420,15 +440,14 @@ function applyResult(
         status: result.status,
         projection: result.projection
           ? {
-              ...c.projection,
-              status: result.projection.status,
-              anchorMatchConfidence: result.projection.anchorMatchConfidence,
-              lastSyncedAt: Date.now(),
-            }
+            ...c.projection,
+            status: result.projection.status,
+            anchorMatchConfidence: result.projection.anchorMatchConfidence,
+            lastSyncedAt: Date.now(),
+          }
           : c.projection,
       };
     });
     return { kind: "loaded", payload: { ...prev.payload, comments } };
   });
 }
-

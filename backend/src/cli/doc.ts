@@ -20,8 +20,7 @@ export const run = (args: string[]) =>
       });
 
       const u = await resolveUser(values.user);
-      const title =
-        values.title ?? `Margin test doc ${new Date().toISOString().slice(0, 10)}`;
+      const title = values.title ?? `Margin test doc ${new Date().toISOString().slice(0, 10)}`;
       const r = await createTestDocument({
         userId: u.id,
         title,

@@ -1,10 +1,5 @@
 import * as v from "valibot";
-import {
-  authenticateBearer,
-  jsonOk,
-  readAndParseJson,
-  unauthorized,
-} from "./middleware.ts";
+import { authenticateBearer, jsonOk, readAndParseJson, unauthorized } from "./middleware.ts";
 import { createProject, DuplicateProjectError } from "../domain/project.ts";
 
 const MAX_BODY_BYTES = 8 * 1024;

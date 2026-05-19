@@ -1,12 +1,7 @@
 import "../../test/setup.ts";
 import { afterEach, beforeEach, describe, it as test } from "@std/testing/bdd";
 import { expect } from "@std/expect";
-import {
-  cleanDb,
-  seedProject,
-  seedUser,
-  seedVersion,
-} from "../../test/db.ts";
+import { cleanDb, seedProject, seedUser, seedVersion } from "../../test/db.ts";
 import { setFetch } from "../../test/fetch.ts";
 import { db } from "../db/client.ts";
 import { account } from "../db/schema.ts";
@@ -19,10 +14,8 @@ function paragraph(opts: {
   namedStyleType?: string;
   bold?: boolean;
   italic?: boolean;
-}): Document["body"] extends infer B
-  ? B extends { content: (infer E)[] }
-    ? E
-    : never
+}): Document["body"] extends infer B ? B extends { content: (infer E)[] } ? E
+  : never
   : never {
   return {
     paragraph: {

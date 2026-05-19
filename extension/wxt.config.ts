@@ -41,10 +41,7 @@ export default defineConfig({
     // the store reviewers see a clean list. Tab-based sign-in opens the
     // backend's `/api/auth/ext/launch-tab` page via `browser.tabs.create`,
     // which doesn't need the `identity` permission.
-    permissions:
-      browser === "firefox"
-        ? ["storage"]
-        : ["storage", "sidePanel"],
+    permissions: browser === "firefox" ? ["storage"] : ["storage", "sidePanel"],
     // `docs.google.com` is known at build time and must be static: without
     // it the popup's `chrome.tabs.query({active: true, currentWindow: true})`
     // gets a Tab with `url`/`title` stripped on any Doc page, and falls

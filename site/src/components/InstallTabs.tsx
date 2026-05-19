@@ -26,10 +26,8 @@ export default function InstallTabs({ tabs }: Props) {
               role="tab"
               aria-selected={isActive}
               onClick={() => setActive(i)}
-              class={
-                "px-4 py-2 font-medium " +
-                (isActive ? "bg-ink text-cream" : "hover:bg-black/5")
-              }
+              class={"px-4 py-2 font-medium " +
+                (isActive ? "bg-ink text-cream" : "hover:bg-black/5")}
             >
               {t.label}
             </button>

@@ -1,4 +1,4 @@
-import { diffArrays, diffWordsWithSpace, type Change } from "diff";
+import { type Change, diffArrays, diffWordsWithSpace } from "diff";
 import type {
   ParagraphSummary,
   RunSummary,
@@ -30,11 +30,11 @@ export type DiffRow =
   | { kind: "match"; from: ParagraphSummary; to: ParagraphSummary }
   | { kind: "style-changed"; from: ParagraphSummary; to: ParagraphSummary }
   | {
-      kind: "modified";
-      from: ParagraphSummary;
-      to: ParagraphSummary;
-      words: Change[];
-    }
+    kind: "modified";
+    from: ParagraphSummary;
+    to: ParagraphSummary;
+    words: Change[];
+  }
   | { kind: "added"; to: ParagraphSummary }
   | { kind: "removed"; from: ParagraphSummary };
 

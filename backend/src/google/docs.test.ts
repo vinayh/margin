@@ -6,10 +6,10 @@ import type { TokenProvider } from "./api.ts";
 import {
   batchUpdate,
   createDocument,
+  type Document,
   extractAllParagraphs,
   extractPlainText,
   op,
-  type Document,
 } from "./docs.ts";
 
 const realFetch = globalThis.fetch;
@@ -142,10 +142,38 @@ describe("extractAllParagraphs", () => {
     };
     const out = extractAllParagraphs(doc);
     expect(out).toEqual([
-      { paragraphIndex: 0, text: "body-1", startIndex: 1, endIndex: 8, region: "body", regionId: "" },
-      { paragraphIndex: 0, text: "header-1", startIndex: 1, endIndex: 10, region: "header", regionId: "h1" },
-      { paragraphIndex: 0, text: "footer-1", startIndex: 1, endIndex: 10, region: "footer", regionId: "f1" },
-      { paragraphIndex: 0, text: "note-1", startIndex: 1, endIndex: 8, region: "footnote", regionId: "fn1" },
+      {
+        paragraphIndex: 0,
+        text: "body-1",
+        startIndex: 1,
+        endIndex: 8,
+        region: "body",
+        regionId: "",
+      },
+      {
+        paragraphIndex: 0,
+        text: "header-1",
+        startIndex: 1,
+        endIndex: 10,
+        region: "header",
+        regionId: "h1",
+      },
+      {
+        paragraphIndex: 0,
+        text: "footer-1",
+        startIndex: 1,
+        endIndex: 10,
+        region: "footer",
+        regionId: "f1",
+      },
+      {
+        paragraphIndex: 0,
+        text: "note-1",
+        startIndex: 1,
+        endIndex: 8,
+        region: "footnote",
+        regionId: "fn1",
+      },
     ]);
   });
 

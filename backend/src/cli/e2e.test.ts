@@ -14,7 +14,13 @@ beforeEach(cleanDb);
 describe("e2e seed-project", () => {
   test("no env flag → refuses, exit 1", async () => {
     await seedUser({ email: "t@e.com" });
-    const r = await runCli(["e2e", "seed-project", "1AbcDEF0123456789_abc_test_doc", "--user", "t@e.com"], {
+    const r = await runCli([
+      "e2e",
+      "seed-project",
+      "1AbcDEF0123456789_abc_test_doc",
+      "--user",
+      "t@e.com",
+    ], {
       MARGIN_ALLOW_E2E_SEED: undefined,
     });
     expect(r.exitCode).toBe(1);
@@ -65,7 +71,10 @@ describe("e2e seed-project", () => {
 
   test("re-run is idempotent — same owner, no duplicate rows", async () => {
     const u = await seedUser({ email: "owner@e.com" });
-    await runCli(["e2e", "seed-project", "1AbcDEF0123456789_xyz_test_doc", "--user", u.email], ALLOW);
+    await runCli(
+      ["e2e", "seed-project", "1AbcDEF0123456789_xyz_test_doc", "--user", u.email],
+      ALLOW,
+    );
     const r = await runCli(
       ["e2e", "seed-project", "1AbcDEF0123456789_xyz_test_doc", "--user", u.email],
       ALLOW,
@@ -88,7 +97,10 @@ describe("e2e seed-project", () => {
   test("different owner → refuses with exit 1, doesn't clobber existing project", async () => {
     const a = await seedUser({ email: "a@e.com" });
     const b = await seedUser({ email: "b@e.com" });
-    await runCli(["e2e", "seed-project", "1AbcDEF0123456789_xyz_test_doc", "--user", a.email], ALLOW);
+    await runCli(
+      ["e2e", "seed-project", "1AbcDEF0123456789_xyz_test_doc", "--user", a.email],
+      ALLOW,
+    );
     const r = await runCli(
       ["e2e", "seed-project", "1AbcDEF0123456789_xyz_test_doc", "--user", b.email],
       ALLOW,

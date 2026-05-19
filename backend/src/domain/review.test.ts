@@ -1,21 +1,16 @@
 import "../../test/setup.ts";
 import { afterEach, beforeEach, describe, it as test } from "@std/testing/bdd";
 import { expect } from "@std/expect";
-import {
-  cleanDb,
-  seedProject,
-  seedUser,
-  seedVersion,
-} from "../../test/db.ts";
+import { cleanDb, seedProject, seedUser, seedVersion } from "../../test/db.ts";
 import { setFetch } from "../../test/fetch.ts";
 import { db } from "../db/client.ts";
 import {
   account,
   auditLog,
   notification,
+  reviewActionToken,
   reviewAssignment,
   reviewRequest,
-  reviewActionToken,
   user,
 } from "../db/schema.ts";
 import { encryptWithMaster } from "../auth/encryption.ts";
@@ -47,8 +42,7 @@ function stubGoogle(opts: { permissionStatus?: number } = {}) {
   setFetch(async (input, init) => {
     const url = String(input);
     const method = (init?.method ?? "GET").toUpperCase();
-    const body =
-      typeof init?.body === "string" ? init.body : undefined;
+    const body = typeof init?.body === "string" ? init.body : undefined;
     calls.push({ url, method, body });
     if (url.includes("oauth2.googleapis.com/token")) {
       return new Response(
@@ -203,7 +197,7 @@ describe("createReviewRequest", () => {
     expect(permissionCalls).toHaveLength(2);
     expect(
       permissionCalls.every((c) =>
-        c.url.includes(`/files/${encodeURIComponent("doc-v1")}/permissions`),
+        c.url.includes(`/files/${encodeURIComponent("doc-v1")}/permissions`)
       ),
     ).toBe(true);
     expect(

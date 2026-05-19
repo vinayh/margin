@@ -60,7 +60,7 @@ async function openDashboardFromPopup(): Promise<void> {
     useNativeSidebar,
     windowId: win.id,
   });
-  window.close();
+  globalThis.close();
 }
 
 function Stat({ label, value }: { label: string; value: string }) {
@@ -71,4 +71,3 @@ function Stat({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
-
