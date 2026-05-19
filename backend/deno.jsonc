@@ -1,7 +1,8 @@
 {
   // Deno config for the backend workspace. The WXT extension (../extension)
-  // and Astro site (../site) are independent Bun workspaces and live
-  // outside this directory, so they don't appear in the exclude list.
+  // and Astro site (../site) each have their own deno.json (Deno as package
+  // manager + task runner; their builds execute under Node), and live outside
+  // this directory, so they don't appear in the exclude list.
   "nodeModulesDir": "auto",
 
   "tasks": {
@@ -14,7 +15,7 @@
     // optimize for human-driven exploration. The Dockerfile CMD uses the
     // tight allow-lists for `serve`/`migrate` in production.
     "margin": {
-      "description": "CLI dispatcher (bun margin → deno task margin)",
+      "description": "CLI dispatcher (deno task margin)",
       "command": "deno run --allow-env --allow-read --allow-write --allow-net --allow-sys --deny-net=169.254.169.254,[fd00:ec2::254],metadata.google.internal,_metadata.flyio.internal src/cli/index.ts"
     },
     "migrate": {

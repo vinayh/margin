@@ -1,0 +1,20 @@
+{
+  "nodeModulesDir": "auto",
+  "tasks": {
+    "dev": "node ./node_modules/.bin/wxt",
+    "dev:firefox": "node ./node_modules/.bin/wxt -b firefox",
+    "build": "node ./node_modules/.bin/wxt build",
+    "build:firefox": "node ./node_modules/.bin/wxt build -b firefox",
+    "zip": "node ./node_modules/.bin/wxt zip",
+    "zip:firefox": "node ./node_modules/.bin/wxt zip -b firefox",
+    "prepare": "node ./node_modules/.bin/wxt prepare",
+    "test": "node --test utils/emails.test.ts utils/ids.test.ts entrypoints/sidepanel/diff/align.test.ts"
+  },
+  "lint": {
+    "exclude": ["node_modules/", "dist/", ".wxt/", ".output/"]
+  },
+  "fmt": {
+    "exclude": ["node_modules/", "dist/", ".wxt/", ".output/"]
+  },
+  "exclude": ["node_modules/", "dist/", ".wxt/", ".output/"]
+}

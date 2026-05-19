@@ -9,16 +9,17 @@ Comment ingest is not an extension concern; it lives in the backend (`.docx` exp
 
 ## Build
 
-[WXT](https://wxt.dev) drives the build (Vite under the hood). The extension is its own Bun workspace with `package.json` + `bun.lock` here; root scripts don't drive it. Backend stays on Deno.
+[WXT](https://wxt.dev) drives the build (Vite under the hood). The extension uses Deno as the package manager + task runner; WXT itself runs under Node (via the `#!/usr/bin/env node` shebang on `node_modules/.bin/wxt`). `package.json` + `deno.json` + `deno.lock` live here; root scripts don't drive it.
 
 ```sh
 cd extension
-bun install                    # first time / after package.json bumps
-bun run build                  # production build, Chrome/Edge target
-bun run build:firefox          # production build, Firefox target
-bun run dev                    # dev server with HMR (Chrome/Edge)
-bun run dev:firefox            # dev server with HMR (Firefox)
-bun run zip                    # bundle dist/<target>/ into a publishable .zip
+deno install                   # first time / after package.json bumps
+deno task build                # production build, Chrome/Edge target
+deno task build:firefox        # production build, Firefox target
+deno task dev                  # dev server with HMR (Chrome/Edge)
+deno task dev:firefox          # dev server with HMR (Firefox)
+deno task zip                  # bundle dist/<target>/ into a publishable .zip
+deno task test                 # unit tests (node --test)
 ```
 
 Outputs to `extension/dist/{chrome-mv3,firefox-mv3}/`. Each output directory is loadable directly:

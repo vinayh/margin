@@ -31,10 +31,10 @@ Capture the bash shell id from the Bash result. You'll want it for tailing logs 
 
 ## 2. Extension build
 
-Rebuild every time — WXT is fast (~600 ms) and the alternative is debugging stale CSS. The extension is its own Bun workspace, so run from inside it:
+Rebuild every time — WXT is fast (~600 ms) and the alternative is debugging stale CSS. The extension uses Deno as the package manager + task runner (WXT itself runs under Node):
 
 ```bash
-cd extension && bun run build
+cd extension && deno task build
 ```
 
 The dist lives at `extension/dist/chrome-mv3/` relative to the repo root. `install_extension` (next step) wants an absolute path; resolve it at use-time with `pwd` from the repo root, e.g. `"$(git rev-parse --show-toplevel)"/extension/dist/chrome-mv3`.

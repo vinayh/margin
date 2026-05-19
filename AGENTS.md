@@ -79,7 +79,7 @@ docs/                internal markdown. Public README + contributor guide
 
 Build pipeline, popup state machine, Picker mechanics, and toolbar-icon routing live in [`extension/README.md`](./extension/README.md). Conventions to know when working on this surface:
 
-- **Don't build by hand.** Always go through the WXT scripts from `extension/`: `bun run build`, `build:firefox`, `dev`. Run `bun run prepare` after edits that affect TypeScript so `.wxt/wxt.d.ts` regenerates.
+- **Don't build by hand.** Always go through the WXT tasks from `extension/`: `deno task build`, `build:firefox`, `dev`. Run `deno task prepare` after edits that affect TypeScript so `.wxt/wxt.d.ts` regenerates. (Deno is the package manager + task runner; WXT itself executes under Node via the bin's `#!/usr/bin/env node` shebang.)
 - **Cross-browser API.** Import `{ browser }` from `wxt/browser`; WXT ships its own promisified shim. Don't add `webextension-polyfill` (30 KB) or hand-roll a `chrome ?? browser` picker.
 - **No content script.** Ingest is server-side (`.docx` export, SPEC §9.8); the extension is a pure UI surface (popup, options, side panel). The Drive Picker is hosted on the backend at `/api/picker/page` and opens as a new tab from the popup's *Add to Margin* button.
 - **Preact only in the popup + side panel.** Options + SW stay plain TS.
@@ -129,5 +129,5 @@ This is a dual-runtime repo:
   - Crypto via `node:crypto` (sync SHA-256 etc.) and Web Crypto where async is fine.
   - File I/O: `Deno.open` / `Deno.readTextFile` / `Deno.readFile`. For Node-API parity (`Buffer`, `Stream`) import explicitly: `import { Buffer } from "node:buffer"`.
   - Env: `Deno.env.get/set/delete`. `.env` is loaded via `--env-file=.env` if you wire it into a task; tests rely on per-process defaults set in `test/setup.ts`.
-- **WXT extension (`extension/`) and Astro site (`site/`) are Bun workspaces** — each has its own `package.json` + `bun.lock` and is independent of `backend/`. Install + build with `bun install` / `bun run build` from inside the workspace dir. `backend/package.json` carries only backend npm deps (Deno consumes them via `nodeModulesDir: "auto"`).
+- **WXT extension (`extension/`) and Astro site (`site/`) use Deno as the package manager + task runner, Node as the actual runtime.** Each has its own `package.json` + `deno.json` + `deno.lock` and is independent of `backend/`. From inside the workspace dir: `deno install` to populate `node_modules/`, then `deno task build` / `deno task dev` (which shell out to `node ./node_modules/.bin/<astro|wxt>`). `backend/package.json` carries only backend npm deps (Deno consumes them via `nodeModulesDir: "auto"`; same pattern in `site/` and `extension/`).
 - `backend/drizzle.config.ts` runs under Node (drizzle-kit invokes it), so it uses `process.env`.
