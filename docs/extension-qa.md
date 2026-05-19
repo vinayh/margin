@@ -11,8 +11,8 @@ Firefox (`dist/firefox-mv3`) and Edge.
 
 ## 1. Install & first-run
 
-1. `npm run ext:build` → load `surfaces/extension/dist/chrome-mv3` via
-   `chrome://extensions` → Developer Mode → **Load unpacked**.
+1. `cd surfaces/extension && bun run build` → load `surfaces/extension/dist/chrome-mv3`
+   via `chrome://extensions` → Developer Mode → **Load unpacked**.
 2. Confirm the toolbar icon appears.
 3. Confirm the **Options** page opens in a tab (not a popup) automatically
    on install. If it doesn't, right-click the icon → **Options**.

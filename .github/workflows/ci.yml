@@ -56,7 +56,11 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: '24'
-      - run: npm install --omit=dev --no-audit --no-fund --ignore-scripts
+      # --legacy-peer-deps: better-auth declares a peerOptional on
+      # drizzle-kit ">=0.31.4". Our drizzle-kit is 1.0.0-rc.3, and npm
+      # semver excludes prereleases from ordinary ranges, so it rejects
+      # the install. The peer is optional and unused at runtime.
+      - run: npm install --omit=dev --no-audit --no-fund --ignore-scripts --legacy-peer-deps
       - run: deno check src/api/server.ts src/cli/index.ts
       - name: Module-init smoke under prod-only install
         env:

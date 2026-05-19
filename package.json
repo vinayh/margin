@@ -2,28 +2,10 @@
   "name": "margin",
   "type": "module",
   "private": true,
-  "scripts": {
-    "ext:dev": "cd surfaces/extension && wxt",
-    "ext:dev:firefox": "cd surfaces/extension && wxt -b firefox",
-    "ext:build": "cd surfaces/extension && wxt build",
-    "ext:build:firefox": "cd surfaces/extension && wxt build -b firefox",
-    "ext:zip": "cd surfaces/extension && wxt zip",
-    "ext:zip:firefox": "cd surfaces/extension && wxt zip -b firefox"
-  },
   "devDependencies": {
-    "@fontsource-variable/inter": "^5.2.8",
-    "@fontsource-variable/jetbrains-mono": "^5.2.8",
-    "@fontsource/bagel-fat-one": "^5.2.7",
-    "@preact/preset-vite": "^2.10.5",
     "@tailwindcss/cli": "^4.3.0",
-    "@tailwindcss/vite": "^4.3.0",
-    "@types/chrome": "^0.1.42",
     "drizzle-kit": "1.0.0-rc.3",
-    "tailwindcss": "^4.3.0",
-    "wxt": "^0.20.26"
-  },
-  "peerDependencies": {
-    "typescript": "^6.0.3"
+    "tailwindcss": "^4.3.0"
   },
   "dependencies": {
     "better-auth": "^1.6.11",
@@ -31,8 +13,6 @@
     "drizzle-orm": "1.0.0-rc.3",
     "fast-xml-parser": "^5.8.0",
     "fflate": "^0.8.2",
-    "lucide": "^1.16.0",
-    "lucide-preact": "^1.16.0",
     "preact": "^10.29.1",
     "preact-render-to-string": "^6.5.13",
     "valibot": "^1.4.0"

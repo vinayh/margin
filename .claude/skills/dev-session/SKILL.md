@@ -5,14 +5,14 @@ description: Boot the Margin dev loop — backend on :8787 plus a Chrome session
 
 # Margin dev session
 
-End state: `bun margin serve` running on :8787, the extension built into `surfaces/extension/dist/chrome-mv3/`, and Chrome running with the extension loaded into the persistent test profile so the popup / side panel / options pages can be poked.
+End state: `deno task serve` running on :8787, the extension built into `surfaces/extension/dist/chrome-mv3/`, and Chrome running with the extension loaded into the persistent test profile so the popup / side panel / options pages can be poked.
 
 ## 1. Backend on :8787
 
 Migrations don't apply at boot (see memory `project_serve_auto_migrate.md`), so always migrate first:
 
 ```bash
-bun migrate
+deno task migrate
 ```
 
 Then check whether the backend is already running before starting another one:
@@ -24,17 +24,17 @@ lsof -nP -iTCP:8787 -sTCP:LISTEN
 If nothing's listening, launch via Bash with `run_in_background: true`:
 
 ```bash
-bun margin serve
+deno task serve
 ```
 
 Capture the bash shell id from the Bash result. You'll want it for tailing logs later (BashOutput) and for shutting down (KillShell) if the user asks. Don't poll the process — if you need to wait, Monitor it.
 
 ## 2. Extension build
 
-Rebuild every time — WXT is fast (~600 ms) and the alternative is debugging stale CSS:
+Rebuild every time — WXT is fast (~600 ms) and the alternative is debugging stale CSS. The extension is its own Bun workspace, so run from inside it:
 
 ```bash
-bun run ext:build
+cd surfaces/extension && bun run build
 ```
 
 The dist lives at `surfaces/extension/dist/chrome-mv3/` (absolute: `/Users/vinay/Dev/margin/surfaces/extension/dist/chrome-mv3`).

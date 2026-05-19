@@ -40,7 +40,7 @@ follow-up slice when seeding a 2nd version becomes possible.
 
 ```sh
 # 1. Build a fresh extension.
-npm run ext:build
+cd surfaces/extension && bun run build
 
 # 2. (Re)start the local backend on :8787.
 #    Run in a separate shell or via `run_in_background`.
