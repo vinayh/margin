@@ -26,7 +26,7 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - run: deno install --frozen
+      - run: deno ci
       - run: deno task typecheck
       - run: deno task test:coverage
 
@@ -57,16 +57,22 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      # Mirror the Dockerfile: prod-only npm install, then have Deno walk
-      # the import tree against that pruned node_modules.
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '24'
-      # --legacy-peer-deps: better-auth declares a peerOptional on
-      # drizzle-kit ">=0.31.4". Our drizzle-kit is 1.0.0-rc.3, and npm
-      # semver excludes prereleases from ordinary ranges, so it rejects
-      # the install. The peer is optional and unused at runtime.
-      - run: npm install --omit=dev --no-audit --no-fund --ignore-scripts --legacy-peer-deps
+      # Install runtime deps only (no devDependencies), then have Deno walk
+      # the import tree against that pruned node_modules. Catches the failure
+      # mode where runtime code accidentally imports a devDep — works locally
+      # because the full node_modules has it, crashes in prod under a pruned
+      # install.
+      #
+      # `deno ci --prod` is documented for this purpose but doesn't actually
+      # filter devDependencies in Deno 2.8, so we strip them from package.json
+      # before installing. Can't use `--frozen` / `deno ci` here: the lockfile
+      # pins both runtime and dev deps, so the stripped manifest looks like
+      # drift. Reproducibility isn't the goal of this job (the test job above
+      # covers that); type-resolution under a pruned tree is.
+      - run: |
+          jq 'del(.devDependencies)' package.json > package.prod.json
+          mv package.prod.json package.json
+          deno install
       - run: deno check src/api/server.ts src/cli/index.ts
       - name: Module-init smoke under prod-only install
         env:

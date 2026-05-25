@@ -9,7 +9,7 @@ import tailwindcss from "@tailwindcss/vite";
  * `(env)` callback rather than separate JSON files.
  *
  * Output goes to `.output/{chrome,firefox}-mv3/` (WXT default). Build with
- * `npm run ext:build` / `npm run ext:build:firefox` from the repo root.
+ * `deno task build` / `deno task build:firefox` from `extension/`.
  */
 export default defineConfig({
   manifestVersion: 3, // Firefox defaults to MV2 in WXT; we ship MV3 on both.

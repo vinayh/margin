@@ -31,7 +31,7 @@ jobs:
       - uses: denoland/setup-deno@v2
         with:
           deno-version: v2.x
-      - run: deno install --frozen
+      - run: deno ci
       - run: deno task typecheck
 
       - name: Run integration tests with coverage

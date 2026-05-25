@@ -1,7 +1,8 @@
 # syntax=docker/dockerfile:1.7
 
 # Backend runtime + tests + CLI all run on Deno (see deno.jsonc tasks).
-# The styles stage still uses Node — `@tailwindcss/cli` is a Node tool.
+# `@tailwindcss/cli` is a Node-targeted package but runs cleanly under
+# Deno's npm compat, so the styles stage stays on the same toolchain.
 #
 # Build context: repo root (not backend/). The styles stage needs both
 # backend/src and shared/tokens.css, and the @import path inside
@@ -12,25 +13,21 @@
 FROM denoland/deno:alpine AS deps
 WORKDIR /app/backend
 COPY backend/deno.jsonc backend/deno.lock backend/package.json ./
-# `deno install` reads package.json deps + the deno.jsonc imports map and
-# materializes everything into node_modules (nodeModulesDir: "auto").
-# Notes on hardening:
-#   - --frozen pins to deno.lock; fails closed on drift.
-#   - Deno 2.x already blocks npm lifecycle scripts by default (opt-in via
-#     --allow-scripts), which is the primary shai-hulud-class attack vector.
-RUN deno install --frozen
+# `deno ci` materializes node_modules strictly from deno.lock (analogous to
+# `npm ci`): clears any prior node_modules, installs only what the lockfile
+# pins, errors if the lockfile is out of date with package.json. Better for
+# reproducible builds than `deno install --frozen`, which only checks drift.
+# Deno 2.x blocks npm lifecycle scripts by default (the primary shai-hulud-
+# class attack vector); opt-in via --allow-scripts.
+RUN deno ci
 
-FROM node:24-alpine AS styles
+FROM denoland/deno:alpine AS styles
 WORKDIR /app/backend
-COPY backend/package.json ./
-# `--legacy-peer-deps`: npm's strict resolver excludes prereleases from
-# non-prerelease ranges, so better-auth's peerOptional `drizzle-kit@">=0.31.4"`
-# refuses to coexist with our pinned `drizzle-kit@1.0.0-rc.3`. The styles
-# stage only runs Tailwind, so the conflict is irrelevant here.
-RUN npm install --no-audit --no-fund --ignore-scripts --legacy-peer-deps
+COPY --from=deps /app/backend/node_modules ./node_modules
+COPY backend/deno.jsonc backend/deno.lock backend/package.json ./
 COPY backend/src ./src
 COPY shared/tokens.css /app/shared/tokens.css
-RUN npx -y @tailwindcss/cli -i src/api/styles/input.css -o dist/backend.css --minify
+RUN deno run -A npm:@tailwindcss/cli -i src/api/styles/input.css -o dist/backend.css --minify
 
 FROM denoland/deno:alpine
 WORKDIR /app/backend

@@ -37,7 +37,7 @@ jobs:
           deno-version: v2.x
       # Deno is the package manager (writes deno.lock + node_modules/);
       # astro runs under Node via its #!/usr/bin/env node shebang.
-      - run: deno install --frozen
+      - run: deno ci
       - run: deno task build
       - uses: actions/upload-pages-artifact@v5
         with:

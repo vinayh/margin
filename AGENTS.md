@@ -88,7 +88,7 @@ Build pipeline, popup state machine, Picker mechanics, and toolbar-icon routing 
 
 ## Schema migrations
 
-- Edit `src/db/schema.ts`, then `npx drizzle-kit generate`, then `deno task migrate`.
+- Edit `src/db/schema.ts`, then `deno run -A npm:drizzle-kit generate`, then `deno task migrate`.
 - Migrations apply at runtime via `drizzle-orm/node-sqlite/migrator`. The drizzle 1.0 format stores each migration as a directory under `drizzle/<timestamp>_<name>/` containing `migration.sql` + `snapshot.json`.
 - `drizzle.config.ts` runs under Node (drizzle-kit), so it uses `process.env`, not `Deno.env`.
 
