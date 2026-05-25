@@ -8,8 +8,10 @@
     "jsr:@std/internal@^1.0.13": "1.0.13",
     "jsr:@std/path@^1.1.4": "1.1.4",
     "jsr:@std/testing@^1.0.18": "1.0.18",
+    "npm:@tailwindcss/cli@*": "4.3.0",
     "npm:@tailwindcss/cli@4.3.0": "4.3.0",
     "npm:@tailwindcss/cli@^4.3.0": "4.3.0",
+    "npm:@tailwindcss/oxide-linux-x64-musl@4.3.0": "4.3.0",
     "npm:better-auth@^1.6.11": "1.6.11_drizzle-kit@0.31.10_drizzle-orm@1.0.0-rc.3__valibot@1.4.1__zod@4.4.3_valibot@1.4.1",
     "npm:diff@9": "9.0.0",
     "npm:drizzle-kit@1.0.0-rc.3": "1.0.0-rc.3",
@@ -1177,6 +1179,7 @@
     "packageJson": {
       "dependencies": [
         "npm:@tailwindcss/cli@^4.3.0",
+        "npm:@tailwindcss/oxide-linux-x64-musl@4.3.0",
         "npm:better-auth@^1.6.11",
         "npm:diff@9",
         "npm:drizzle-kit@1.0.0-rc.3",
