@@ -23,6 +23,10 @@ RUN deno ci
 
 FROM denoland/deno:alpine AS styles
 WORKDIR /app/backend
+# @tailwindcss/cli pulls in @parcel/watcher, whose prebuilt native binding
+# dynamically links against libstdc++. denoland/deno:alpine is minimal and
+# doesn't ship the C++ runtime; install just the shared library (~2 MB).
+RUN apk add --no-cache libstdc++
 COPY --from=deps /app/backend/node_modules ./node_modules
 COPY backend/deno.jsonc backend/deno.lock backend/package.json ./
 COPY backend/src ./src
