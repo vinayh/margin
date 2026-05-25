@@ -19,8 +19,8 @@
     "diff": "^9.0.0",
     "lucide": "^1.16.0",
     "lucide-preact": "^1.16.0",
-    "preact": "^10.29.1",
-    "valibot": "^1.4.0"
+    "preact": "^10.29.2",
+    "valibot": "^1.4.1"
   },
   "devDependencies": {
     "@preact/preset-vite": "^2.10.5",

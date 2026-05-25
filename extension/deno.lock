@@ -10,9 +10,9 @@
     "npm:diff@9": "9.0.0",
     "npm:lucide-preact@^1.16.0": "1.16.0_preact@10.29.2",
     "npm:lucide@^1.16.0": "1.16.0",
-    "npm:preact@^10.29.1": "10.29.2",
+    "npm:preact@^10.29.2": "10.29.2",
     "npm:tailwindcss@^4.3.0": "4.3.0",
-    "npm:valibot@^1.4.0": "1.4.0",
+    "npm:valibot@^1.4.1": "1.4.1",
     "npm:wxt@~0.20.26": "0.20.26"
   },
   "npm": {
@@ -2353,8 +2353,8 @@
       "deprecated": true,
       "bin": true
     },
-    "valibot@1.4.0": {
-      "integrity": "sha512-iC/x7fVcSyOwlm/VSt7RlHnzNGLGvR9GnxdifUeWoCJo0q4ZZvrVkIHC6faTlkxG47I2Y4UrFquPuVHCrOnrLg=="
+    "valibot@1.4.1": {
+      "integrity": "sha512-klCmFTz2jeDluy9RwX+F884TCiogtdBJ/YaxSx1EOBYXa3NXNWj8kR1jjN8rzluwojJVWWaHJ4r1U5LfICnM3g=="
     },
     "vite-node@6.0.0_esbuild@0.27.7": {
       "integrity": "sha512-oj4PVrT+pDh6GYf5wfUXkcZyekYS8kKPfLPXVl8qe324Ec6l4K2DUKNadRbZ3LQl0qGcDz+PyOo7ZAh00Y+JjQ==",
@@ -2601,9 +2601,9 @@
         "npm:diff@9",
         "npm:lucide-preact@^1.16.0",
         "npm:lucide@^1.16.0",
-        "npm:preact@^10.29.1",
+        "npm:preact@^10.29.2",
         "npm:tailwindcss@^4.3.0",
-        "npm:valibot@^1.4.0",
+        "npm:valibot@^1.4.1",
         "npm:wxt@~0.20.26"
       ]
     }

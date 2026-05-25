@@ -45,10 +45,10 @@
   },
 
   "imports": {
-    "@std/expect": "jsr:@std/expect@^1.0.18",
+    "@std/expect": "jsr:@std/expect@^1.0.19",
     "@std/testing/bdd": "jsr:@std/testing@^1.0.18/bdd",
-    "@std/fs/walk": "jsr:@std/fs@^1.0.20/walk",
-    "@std/path": "jsr:@std/path@^1.1.2"
+    "@std/fs/walk": "jsr:@std/fs@^1.0.23/walk",
+    "@std/path": "jsr:@std/path@^1.1.4"
   },
 
   "compilerOptions": {
