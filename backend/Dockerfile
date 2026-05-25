@@ -23,10 +23,13 @@ RUN deno ci
 
 FROM denoland/deno:alpine AS styles
 WORKDIR /app/backend
-# @tailwindcss/cli pulls in @parcel/watcher, whose prebuilt native binding
-# dynamically links against libstdc++. denoland/deno:alpine is minimal and
-# doesn't ship the C++ runtime; install just the shared library (~2 MB).
-RUN apk add --no-cache libstdc++
+# Native bindings pulled in by @tailwindcss/cli need two alpine-runtime
+# shims that denoland/deno:alpine doesn't ship:
+#   - libstdc++ for @parcel/watcher's C++ runtime
+#   - musl-dev for the bare `libc.so` symlink that Tailwind Oxide's
+#     napi-rs binding dlopen()s at startup (alpine only ships the
+#     versioned `libc.musl-x86_64.so.1`)
+RUN apk add --no-cache libstdc++ musl-dev
 COPY --from=deps /app/backend/node_modules ./node_modules
 COPY backend/deno.jsonc backend/deno.lock backend/package.json ./
 COPY backend/src ./src
