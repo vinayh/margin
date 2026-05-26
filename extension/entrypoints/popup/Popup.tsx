@@ -81,12 +81,7 @@ function ViewBody({ view, setView }: BodyProps) {
     case "no-settings":
       return <NoSettings />;
     case "needs-sign-in":
-      return (
-        <NeedsSignIn
-          backendUrl={view.backendUrl}
-          onSignedIn={() => void boot(setView)}
-        />
-      );
+      return <NeedsSignIn backendUrl={view.backendUrl} />;
     case "no-doc":
       return <NoDoc />;
     case "untracked":

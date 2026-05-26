@@ -1,12 +1,5 @@
 import * as v from "valibot";
-import {
-  authenticateBearer,
-  IdSchema,
-  jsonOk,
-  notFound,
-  readAndParseJson,
-  unauthorized,
-} from "./middleware.ts";
+import { IdSchema, notFound, validatedPost } from "./middleware.ts";
 import {
   loadProjectSettings,
   ProjectSettingsPatchSchema,
@@ -34,29 +27,30 @@ const SettingsBodySchema = v.object({
  * current value. Owner-scoped — 404 when the project is missing or not
  * owned by the caller (no info leak).
  */
-export async function handleSettingsPost(req: Request): Promise<Response> {
-  const auth = await authenticateBearer(req);
-  if (!auth) return unauthorized();
-
-  const parsed = await readAndParseJson(req, MAX_BODY_BYTES, SettingsBodySchema);
-  if (parsed instanceof Response) return parsed;
-
-  try {
-    if (parsed.patch === undefined) {
-      const settings = await loadProjectSettings({
-        projectId: parsed.projectId,
-        userId: auth.userId,
-      });
-      return jsonOk({ settings });
-    }
-    const settings = await updateProjectSettings({
-      projectId: parsed.projectId,
-      userId: auth.userId,
-      patch: parsed.patch,
-    });
-    return jsonOk({ settings });
-  } catch (err) {
-    if (err instanceof SettingsNotFoundError) return notFound(err.message);
-    throw err;
-  }
+export function handleSettingsPost(req: Request): Promise<Response> {
+  return validatedPost(
+    req,
+    SettingsBodySchema,
+    async ({ auth, body }) => {
+      try {
+        if (body.patch === undefined) {
+          const settings = await loadProjectSettings({
+            projectId: body.projectId,
+            userId: auth.userId,
+          });
+          return { settings };
+        }
+        const settings = await updateProjectSettings({
+          projectId: body.projectId,
+          userId: auth.userId,
+          patch: body.patch,
+        });
+        return { settings };
+      } catch (err) {
+        if (err instanceof SettingsNotFoundError) return notFound(err.message);
+        throw err;
+      }
+    },
+    { maxBytes: MAX_BODY_BYTES },
+  );
 }

@@ -1,13 +1,5 @@
 import * as v from "valibot";
-import {
-  authenticateBearer,
-  DEFAULT_MAX_BODY_BYTES,
-  IdSchema,
-  jsonOk,
-  notFound,
-  readAndParseJson,
-  unauthorized,
-} from "./middleware.ts";
+import { IdSchema, validatedPost } from "./middleware.ts";
 import { deleteOwnedProject } from "../domain/project.ts";
 
 const ProjectDeleteBodySchema = v.object({
@@ -25,14 +17,10 @@ const ProjectDeleteBodySchema = v.object({
  * issued via Drive remain; that's intentional for now, since rewinding them
  * needs a Drive permissions sweep that hasn't been built yet.
  */
-export async function handleProjectDeletePost(req: Request): Promise<Response> {
-  const auth = await authenticateBearer(req);
-  if (!auth) return unauthorized();
-
-  const parsed = await readAndParseJson(req, DEFAULT_MAX_BODY_BYTES, ProjectDeleteBodySchema);
-  if (parsed instanceof Response) return parsed;
-
-  const deleted = await deleteOwnedProject(parsed.projectId, auth.userId);
-  if (!deleted) return notFound();
-  return jsonOk({ deleted: true });
+export function handleProjectDeletePost(req: Request): Promise<Response> {
+  return validatedPost(req, ProjectDeleteBodySchema, async ({ auth, body }) => {
+    const deleted = await deleteOwnedProject(body.projectId, auth.userId);
+    if (!deleted) return null;
+    return { deleted: true };
+  });
 }

@@ -1,11 +1,5 @@
 import * as v from "valibot";
-import {
-  authenticateBearer,
-  IdSchema,
-  jsonOk,
-  readAndParseJson,
-  unauthorized,
-} from "./middleware.ts";
+import { IdSchema, validatedPost } from "./middleware.ts";
 import {
   countUnreadNotifications,
   listNotificationsForUser,
@@ -34,18 +28,19 @@ const NotificationsMarkReadBodySchema = v.object({
  * notifications + unread count. Body `{ limit? }`. Caller doesn't supply a
  * cursor; the inbox is small enough that a fixed cap is fine for now.
  */
-export async function handleNotificationsPost(req: Request): Promise<Response> {
-  const auth = await authenticateBearer(req);
-  if (!auth) return unauthorized();
-
-  const parsed = await readAndParseJson(req, MAX_BODY_BYTES, NotificationsListBodySchema);
-  if (parsed instanceof Response) return parsed;
-
-  const [items, unread] = await Promise.all([
-    listNotificationsForUser(auth.userId, parsed.limit ?? 50),
-    countUnreadNotifications(auth.userId),
-  ]);
-  return jsonOk({ items, unread });
+export function handleNotificationsPost(req: Request): Promise<Response> {
+  return validatedPost(
+    req,
+    NotificationsListBodySchema,
+    async ({ auth, body }) => {
+      const [items, unread] = await Promise.all([
+        listNotificationsForUser(auth.userId, body.limit ?? 50),
+        countUnreadNotifications(auth.userId),
+      ]);
+      return { items, unread };
+    },
+    { maxBytes: MAX_BODY_BYTES },
+  );
 }
 
 /**
@@ -53,20 +48,19 @@ export async function handleNotificationsPost(req: Request): Promise<Response> {
  * `{ ids: string[] }` for a targeted ack, or `{ all: true }` to drain the
  * inbox. Returns `{ marked: <n> }`.
  */
-export async function handleNotificationsMarkReadPost(
-  req: Request,
-): Promise<Response> {
-  const auth = await authenticateBearer(req);
-  if (!auth) return unauthorized();
-
-  const parsed = await readAndParseJson(req, MAX_BODY_BYTES, NotificationsMarkReadBodySchema);
-  if (parsed instanceof Response) return parsed;
-
-  let marked = 0;
-  if (parsed.ids && parsed.ids.length > 0) {
-    marked = await markNotificationsRead(auth.userId, parsed.ids);
-  } else if (parsed.all === true) {
-    marked = await markAllNotificationsRead(auth.userId);
-  }
-  return jsonOk({ marked });
+export function handleNotificationsMarkReadPost(req: Request): Promise<Response> {
+  return validatedPost(
+    req,
+    NotificationsMarkReadBodySchema,
+    async ({ auth, body }) => {
+      let marked = 0;
+      if (body.ids && body.ids.length > 0) {
+        marked = await markNotificationsRead(auth.userId, body.ids);
+      } else if (body.all === true) {
+        marked = await markAllNotificationsRead(auth.userId);
+      }
+      return { marked };
+    },
+    { maxBytes: MAX_BODY_BYTES },
+  );
 }

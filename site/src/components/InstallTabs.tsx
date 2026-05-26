@@ -15,8 +15,8 @@ export default function InstallTabs({ tabs }: Props) {
   const current = tabs[active];
 
   return (
-    <div class="my-4 rounded-lg border border-black/10 overflow-hidden bg-cream-2">
-      <div role="tablist" class="flex border-b border-black/10 text-[13px]">
+    <div class="my-4 rounded-lg border border-rule overflow-hidden bg-cream-2">
+      <div role="tablist" class="flex border-b border-rule text-[13px]">
         {tabs.map((t, i) => {
           const isActive = i === active;
           return (
@@ -27,7 +27,7 @@ export default function InstallTabs({ tabs }: Props) {
               aria-selected={isActive}
               onClick={() => setActive(i)}
               class={"px-4 py-2 font-medium " +
-                (isActive ? "bg-ink text-cream" : "hover:bg-black/5")}
+                (isActive ? "bg-ink text-cream" : "hover:bg-ink/5")}
             >
               {t.label}
             </button>

@@ -386,6 +386,69 @@ describe("ingestVersionComments", () => {
     expect(reply!.parentCommentId).toBe(suggestion!.id);
   });
 
+  test("colliding (author, second) replies both get ingested via idempotency-hash fallback (no silent merge)", async () => {
+    const h = await fixtureHarness();
+    stubGoogle({
+      [h.googleDocId]: {
+        docxBytes: makeDocxBytes({
+          document: docXml(`
+            <w:p>
+              <w:commentRangeStart w:id="0"/>
+              <w:r><w:t>quoted</w:t></w:r>
+              <w:commentRangeEnd w:id="0"/>
+              <w:commentRangeStart w:id="1"/>
+              <w:r><w:t>a</w:t></w:r>
+              <w:commentRangeEnd w:id="1"/>
+              <w:commentRangeStart w:id="2"/>
+              <w:r><w:t>b</w:t></w:r>
+              <w:commentRangeEnd w:id="2"/>
+            </w:p>`),
+          comments: commentsXml(`
+            <w:comment w:id="0" w:author="Parent" w:date="2026-01-01T10:00:00Z">
+              <w:p><w:r><w:t>parent body</w:t></w:r></w:p>
+            </w:comment>
+            <w:comment w:id="1" w:author="Replier" w:date="2026-01-01T11:00:01Z">
+              <w:p><w:r><w:t>first reply</w:t></w:r></w:p>
+            </w:comment>
+            <w:comment w:id="2" w:author="Replier" w:date="2026-01-01T11:00:01Z">
+              <w:p><w:r><w:t>second reply</w:t></w:r></w:p>
+            </w:comment>`),
+        }),
+        driveComments: [
+          {
+            id: "drive-parent",
+            author: { displayName: "Parent" },
+            createdTime: "2026-01-01T10:00:00Z",
+            content: "parent body",
+            replies: [
+              {
+                id: "drive-reply-a",
+                author: { displayName: "Replier" },
+                createdTime: "2026-01-01T11:00:01.100Z",
+                content: "first reply",
+              },
+              {
+                id: "drive-reply-b",
+                author: { displayName: "Replier" },
+                createdTime: "2026-01-01T11:00:01.900Z",
+                content: "second reply",
+              },
+            ],
+          },
+        ],
+      },
+    });
+    const r = await ingestVersionComments(h.versionId);
+    expect(r.inserted).toBe(3);
+
+    const rows = await db
+      .select()
+      .from(canonicalComment)
+      .where(eq(canonicalComment.projectId, h.projectId));
+    const bodies = rows.map((r) => r.body).sort();
+    expect(bodies).toEqual(["first reply", "parent body", "second reply"]);
+  });
+
   test("Drive reply chain reconstructs parent_comment_id from the Drive index", async () => {
     const h = await fixtureHarness();
     stubGoogle({

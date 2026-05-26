@@ -154,3 +154,51 @@ export async function readAndParseJson<TSchema extends v.GenericSchema>(
   if (payload instanceof Response) return payload;
   return parseOr400(schema, payload);
 }
+
+/**
+ * Shell for authed POST routes that read a JSON body. Handler returns one of:
+ *   - `T` → wrapped in `jsonOk(value)`
+ *   - `Response` → returned as-is (use for 409 / custom-status responses)
+ *   - `null` → mapped to `notFound()`
+ *
+ * Per AGENTS.md, owner-scoped routes collapse "missing" and "not owned" into
+ * a single 404 with no info leak — returning `null` from the handler is the
+ * idiomatic way to express that.
+ */
+export async function validatedPost<TSchema extends v.GenericSchema, TOut>(
+  req: Request,
+  schema: TSchema,
+  fn: (args: {
+    auth: AuthenticatedRequest;
+    body: v.InferOutput<TSchema>;
+  }) => Promise<TOut | Response | null>,
+  opts: { maxBytes?: number } = {},
+): Promise<Response> {
+  const auth = await authenticateBearer(req);
+  if (!auth) return unauthorized();
+  const parsed = await readAndParseJson(
+    req,
+    opts.maxBytes ?? DEFAULT_MAX_BODY_BYTES,
+    schema,
+  );
+  if (parsed instanceof Response) return parsed;
+  const result = await fn({ auth, body: parsed });
+  if (result === null) return notFound();
+  if (result instanceof Response) return result;
+  return jsonOk(result);
+}
+
+/**
+ * Like {@link validatedPost} but for routes that don't read a body.
+ */
+export async function authedPost<TOut>(
+  req: Request,
+  fn: (args: { auth: AuthenticatedRequest }) => Promise<TOut | Response | null>,
+): Promise<Response> {
+  const auth = await authenticateBearer(req);
+  if (!auth) return unauthorized();
+  const result = await fn({ auth });
+  if (result === null) return notFound();
+  if (result instanceof Response) return result;
+  return jsonOk(result);
+}

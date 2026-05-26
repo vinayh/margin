@@ -1,13 +1,5 @@
 import * as v from "valibot";
-import {
-  authenticateBearer,
-  DEFAULT_MAX_BODY_BYTES,
-  IdSchema,
-  jsonOk,
-  notFound,
-  readAndParseJson,
-  unauthorized,
-} from "./middleware.ts";
+import { IdSchema, validatedPost } from "./middleware.ts";
 import { getVersionCommentsPayload } from "../domain/version-comments.ts";
 
 const VersionCommentsBodySchema = v.object({
@@ -25,17 +17,7 @@ const VersionCommentsBodySchema = v.object({
  * Owner-scoped: 404 when the version doesn't exist OR the caller isn't
  * the project owner — matching `version-diff`'s no-info-leak posture.
  */
-export async function handleVersionCommentsPost(req: Request): Promise<Response> {
-  const auth = await authenticateBearer(req);
-  if (!auth) return unauthorized();
-
-  const parsed = await readAndParseJson(req, DEFAULT_MAX_BODY_BYTES, VersionCommentsBodySchema);
-  if (parsed instanceof Response) return parsed;
-
-  const result = await getVersionCommentsPayload({
-    versionId: parsed.versionId,
-    userId: auth.userId,
-  });
-  if (!result) return notFound();
-  return jsonOk(result);
+export function handleVersionCommentsPost(req: Request): Promise<Response> {
+  return validatedPost(req, VersionCommentsBodySchema, ({ auth, body }) =>
+    getVersionCommentsPayload({ versionId: body.versionId, userId: auth.userId }));
 }

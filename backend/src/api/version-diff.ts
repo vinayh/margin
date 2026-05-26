@@ -1,14 +1,5 @@
 import * as v from "valibot";
-import {
-  authenticateBearer,
-  badRequest,
-  DEFAULT_MAX_BODY_BYTES,
-  IdSchema,
-  jsonOk,
-  notFound,
-  readAndParseJson,
-  unauthorized,
-} from "./middleware.ts";
+import { badRequest, IdSchema, validatedPost } from "./middleware.ts";
 import { getVersionDiffPayload } from "../domain/version-diff.ts";
 
 const VersionDiffBodySchema = v.object({
@@ -27,21 +18,15 @@ const VersionDiffBodySchema = v.object({
  * conditions collapse to 404 so the caller can't probe for the existence
  * of versions they shouldn't see.
  */
-export async function handleVersionDiffPost(req: Request): Promise<Response> {
-  const auth = await authenticateBearer(req);
-  if (!auth) return unauthorized();
-
-  const parsed = await readAndParseJson(req, DEFAULT_MAX_BODY_BYTES, VersionDiffBodySchema);
-  if (parsed instanceof Response) return parsed;
-  if (parsed.fromVersionId === parsed.toVersionId) {
-    return badRequest("fromVersionId and toVersionId must differ");
-  }
-
-  const result = await getVersionDiffPayload({
-    fromVersionId: parsed.fromVersionId,
-    toVersionId: parsed.toVersionId,
-    userId: auth.userId,
+export function handleVersionDiffPost(req: Request): Promise<Response> {
+  return validatedPost(req, VersionDiffBodySchema, ({ auth, body }) => {
+    if (body.fromVersionId === body.toVersionId) {
+      return Promise.resolve(badRequest("fromVersionId and toVersionId must differ"));
+    }
+    return getVersionDiffPayload({
+      fromVersionId: body.fromVersionId,
+      toVersionId: body.toVersionId,
+      userId: auth.userId,
+    });
   });
-  if (!result) return notFound();
-  return jsonOk(result);
 }

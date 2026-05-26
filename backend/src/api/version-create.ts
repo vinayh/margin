@@ -1,13 +1,5 @@
 import * as v from "valibot";
-import {
-  authenticateBearer,
-  DEFAULT_MAX_BODY_BYTES,
-  IdSchema,
-  jsonOk,
-  notFound,
-  readAndParseJson,
-  unauthorized,
-} from "./middleware.ts";
+import { IdSchema, validatedPost } from "./middleware.ts";
 import { getOwnedProject } from "../domain/project.ts";
 import { createVersion } from "../domain/version.ts";
 
@@ -27,28 +19,15 @@ const VersionCreateBodySchema = v.object({
  * detail). Returns the inserted row's id + label so the panel can refresh
  * without a second round-trip.
  */
-export async function handleVersionCreatePost(req: Request): Promise<Response> {
-  const auth = await authenticateBearer(req);
-  if (!auth) return unauthorized();
-
-  const parsed = await readAndParseJson(
-    req,
-    DEFAULT_MAX_BODY_BYTES,
-    VersionCreateBodySchema,
-  );
-  if (parsed instanceof Response) return parsed;
-
-  const proj = await getOwnedProject(parsed.projectId, auth.userId);
-  if (!proj) return notFound();
-
-  const ver = await createVersion({
-    projectId: proj.id,
-    createdByUserId: auth.userId,
-    label: parsed.label,
-  });
-  return jsonOk({
-    versionId: ver.id,
-    label: ver.label,
-    googleDocId: ver.googleDocId,
+export function handleVersionCreatePost(req: Request): Promise<Response> {
+  return validatedPost(req, VersionCreateBodySchema, async ({ auth, body }) => {
+    const proj = await getOwnedProject(body.projectId, auth.userId);
+    if (!proj) return null;
+    const ver = await createVersion({
+      projectId: proj.id,
+      createdByUserId: auth.userId,
+      label: body.label,
+    });
+    return { versionId: ver.id, label: ver.label, googleDocId: ver.googleDocId };
   });
 }

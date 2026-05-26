@@ -1,15 +1,8 @@
 import * as v from "valibot";
-import {
-  authenticateBearer,
-  DEFAULT_MAX_BODY_BYTES,
-  IdSchema,
-  jsonOk,
-  readAndParseJson,
-  unauthorized,
-} from "./middleware.ts";
+import { IdSchema, validatedPost } from "./middleware.ts";
 import { getDocState } from "../domain/doc-state.ts";
 
-const DocIdBodySchema = v.object({
+export const DocIdBodySchema = v.object({
   docId: IdSchema,
 });
 
@@ -23,19 +16,7 @@ const DocIdBodySchema = v.object({
  * keeps the route table consistent with the rest of `/api/extension/*`,
  * which is all POST.
  */
-export async function handleDocStatePost(req: Request): Promise<Response> {
-  const auth = await authenticateBearer(req);
-  if (!auth) return unauthorized();
-
-  const docId = await readDocId(req);
-  if (docId instanceof Response) return docId;
-
-  const state = await getDocState({ docId, userId: auth.userId });
-  return jsonOk(state);
-}
-
-export async function readDocId(req: Request): Promise<string | Response> {
-  const parsed = await readAndParseJson(req, DEFAULT_MAX_BODY_BYTES, DocIdBodySchema);
-  if (parsed instanceof Response) return parsed;
-  return parsed.docId;
+export function handleDocStatePost(req: Request): Promise<Response> {
+  return validatedPost(req, DocIdBodySchema, ({ auth, body }) =>
+    getDocState({ docId: body.docId, userId: auth.userId }));
 }

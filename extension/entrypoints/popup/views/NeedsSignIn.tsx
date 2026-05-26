@@ -2,7 +2,6 @@ import { browser } from "wxt/browser";
 
 interface Props {
   backendUrl: string;
-  onSignedIn: () => void;
 }
 
 /**
@@ -18,7 +17,7 @@ interface Props {
  * Popup's `chrome.storage.onChanged` listener picks that up, and the
  * popup re-boots without the user touching anything.
  */
-export function NeedsSignIn({ backendUrl, onSignedIn: _onSignedIn }: Props) {
+export function NeedsSignIn({ backendUrl }: Props) {
   return (
     <>
       <p class="muted">

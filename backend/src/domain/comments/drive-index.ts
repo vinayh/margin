@@ -63,6 +63,10 @@ export function resolveIdentity(
  * replies; the Drive API preserves the parent→reply tree. We match a
  * `DocxComment` to a Drive comment/reply by `(author display name, date)`,
  * truncated to second precision because OOXML drops sub-second.
+ *
+ * Map value of `null` = "key is ambiguous" (two entries collided in the same
+ * `(author, second)` slot). Callers fall back to a body-hashed idempotency
+ * key instead of misattributing one entry's Drive id to another.
  */
 export interface DriveEntry {
   driveId: string;
@@ -70,19 +74,26 @@ export interface DriveEntry {
 }
 
 export interface DriveIndex {
-  byAuthorAndDate: Map<string, DriveEntry>;
+  byAuthorAndDate: Map<string, DriveEntry | null>;
 }
 
 export function buildDriveIndex(driveComments: DriveComment[]): DriveIndex {
-  const byAuthorAndDate = new Map<string, DriveEntry>();
+  const byAuthorAndDate = new Map<string, DriveEntry | null>();
+  const add = (key: string, entry: DriveEntry) => {
+    if (byAuthorAndDate.has(key)) {
+      byAuthorAndDate.set(key, null);
+    } else {
+      byAuthorAndDate.set(key, entry);
+    }
+  };
   for (const c of driveComments) {
     if (c.deleted) continue;
     const key = driveLookupKey(c.author?.displayName, c.createdTime);
-    if (key) byAuthorAndDate.set(key, { driveId: c.id, parentDriveId: null });
+    if (key) add(key, { driveId: c.id, parentDriveId: null });
     for (const r of c.replies ?? []) {
       if (r.deleted) continue;
       const rkey = driveLookupKey(r.author?.displayName, r.createdTime);
-      if (rkey) byAuthorAndDate.set(rkey, { driveId: r.id, parentDriveId: c.id });
+      if (rkey) add(rkey, { driveId: r.id, parentDriveId: c.id });
     }
   }
   return { byAuthorAndDate };

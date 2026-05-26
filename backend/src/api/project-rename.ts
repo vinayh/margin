@@ -1,14 +1,5 @@
 import * as v from "valibot";
-import {
-  authenticateBearer,
-  badRequest,
-  DEFAULT_MAX_BODY_BYTES,
-  IdSchema,
-  jsonOk,
-  notFound,
-  readAndParseJson,
-  unauthorized,
-} from "./middleware.ts";
+import { badRequest, IdSchema, validatedPost } from "./middleware.ts";
 import { renameOwnedProject } from "../domain/project.ts";
 
 const MAX_NAME_LEN = 256;
@@ -25,18 +16,11 @@ const ProjectRenameBodySchema = v.object({
  * owner). Does NOT propagate to Drive — `project.name` is just the display
  * label for the dashboard.
  */
-export async function handleProjectRenamePost(req: Request): Promise<Response> {
-  const auth = await authenticateBearer(req);
-  if (!auth) return unauthorized();
-
-  const parsed = await readAndParseJson(req, DEFAULT_MAX_BODY_BYTES, ProjectRenameBodySchema);
-  if (parsed instanceof Response) return parsed;
-
-  if (parsed.name.trim().length === 0) {
-    return badRequest("name cannot be empty");
-  }
-
-  const proj = await renameOwnedProject(parsed.projectId, auth.userId, parsed.name);
-  if (!proj) return notFound();
-  return jsonOk({ projectId: proj.id, name: proj.name });
+export function handleProjectRenamePost(req: Request): Promise<Response> {
+  return validatedPost(req, ProjectRenameBodySchema, async ({ auth, body }) => {
+    if (body.name.trim().length === 0) return badRequest("name cannot be empty");
+    const proj = await renameOwnedProject(body.projectId, auth.userId, body.name);
+    if (!proj) return null;
+    return { projectId: proj.id, name: proj.name };
+  });
 }

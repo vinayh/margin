@@ -112,6 +112,32 @@ describe("handleCommentActionBatchPost", () => {
     expect(fresh1[0]!.status).toBe("addressed");
   });
 
+  test("internal-branch errors return a static message, not the underlying exception", async () => {
+    // No Drive credential is seeded, so reanchor → tokenProviderForProject
+    // throws `Error("no google account credential for user <uuid>")`.
+    const { cc1, ver, token } = await seedTwoComments();
+    const res = await handleCommentActionBatchPost(
+      post(
+        {
+          actions: [
+            { canonicalCommentId: cc1.id, action: "reanchor", targetVersionId: ver.id },
+          ],
+        },
+        { auth: `Bearer ${token}` },
+      ),
+    );
+    expect(res.status).toBe(200);
+    const body = (await res.json()) as {
+      results: { ok: boolean; error?: { code: string; message: string } }[];
+    };
+    expect(body.results[0]!.ok).toBe(false);
+    expect(body.results[0]!.error!.code).toBe("internal");
+    expect(body.results[0]!.error!.message).toBe("internal error");
+    // Must not echo the driver-level message (which contains the userId).
+    expect(body.results[0]!.error!.message).not.toMatch(/google account credential/);
+    expect(body.results[0]!.error!.message).not.toMatch(/[0-9a-f]{8}-[0-9a-f]{4}/);
+  });
+
   test("one item failing doesn't abort the batch", async () => {
     const { cc1, token } = await seedTwoComments();
     const res = await handleCommentActionBatchPost(

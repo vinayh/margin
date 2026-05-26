@@ -11,7 +11,7 @@ import {
 } from "../../../test/db.ts";
 import { db } from "../../db/client.ts";
 import { canonicalComment } from "../../db/schema.ts";
-import { listCommentsForProject, listDeletedCommentsForProject } from "./list.ts";
+import { listCommentsForProject } from "./list.ts";
 
 beforeEach(cleanDb);
 
@@ -73,8 +73,11 @@ describe("listCommentsForProject", () => {
 
     const active = await listCommentsForProject(p.id);
     expect(active.map((c) => c.id)).toEqual([live.id]);
-    const deletedOnly = await listDeletedCommentsForProject(p.id);
-    expect(deletedOnly.map((c) => c.id)).toEqual([dead.id]);
+    // The soft-deleted row remains in the DB; reader filters it out at query time.
+    const all = await db.select().from(canonicalComment).where(
+      eq(canonicalComment.projectId, p.id),
+    );
+    expect(all.map((c) => c.id).sort()).toEqual([live.id, dead.id].sort());
   });
 
   test("excludes comments from other projects (no cross-project leak)", async () => {

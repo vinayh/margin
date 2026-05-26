@@ -1,62 +1,44 @@
 @import "../../ui/extension.css";
 
-body {
-  font-size: 13px;
-  line-height: 1.5;
-  width: 320px;
+@layer base {
+  body {
+    @apply text-[13px] leading-[1.5] w-[320px];
+  }
+  header {
+    @apply flex items-center justify-between px-[0.85rem] pt-[0.65rem] pb-[0.5rem] border-b border-rule;
+  }
+  header strong {
+    @apply font-display text-[20px] font-normal tracking-[-0.01em] leading-none relative top-[-3px];
+  }
+  main {
+    @apply px-[0.85rem] py-[0.7rem];
+  }
 }
 
-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.65rem 0.85rem 0.5rem;
-  border-bottom: 1px solid var(--color-rule);
-}
-header strong {
-  font-family: var(--font-display);
-  font-size: 20px;
-  font-weight: 400;
-  letter-spacing: -0.01em;
-  line-height: 1;
-  position: relative;
-  top: -3px;
-}
-
-main {
-  padding: 0.7rem 0.85rem;
-}
-
-#diagnostics {
-  border-top: 1px solid var(--color-rule);
-  padding: 0.5rem 0.85rem 0.65rem;
-  font-size: 12px;
-}
-#diagnostics summary {
-  cursor: pointer;
-  color: var(--color-muted);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  padding: 0.2rem 0;
-  list-style: none;
-}
-#diagnostics summary::-webkit-details-marker {
-  display: none;
-}
-#diagnostics summary::before {
-  content: "▸";
-  display: inline-block;
-  margin-right: 0.4em;
-  transition: transform 80ms ease;
-}
-#diagnostics[open] summary::before {
-  content: "▾";
-}
-#connection[data-tone="ok"] {
-  color: var(--color-good);
-}
-#connection[data-tone="error"] {
-  color: var(--color-bad);
+@layer components {
+  #diagnostics {
+    @apply px-[0.85rem] pt-[0.5rem] pb-[0.65rem] text-[12px] border-t border-rule;
+  }
+  #diagnostics summary {
+    @apply cursor-pointer text-muted font-mono text-[11px] uppercase tracking-[0.06em] py-[0.2rem];
+    list-style: none;
+  }
+  #diagnostics summary::-webkit-details-marker {
+    display: none;
+  }
+  #diagnostics summary::before {
+    content: "▸";
+    display: inline-block;
+    margin-right: 0.4em;
+    transition: transform 80ms ease;
+  }
+  #diagnostics[open] summary::before {
+    content: "▾";
+  }
+  #connection[data-tone="ok"] {
+    @apply text-good;
+  }
+  #connection[data-tone="error"] {
+    @apply text-bad;
+  }
 }

@@ -1,5 +1,5 @@
 import * as v from "valibot";
-import { authenticateBearer, jsonOk, readAndParseJson, unauthorized } from "./middleware.ts";
+import { jsonOk, validatedPost } from "./middleware.ts";
 import { createProject, DuplicateProjectError } from "../domain/project.ts";
 
 const MAX_BODY_BYTES = 8 * 1024;
@@ -25,36 +25,34 @@ const RegisterBodySchema = v.object({
  *           collisions are intentionally not surfaced — uniqueness is scoped
  *           per-owner, mirroring `getDocState`'s tenant isolation.
  */
-export async function handleRegisterDocPost(req: Request): Promise<Response> {
-  const auth = await authenticateBearer(req);
-  if (!auth) return unauthorized();
-
-  const parsed = await readAndParseJson(req, MAX_BODY_BYTES, RegisterBodySchema);
-  if (parsed instanceof Response) return parsed;
-
-  // Catch only the domain exception that maps to a non-500 status. Other
-  // errors (Drive 5xx, missing credentials, schema violations) propagate
-  // to `corsRoute`'s wrapper, which renders them as a structured 500.
-  try {
-    const project = await createProject({
-      ownerUserId: auth.userId,
-      parentDocUrlOrId: parsed.docUrlOrId,
-    });
-    return jsonOk({
-      projectId: project.id,
-      parentDocId: project.parentDocId,
-    });
-  } catch (err) {
-    if (err instanceof DuplicateProjectError) {
-      return jsonOk(
-        {
-          error: "already_exists",
-          projectId: err.projectId,
-          parentDocId: err.parentDocId,
-        },
-        { status: 409 },
-      );
-    }
-    throw err;
-  }
+export function handleRegisterDocPost(req: Request): Promise<Response> {
+  return validatedPost(
+    req,
+    RegisterBodySchema,
+    async ({ auth, body }) => {
+      // Catch only the domain exception that maps to a non-500 status. Other
+      // errors (Drive 5xx, missing credentials, schema violations) propagate
+      // to `corsRoute`'s wrapper, which renders them as a structured 500.
+      try {
+        const project = await createProject({
+          ownerUserId: auth.userId,
+          parentDocUrlOrId: body.docUrlOrId,
+        });
+        return { projectId: project.id, parentDocId: project.parentDocId };
+      } catch (err) {
+        if (err instanceof DuplicateProjectError) {
+          return jsonOk(
+            {
+              error: "already_exists",
+              projectId: err.projectId,
+              parentDocId: err.parentDocId,
+            },
+            { status: 409 },
+          );
+        }
+        throw err;
+      }
+    },
+    { maxBytes: MAX_BODY_BYTES },
+  );
 }

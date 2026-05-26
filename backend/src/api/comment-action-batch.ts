@@ -1,11 +1,5 @@
 import * as v from "valibot";
-import {
-  authenticateBearer,
-  IdSchema,
-  jsonOk,
-  readAndParseJson,
-  unauthorized,
-} from "./middleware.ts";
+import { IdSchema, validatedPost } from "./middleware.ts";
 import {
   CommentActionBadRequestError,
   CommentActionNotFoundError,
@@ -50,49 +44,49 @@ export interface BatchItemResult {
  * so callers can resolve 15 comments with a single request and surface
  * per-item failures inline.
  */
-export async function handleCommentActionBatchPost(req: Request): Promise<Response> {
-  const auth = await authenticateBearer(req);
-  if (!auth) return unauthorized();
-
-  const parsed = await readAndParseJson(req, MAX_BODY_BYTES, BatchBodySchema);
-  if (parsed instanceof Response) return parsed;
-
-  const results: BatchItemResult[] = [];
-  for (let i = 0; i < parsed.actions.length; i++) {
-    const item = parsed.actions[i]!;
-    try {
-      const result = await performCommentAction({
-        userId: auth.userId,
-        canonicalCommentId: item.canonicalCommentId,
-        action: item.action,
-        targetVersionId: item.targetVersionId ?? null,
-      });
-      results.push({ index: i, ok: true, result });
-    } catch (err) {
-      if (err instanceof CommentActionNotFoundError) {
-        results.push({
-          index: i,
-          ok: false,
-          error: { code: "not_found", message: err.message },
-        });
-      } else if (err instanceof CommentActionBadRequestError) {
-        results.push({
-          index: i,
-          ok: false,
-          error: { code: "bad_request", message: err.message },
-        });
-      } else {
-        results.push({
-          index: i,
-          ok: false,
-          error: {
-            code: "internal",
-            message: err instanceof Error ? err.message : String(err),
-          },
-        });
+export function handleCommentActionBatchPost(req: Request): Promise<Response> {
+  return validatedPost(
+    req,
+    BatchBodySchema,
+    async ({ auth, body }) => {
+      const results: BatchItemResult[] = [];
+      for (let i = 0; i < body.actions.length; i++) {
+        const item = body.actions[i]!;
+        try {
+          const result = await performCommentAction({
+            userId: auth.userId,
+            canonicalCommentId: item.canonicalCommentId,
+            action: item.action,
+            targetVersionId: item.targetVersionId ?? null,
+          });
+          results.push({ index: i, ok: true, result });
+        } catch (err) {
+          if (err instanceof CommentActionNotFoundError) {
+            results.push({
+              index: i,
+              ok: false,
+              error: { code: "not_found", message: err.message },
+            });
+          } else if (err instanceof CommentActionBadRequestError) {
+            results.push({
+              index: i,
+              ok: false,
+              error: { code: "bad_request", message: err.message },
+            });
+          } else {
+            // Static message — driver errors leak SQL / OAuth diagnostics
+            // (see middleware.internalError for the same policy).
+            console.error(`[comment-action/batch] item ${i} failed:`, err);
+            results.push({
+              index: i,
+              ok: false,
+              error: { code: "internal", message: "internal error" },
+            });
+          }
+        }
       }
-    }
-  }
-
-  return jsonOk({ results });
+      return { results };
+    },
+    { maxBytes: MAX_BODY_BYTES },
+  );
 }

@@ -63,7 +63,7 @@ export async function upsertCanonical(args: UpsertArgs): Promise<string> {
 
       const status: ProjectionStatus = args.anchor.structuralPosition ? "clean" : "orphaned";
       const matchConfidence = args.anchor.structuralPosition ? 100 : 0;
-      const createdAt = parseIsoOrNow(args.createdIso);
+      const createdAt = parseIsoOrNow(args.createdIso, args.googleCommentId);
 
       const inserted = await tx
         .insert(canonicalComment)
@@ -119,8 +119,20 @@ export async function upsertCanonical(args: UpsertArgs): Promise<string> {
   }
 }
 
-function parseIsoOrNow(iso: string): Date {
-  if (!iso) return new Date();
+// origin_timestamp is NOT NULL, so substitute now() on missing / unparseable
+// input. Warn so the fallback is visible — Drive + OOXML are always valid in
+// practice, so any hit here points at upstream corruption.
+function parseIsoOrNow(iso: string, externalId: string): Date {
+  if (!iso) {
+    console.warn(`[ingest] empty origin timestamp; substituting now() (externalId=${externalId})`);
+    return new Date();
+  }
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? new Date() : d;
+  if (Number.isNaN(d.getTime())) {
+    console.warn(
+      `[ingest] unparseable origin timestamp ${JSON.stringify(iso)}; substituting now() (externalId=${externalId})`,
+    );
+    return new Date();
+  }
+  return d;
 }

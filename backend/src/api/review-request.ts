@@ -1,12 +1,9 @@
 import * as v from "valibot";
 import {
-  authenticateBearer,
   badRequest,
   IdSchema,
-  jsonOk,
   notFound,
-  readAndParseJson,
-  unauthorized,
+  validatedPost,
 } from "./middleware.ts";
 import {
   createReviewRequest,
@@ -44,32 +41,26 @@ const ReviewRequestBodySchema = v.object({
  * audit log records which tokens were minted). Phase 5 / 6 swap the inline
  * render for Slack + email transports.
  */
-export async function handleReviewRequestPost(req: Request): Promise<Response> {
-  const auth = await authenticateBearer(req);
-  if (!auth) return unauthorized();
-
-  const parsed = await readAndParseJson(
+export function handleReviewRequestPost(req: Request): Promise<Response> {
+  return validatedPost(
     req,
-    MAX_BODY_BYTES,
     ReviewRequestBodySchema,
+    async ({ auth, body }) => {
+      try {
+        return await createReviewRequest({
+          versionId: body.versionId,
+          ownerUserId: auth.userId,
+          assigneeEmails: body.assigneeEmails,
+          // `!= null` (not truthy): the schema admits deadline=0, which is a
+          // valid (if unusual) timestamp — truthy-check would silently drop it.
+          deadline: body.deadline != null ? new Date(body.deadline) : null,
+        });
+      } catch (err) {
+        if (err instanceof ReviewRequestNotFoundError) return notFound(err.message);
+        if (err instanceof ReviewRequestBadRequestError) return badRequest(err.message);
+        throw err;
+      }
+    },
+    { maxBytes: MAX_BODY_BYTES },
   );
-  if (parsed instanceof Response) return parsed;
-
-  try {
-    const result = await createReviewRequest({
-      versionId: parsed.versionId,
-      ownerUserId: auth.userId,
-      assigneeEmails: parsed.assigneeEmails,
-      // `!= null` (not truthy): the schema admits deadline=0, which is a
-      // valid (if unusual) timestamp — truthy-check would silently drop it.
-      deadline: parsed.deadline != null ? new Date(parsed.deadline) : null,
-    });
-    return jsonOk(result);
-  } catch (err) {
-    if (err instanceof ReviewRequestNotFoundError) return notFound(err.message);
-    if (err instanceof ReviewRequestBadRequestError) {
-      return badRequest(err.message);
-    }
-    throw err;
-  }
 }

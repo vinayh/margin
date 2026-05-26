@@ -151,6 +151,33 @@ describe("buildDriveIndex / driveLookupKey", () => {
     expect(reply?.parentDriveId).toBe("parent-1");
   });
 
+  test("colliding (author, second) keys mark the slot ambiguous (null) so callers fall back", () => {
+    const index = buildDriveIndex([
+      driveComment({
+        id: "root",
+        displayName: "Author",
+        createdTime: "2026-01-01T10:00:00Z",
+        replies: [
+          {
+            id: "reply-a",
+            author: { displayName: "Replier" },
+            createdTime: "2026-01-01T10:00:01.100Z",
+            content: "first",
+          },
+          {
+            id: "reply-b",
+            author: { displayName: "Replier" },
+            createdTime: "2026-01-01T10:00:01.900Z",
+            content: "second",
+          },
+        ],
+      }),
+    ]);
+    const key = driveLookupKey("Replier", "2026-01-01T10:00:01Z")!;
+    expect(index.byAuthorAndDate.has(key)).toBe(true);
+    expect(index.byAuthorAndDate.get(key)).toBeNull();
+  });
+
   test("buildDriveIndex skips deleted comments and replies", () => {
     const index = buildDriveIndex([
       driveComment({

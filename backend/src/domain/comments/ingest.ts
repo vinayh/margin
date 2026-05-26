@@ -233,6 +233,13 @@ async function ingestComments(args: CommentIngestArgs): Promise<void> {
       parentCanonical = args.suggestionByOoxmlId.get(c.overlapsSuggestionId!) ?? null;
     } else if (drive?.parentDriveId) {
       parentCanonical = driveIdToCanonical.get(drive.parentDriveId) ?? null;
+      if (!parentCanonical) {
+        // Reachable when the root's slot was marked ambiguous in the Drive
+        // index. Ingest as top-level rather than dropping the body.
+        console.warn(
+          `[ingest] reply parent not found in canonical map; ingesting as top-level (versionId=${args.versionId} parentDriveId=${drive.parentDriveId})`,
+        );
+      }
     }
     const id = await ingestOneComment(args, c, parentCanonical);
     if (drive && id) driveIdToCanonical.set(drive.driveId, id);
@@ -242,6 +249,7 @@ async function ingestComments(args: CommentIngestArgs): Promise<void> {
 function lookupDrive(index: DriveIndex, c: DocxComment): DriveEntry | null {
   const key = driveLookupKey(c.author, c.date);
   if (!key) return null;
+  // null in the map = ambiguous slot; treat as miss so callers fall back.
   return index.byAuthorAndDate.get(key) ?? null;
 }
 

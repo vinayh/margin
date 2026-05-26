@@ -1,13 +1,9 @@
 import * as v from "valibot";
 import {
-  authenticateBearer,
   badRequest,
-  DEFAULT_MAX_BODY_BYTES,
   IdSchema,
-  jsonOk,
   notFound,
-  readAndParseJson,
-  unauthorized,
+  validatedPost,
 } from "./middleware.ts";
 import {
   CommentActionBadRequestError,
@@ -41,28 +37,19 @@ const CommentActionBodySchema = v.object({
  * project owner — matches `version-comments`'s no-info-leak posture. Audit
  * log entries are written inside the domain layer.
  */
-export async function handleCommentActionPost(req: Request): Promise<Response> {
-  const auth = await authenticateBearer(req);
-  if (!auth) return unauthorized();
-
-  const parsed = await readAndParseJson(req, DEFAULT_MAX_BODY_BYTES, CommentActionBodySchema);
-  if (parsed instanceof Response) return parsed;
-
-  try {
-    const result = await performCommentAction({
-      userId: auth.userId,
-      canonicalCommentId: parsed.canonicalCommentId,
-      action: parsed.action,
-      targetVersionId: parsed.targetVersionId ?? null,
-    });
-    return jsonOk(result);
-  } catch (err) {
-    if (err instanceof CommentActionNotFoundError) {
-      return notFound(err.message);
+export function handleCommentActionPost(req: Request): Promise<Response> {
+  return validatedPost(req, CommentActionBodySchema, async ({ auth, body }) => {
+    try {
+      return await performCommentAction({
+        userId: auth.userId,
+        canonicalCommentId: body.canonicalCommentId,
+        action: body.action,
+        targetVersionId: body.targetVersionId ?? null,
+      });
+    } catch (err) {
+      if (err instanceof CommentActionNotFoundError) return notFound(err.message);
+      if (err instanceof CommentActionBadRequestError) return badRequest(err.message);
+      throw err;
     }
-    if (err instanceof CommentActionBadRequestError) {
-      return badRequest(err.message);
-    }
-    throw err;
-  }
+  });
 }

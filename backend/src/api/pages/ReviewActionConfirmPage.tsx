@@ -1,4 +1,5 @@
 import { Layout } from "./Layout.tsx";
+import { ReviewActionFooter } from "./ReviewActionFooter.tsx";
 import type { ReviewActionKind } from "../../db/schema.ts";
 
 export interface ReviewActionConfirmPageProps {
@@ -32,9 +33,7 @@ export function ReviewActionConfirmPage(props: ReviewActionConfirmPageProps) {
           Confirm — {props.label}
         </button>
       </form>
-      <p class="mt-10 pt-4 border-t border-rule text-xs text-muted">
-        Margin · review action handler
-      </p>
+      <ReviewActionFooter />
     </Layout>
   );
 }
