@@ -52,3 +52,28 @@ export async function patchSettings(patch: Partial<Settings>): Promise<void> {
   };
   await set(KEY_SETTINGS, { ...current, ...patch });
 }
+
+/**
+ * Fires `onChange` whenever `settings.sessionToken` in `chrome.storage.local`
+ * transitions. Returns an unsubscribe fn. Filters to `local` area changes
+ * against the `settings` key only.
+ */
+export function subscribeSessionTokenChanges(
+  onChange: () => void,
+): () => void {
+  const listener = (
+    changes: Record<string, chrome.storage.StorageChange>,
+    areaName: chrome.storage.AreaName,
+  ) => {
+    if (areaName !== "local" || !changes.settings) return;
+    const before =
+      (changes.settings.oldValue as { sessionToken?: string } | undefined)
+        ?.sessionToken ?? "";
+    const after =
+      (changes.settings.newValue as { sessionToken?: string } | undefined)
+        ?.sessionToken ?? "";
+    if (before !== after) onChange();
+  };
+  browser.storage.onChanged.addListener(listener);
+  return () => browser.storage.onChanged.removeListener(listener);
+}

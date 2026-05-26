@@ -34,12 +34,6 @@
       @apply flex-1 min-w-0;
     }
   }
-  .subtitle {
-    @apply [overflow-wrap:anywhere];
-  }
-  .actions {
-    @apply mt-[0.6rem];
-  }
 
   .panel-section {
     @apply mt-[1.2rem] pt-[0.8rem] border-t border-rule;

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import { browser } from "wxt/browser";
 import { parseDocIdFromUrl } from "../../../shared/doc-id.ts";
 import { Header } from "../../ui/Header.tsx";
+import { NeedsSignIn } from "../../ui/NeedsSignIn.tsx";
 import {
   formatProjectMeta,
   PROJECT_LIST_CLASS,
@@ -11,7 +12,8 @@ import {
   projectRowLabel,
   sortProjectsByLastSync,
 } from "../../ui/project-row.ts";
-import { getSettings, sendMessage } from "../../ui/sendMessage.ts";
+import { getSettingsStatus, sendMessage } from "../../ui/sendMessage.ts";
+import { subscribeSessionTokenChanges } from "../../utils/storage.ts";
 import type {
   DocState,
   ProjectDetail,
@@ -34,6 +36,7 @@ import { VersionDiff } from "./views/VersionDiff.tsx";
 type View =
   | { kind: "loading" }
   | { kind: "no-settings" }
+  | { kind: "needs-sign-in"; backendUrl: string }
   | { kind: "picker"; projects: ProjectListEntry[] }
   | { kind: "loaded"; detail: ProjectDetail }
   | {
@@ -109,22 +112,10 @@ export function App() {
     // Refresh whoami + reboot when the SW writes a new session token (sign-in)
     // or clears it (sign-out). Without this the side panel keeps showing the
     // old email after the user signs out from another surface.
-    const onStorage = (
-      changes: Record<string, chrome.storage.StorageChange>,
-      areaName: chrome.storage.AreaName,
-    ): void => {
-      if (areaName !== "local" || !changes.settings) return;
-      const before =
-        (changes.settings.oldValue as { sessionToken?: string } | undefined)
-          ?.sessionToken ?? "";
-      const after =
-        (changes.settings.newValue as { sessionToken?: string } | undefined)
-          ?.sessionToken ?? "";
-      if (before === after) return;
+    const unsubscribeToken = subscribeSessionTokenChanges(() => {
       void refreshWhoami();
       runBoot();
-    };
-    browser.storage.onChanged.addListener(onStorage);
+    });
 
     // Lifecycle port: lets the SW track "is the panel open in this window?"
     // synchronously inside the toolbar `action.onClicked` handler — the
@@ -142,7 +133,7 @@ export function App() {
       browser.tabs.onActivated.removeListener(onActivated);
       browser.tabs.onUpdated.removeListener(onUpdated);
       browser.windows.onFocusChanged.removeListener(onFocusChanged);
-      browser.storage.onChanged.removeListener(onStorage);
+      unsubscribeToken();
       if (bootTimer.current) clearTimeout(bootTimer.current);
       port?.disconnect();
     };
@@ -182,8 +173,15 @@ function Body({
         <>
           <p class="title">Side panel</p>
           <p class="muted">
-            Sign in with Google in Options to load project data.
+            Configure your Margin backend URL in Options to load project data.
           </p>
+        </>
+      );
+    case "needs-sign-in":
+      return (
+        <>
+          <p class="title">Side panel</p>
+          <NeedsSignIn backendUrl={view.backendUrl} />
         </>
       );
     case "picker":
@@ -287,10 +285,11 @@ async function boot(
   const commit = (v: View): void => {
     if (isCurrent()) setView(v);
   };
-  const settings = await getSettings();
+  const { settings, backendUrl } = await getSettingsStatus();
   if (!isCurrent()) return;
   if (!settings) {
-    commit({ kind: "no-settings" });
+    if (backendUrl) commit({ kind: "needs-sign-in", backendUrl });
+    else commit({ kind: "no-settings" });
     return;
   }
 

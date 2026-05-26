@@ -4,9 +4,10 @@ import { cleanDocTitleFallback, parseDocIdFromUrl } from "../../../shared/doc-id
 import type { DocState } from "../../utils/types.ts";
 import { Header } from "../../ui/Header.tsx";
 import { getSettingsStatus, sendMessage } from "../../ui/sendMessage.ts";
+import { subscribeSessionTokenChanges } from "../../utils/storage.ts";
 import { Diagnostics } from "./Diagnostics.tsx";
 import { NoSettings } from "./views/NoSettings.tsx";
-import { NeedsSignIn } from "./views/NeedsSignIn.tsx";
+import { NeedsSignIn } from "../../ui/NeedsSignIn.tsx";
 import { NoDoc } from "./views/NoDoc.tsx";
 import { Untracked } from "./views/Untracked.tsx";
 import { Tracked } from "./views/Tracked.tsx";
@@ -41,21 +42,7 @@ export function Popup() {
   useEffect(() => {
     void boot(setView);
     // Re-boot when settings.sessionToken changes so post-sign-in state lands without a reopen.
-    const listener = (
-      changes: Record<string, chrome.storage.StorageChange>,
-      areaName: chrome.storage.AreaName,
-    ) => {
-      if (areaName !== "local" || !changes.settings) return;
-      const before =
-        (changes.settings.oldValue as { sessionToken?: string } | undefined)
-          ?.sessionToken ?? "";
-      const after =
-        (changes.settings.newValue as { sessionToken?: string } | undefined)
-          ?.sessionToken ?? "";
-      if (before !== after) void boot(setView);
-    };
-    browser.storage.onChanged.addListener(listener);
-    return () => browser.storage.onChanged.removeListener(listener);
+    return subscribeSessionTokenChanges(() => void boot(setView));
   }, []);
 
   return (
