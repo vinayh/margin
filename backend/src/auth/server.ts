@@ -27,9 +27,16 @@ export const auth = betterAuth({
   basePath: "/api/auth",
   secret: config.betterAuthSecret,
   database: drizzleAdapter(db, {
-    provider: "sqlite",
+    provider: "pg",
     schema: { user, session, account, verification },
   }),
+  // user/session/account/verification id columns are native uuid in Postgres;
+  // override Better Auth's default nanoid generator so inserts match.
+  advanced: {
+    database: {
+      generateId: () => crypto.randomUUID(),
+    },
+  },
   socialProviders: {
     google: {
       clientId: config.google.clientId,

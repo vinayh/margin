@@ -3,22 +3,15 @@
  * `./setup.ts` at the top — ES module caching means the side effects
  * run exactly once per test process.
  *
- * Pins `MARGIN_DB_PATH` to a per-process temp file before `src/db/client.ts`
- * opens its sqlite handle (the path is resolved at import time and never
- * re-read), ensures `MARGIN_MASTER_KEY` + `BETTER_AUTH_SECRET` exist for
- * the envelope-encryption + Better Auth code paths, and supplies dummy
- * Google OAuth client id/secret defaults (`src/auth/server.ts` reads them
- * at module load).
- *
- * Migrations run here too, so any test can `import { db }` and start writing.
+ * Boots an in-process PGlite database fronted by a TCP socket server so
+ * both the parent test process and any `runCli`-spawned subprocess can
+ * connect via the standard `pg` driver (i.e. the same code path as prod
+ * against Neon). Each test process gets its own DB on an ephemeral port,
+ * isolated from sibling test files.
  */
 import { Buffer } from "node:buffer";
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { resolve } from "node:path";
-
-const tmp = mkdtempSync(resolve(tmpdir(), "margin-test-"));
-Deno.env.set("MARGIN_DB_PATH", resolve(tmp, "test.db"));
+import { PGlite } from "@electric-sql/pglite";
+import { PGLiteSocketServer } from "@electric-sql/pglite-socket";
 
 if (!Deno.env.get("MARGIN_MASTER_KEY")) {
   Deno.env.set(
@@ -39,6 +32,23 @@ if (!Deno.env.get("GOOGLE_CLIENT_SECRET")) {
   Deno.env.set("GOOGLE_CLIENT_SECRET", "test-google-client-secret");
 }
 
-const { migrate } = await import("drizzle-orm/node-sqlite/migrator");
+const pglite = await PGlite.create();
+const server = new PGLiteSocketServer({
+  db: pglite,
+  port: 0,
+  host: "127.0.0.1",
+  // The parent test process holds one pool; runCli subprocesses bring more.
+  // PGlite still serializes queries internally — this only governs concurrent
+  // sockets, not write contention.
+  maxConnections: 32,
+});
+await server.start();
+const port = (server as unknown as { port: number }).port;
+Deno.env.set(
+  "DATABASE_URL",
+  `postgresql://postgres:postgres@127.0.0.1:${port}/postgres`,
+);
+
+const { migrate } = await import("drizzle-orm/node-postgres/migrator");
 const { db } = await import("../src/db/client.ts");
-migrate(db, { migrationsFolder: "./drizzle" });
+await migrate(db, { migrationsFolder: "./drizzle" });

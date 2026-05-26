@@ -11,7 +11,7 @@ backend/             Deno backend (runtime + tests + CLI). Run `deno task ...`
                      from inside this dir; everything below is relative to it.
   src/
     config.ts        lazy env-var getters; importing it doesn't require any env var
-    db/              drizzle schema (SPEC §4) + node:sqlite client + migrator
+    db/              drizzle schema (SPEC §4) + node-postgres client + migrator
     auth/            Better Auth server config (Google provider + bearer plugin),
                      envelope encryption, TokenProvider, test-only session helper
     google/          endpoint-shaped REST wrappers (drive/docs/docx + token-refresh
@@ -93,9 +93,10 @@ Build pipeline, popup state machine, Picker mechanics, and toolbar-icon routing 
 
 ## Schema migrations
 
-- Edit `src/db/schema.ts`, then `deno run -A npm:drizzle-kit generate`, then `deno task migrate`.
-- Migrations apply at runtime via `drizzle-orm/node-sqlite/migrator`. The drizzle 1.0 format stores each migration as a directory under `drizzle/<timestamp>_<name>/` containing `migration.sql` + `snapshot.json`.
+- Edit `src/db/schema.ts`, then `node node_modules/drizzle-kit/bin.cjs generate`, then `deno task migrate`. (Use `node` directly, not `deno run npm:drizzle-kit` — Deno's npm compat layer trips the drizzle-kit 1.0-rc internal version check and exits silently.)
+- Migrations apply at runtime via `drizzle-orm/node-postgres/migrator`. The drizzle 1.0 format stores each migration as a directory under `drizzle/<timestamp>_<name>/` containing `migration.sql` + `snapshot.json`.
 - `drizzle.config.ts` runs under Node (drizzle-kit), so it uses `process.env`, not `Deno.env`.
+- The migrator uses `DATABASE_URL_DIRECT` (unpooled) — PgBouncer transaction mode can't host a session-bound migrator. The app uses `DATABASE_URL` (pooled) for ordinary queries.
 - The migrator silently skips a migration file whose journal `when` is `≤ MAX(created_at)` in `__drizzle_migrations`. If a new migration appears not to run, bump its `when` past the checkpoint.
 
 ## Config
@@ -118,7 +119,7 @@ Build pipeline, popup state machine, Picker mechanics, and toolbar-icon routing 
 
 - `deno task test` runs the suite; `deno task typecheck` runs `deno check src/ test/`.
 - Co-locate `*.test.ts` next to the module under test. Unit-test pure logic; exercise live Google APIs through CLI smoke commands rather than mocking `fetch`.
-- Every test file starts with `import "<…>/test/setup.ts";` — Deno has no preload hook, so each test imports the setup module for its side effects (env defaults + sqlite migrations against a per-process temp db).
+- Every test file starts with `import "<…>/test/setup.ts";` — Deno has no preload hook, so each test imports the setup module for its side effects (env defaults + PGlite-backed Postgres on a per-process socket via `@electric-sql/pglite-socket`, with migrations applied before any test runs).
 - Test framework: `@std/testing/bdd` for `describe` / hooks plus `@std/expect` for Jest-compatible `expect`. We alias `it as test` so the body reads like Jest/Vitest.
 - Coverage today spans envelope encryption, anchor + OOXML docx parse, CORS allow-list + preflight, route auth/owner-scope + state transitions, settings round-trip, magic-link review-action redeem, and email transport. Better Auth's sign-in / session / OAuth flows are covered by the upstream package's tests; Margin tests use `issueTestSession` (`test/session.ts`) to bypass the OAuth dance for route tests.
 - `test/*.integration.test.ts` files run against live Google. Gated on `GOOGLE_CI_REFRESH_TOKEN` + client vars via `integrationTest` (`test/integration.ts`); tests skip cleanly when secrets aren't set. They run nightly via `.github/workflows/integration.yml`.
@@ -130,7 +131,7 @@ Build pipeline, popup state machine, Picker mechanics, and toolbar-icon routing 
 This is a dual-runtime repo:
 
 - **Backend (`backend/src/`, `backend/test/`) runs on Deno** (see `backend/deno.jsonc` for tasks + import map). Run `deno task …` from inside `backend/`. Permissions are scoped per task — a compromised dep can't reach env vars / hosts / paths outside the allow-list.
-  - SQLite via `node:sqlite` (Deno's built-in Node-API; no `--allow-ffi` needed). Drizzle adapter: `drizzle-orm/node-sqlite`.
+  - Postgres via `pg` (node-postgres) + drizzle adapter `drizzle-orm/node-postgres`. Prod points at Neon (or any Postgres-compatible host) via `DATABASE_URL` / `DATABASE_URL_DIRECT`; tests use an in-process PGlite instance fronted by a TCP socket server so the same code path runs locally without external infra.
   - HTTP via `Deno.serve` + the URLPattern-based dispatcher in `src/api/router.ts`.
   - Crypto via `node:crypto` (sync SHA-256 etc.) and Web Crypto where async is fine.
   - File I/O: `Deno.open` / `Deno.readTextFile` / `Deno.readFile`. For Node-API parity (`Buffer`, `Stream`) import explicitly: `import { Buffer } from "node:buffer"`.

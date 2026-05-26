@@ -1,5 +1,5 @@
 import { and, eq } from "drizzle-orm";
-import { db } from "../db/client.ts";
+import { db, isUuid } from "../db/client.ts";
 import {
   canonicalComment,
   type CanonicalCommentStatus,
@@ -108,6 +108,7 @@ async function loadActionContext(
   commentId: string,
   userId: string,
 ): Promise<ActionContext | null> {
+  if (!isUuid(commentId) || !isUuid(userId)) return null;
   const rows = await db
     .select({
       cc: canonicalComment,

@@ -1,5 +1,5 @@
 import { asc, desc, eq, sql } from "drizzle-orm";
-import { db, isUniqueConstraintError } from "../db/client.ts";
+import { db, isUniqueConstraintError, isUuid } from "../db/client.ts";
 import { project, version } from "../db/schema.ts";
 import { tokenProviderForUser } from "../auth/credentials.ts";
 import type { TokenProvider } from "../google/api.ts";
@@ -174,6 +174,7 @@ export async function listVersions(projectId: string): Promise<Version[]> {
 }
 
 export async function getVersion(id: string): Promise<Version | null> {
+  if (!isUuid(id)) return null;
   const rows = await db.select().from(version).where(eq(version.id, id)).limit(1);
   return rows[0] ?? null;
 }
@@ -190,6 +191,7 @@ export async function loadOwnedVersion(
   versionId: string,
   userId: string,
 ): Promise<Version | null> {
+  if (!isUuid(versionId) || !isUuid(userId)) return null;
   const rows = await db
     .select({ ver: version, ownerUserId: project.ownerUserId })
     .from(version)

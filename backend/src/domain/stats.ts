@@ -126,8 +126,16 @@ export async function pickLastSyncedAtByProject(
     .from(version)
     .where(inArray(version.projectId, projectIds as string[]))
     .groupBy(version.projectId);
-  for (const row of rows) out.set(row.projectId, row.ts?.getTime() ?? null);
+  for (const row of rows) out.set(row.projectId, coerceTs(row.ts));
   return out;
+}
+
+// Drizzle's `max()` aggregate is typed as `string | null` because Postgres
+// returns text representations for aggregates without a column-type hint.
+// Coerce to a millis-epoch number (or null) at the boundary.
+function coerceTs(v: string | Date | null | undefined): number | null {
+  if (v == null) return null;
+  return v instanceof Date ? v.getTime() : new Date(v).getTime();
 }
 
 export async function countOpenReviews(projectId: string): Promise<number> {

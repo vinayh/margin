@@ -1,73 +1,62 @@
 /**
  * Helpers for tests that read/write the DB. The DB itself is provisioned by
- * `test/setup.ts` (imported at the top of every test file under Deno) — by
- * the time these helpers import `src/db/client.ts`, `MARGIN_DB_PATH` already
- * points at a temp file and `drizzle-kit` migrations have run.
+ * `test/setup.ts` (imported at the top of every test file under Deno) —
+ * PGlite + pglite-socket on an ephemeral port, with migrations already
+ * applied, and `DATABASE_URL` set so `src/db/client.ts`'s lazy pool
+ * connects to it on first query.
  *
- * Test isolation: every `deno test` process gets one shared temp DB. Tests
+ * Test isolation: every `deno test` process gets one shared DB. Tests
  * that need a clean slate call `cleanDb()` in `beforeEach` — there's no
  * cross-process state, so this is sufficient even with parallel test files.
  */
 import { sql } from "drizzle-orm";
 import { db } from "../src/db/client.ts";
 import {
-  account,
-  auditLog,
   canonicalComment,
   type CanonicalCommentKind,
   type CommentAnchor,
   commentProjection,
   derivative,
   driveWatchChannel,
-  notification,
   overlay,
-  overlayOperation,
   project,
   type ProjectionStatus,
-  reviewActionToken,
-  reviewAssignment,
   reviewRequest,
   type ReviewRequestStatus,
-  session,
   user,
-  verification,
   version,
 } from "../src/db/schema.ts";
 
 /**
- * Truncate every table. Order matters because of FK cascades — children
- * before parents (we still bypass FK pragmas for the duration to keep the
- * statements composable in any order if a future migration adds a cycle).
+ * Truncate every table. CASCADE lets us list them in any order; the
+ * non-deferred FKs would otherwise force a strict child-before-parent order
+ * on every schema change.
  */
 export async function cleanDb(): Promise<void> {
-  // Disable FKs while we wipe — sqlite can't `TRUNCATE`, and one table at a
-  // time would otherwise need careful child-first ordering on every schema
-  // change.
-  db.run(sql`PRAGMA foreign_keys = OFF`);
-  for (
-    const t of [
-      auditLog,
-      notification,
-      reviewActionToken,
-      reviewAssignment,
-      reviewRequest,
-      commentProjection,
-      canonicalComment,
-      derivative,
-      overlayOperation,
-      overlay,
-      driveWatchChannel,
-      version,
-      project,
-      session,
-      account,
-      verification,
-      user,
-    ]
-  ) {
-    await db.delete(t);
+  await db.execute(sql`
+    TRUNCATE TABLE
+      audit_log, notification, review_action_token, review_assignment,
+      review_request, comment_projection, canonical_comment, derivative,
+      overlay_operation, overlay, drive_watch_channel, version, project,
+      session, account, verification, "user"
+    RESTART IDENTITY CASCADE
+  `);
+}
+
+/**
+ * Run `fn` with FK checks suppressed. Postgres has no per-session `PRAGMA
+ * foreign_keys = OFF`; the supported escape hatch is `session_replication_role
+ * = replica`, which skips both FK and trigger work for the rest of the
+ * session. Used by tests that want to construct "stranded child row"
+ * scenarios that the live schema would CASCADE away.
+ */
+export async function withFkChecksDisabled<T>(fn: () => Promise<T>): Promise<T> {
+  await db.execute(sql`SET session_replication_role = replica`);
+  try {
+    return await fn();
+  } finally {
+    await db.execute(sql`SET session_replication_role = DEFAULT`);
   }
-  db.run(sql`PRAGMA foreign_keys = ON`);
 }
 
 export async function seedUser(opts?: {

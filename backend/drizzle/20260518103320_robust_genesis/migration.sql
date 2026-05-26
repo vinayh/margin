@@ -1,1 +1,0 @@
-ALTER TABLE `canonical_comment` ADD `deleted_at` integer;

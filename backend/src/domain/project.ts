@@ -1,5 +1,5 @@
 import { and, desc, eq } from "drizzle-orm";
-import { db, isUniqueConstraintError } from "../db/client.ts";
+import { db, isUniqueConstraintError, isUuid } from "../db/client.ts";
 import { project, type ProjectSettings, version } from "../db/schema.ts";
 import { tokenProviderForUser } from "../auth/credentials.ts";
 import type { TokenProvider } from "../google/api.ts";
@@ -139,6 +139,7 @@ async function loadExistingProject(
 }
 
 export async function getProject(id: string): Promise<Project | null> {
+  if (!isUuid(id)) return null;
   const rows = await db.select().from(project).where(eq(project.id, id)).limit(1);
   return rows[0] ?? null;
 }
@@ -169,6 +170,7 @@ export async function getOwnedProject(
   projectId: string,
   userId: string,
 ): Promise<Project | null> {
+  if (!isUuid(projectId) || !isUuid(userId)) return null;
   const rows = await db
     .select()
     .from(project)
@@ -196,6 +198,7 @@ export async function renameOwnedProject(
 ): Promise<Project | null> {
   const name = rawName.trim();
   if (name.length === 0) return null;
+  if (!isUuid(projectId) || !isUuid(userId)) return null;
   const rows = await db
     .update(project)
     .set({ name })
@@ -215,6 +218,7 @@ export async function deleteOwnedProject(
   projectId: string,
   userId: string,
 ): Promise<boolean> {
+  if (!isUuid(projectId) || !isUuid(userId)) return false;
   const rows = await db
     .delete(project)
     .where(and(eq(project.id, projectId), eq(project.ownerUserId, userId)))

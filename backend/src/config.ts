@@ -85,8 +85,24 @@ export const config = {
       envValue("BETTER_AUTH_SECRET"),
     );
   },
-  get dbPath() {
-    return envValue("MARGIN_DB_PATH") ?? "./margin.db";
+  // Pooled (PgBouncer) URL used by the app; falls back to DATABASE_URL_DIRECT
+  // if no pooled URL is set so a single-URL local/dev setup still works.
+  get databaseUrl() {
+    return parseEnv(
+      "DATABASE_URL",
+      RequiredStringSchema,
+      envValue("DATABASE_URL") ?? envValue("DATABASE_URL_DIRECT"),
+    );
+  },
+  // Direct (unpooled) URL for migrations. DDL needs a real connection; PgBouncer
+  // transaction mode can't run a session-bound migrator. Falls back to the pooled
+  // URL when running against a non-pooled Postgres (local PGlite, docker, etc.).
+  get databaseUrlDirect() {
+    return parseEnv(
+      "DATABASE_URL_DIRECT",
+      RequiredStringSchema,
+      envValue("DATABASE_URL_DIRECT") ?? envValue("DATABASE_URL"),
+    );
   },
   get port() {
     const raw = envValue("PORT");

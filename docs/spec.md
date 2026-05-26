@@ -253,7 +253,7 @@ Shipped vs. pending tracked in the [README's Build status section](../README.md#
 
 ### Phase 1: Core engine
 
-Headless backend + CLI. Drizzle schema on `node:sqlite` WAL; envelope-encrypted refresh tokens stored in `account.refresh_token`; Better Auth Google provider + per-user `TokenProvider`; Drive/Docs REST wrappers; domain primitives (`createProject`, `createVersion`); canonical comment ingest; reanchoring engine with confidence scoring; overlay applier; doc-watcher with channel renewer + polling fallback; `deno task margin <subcommand>` CLI dispatcher.
+Headless backend + CLI. Drizzle schema on Postgres (`pg` driver, native `uuid` / `jsonb` / `timestamptz`); envelope-encrypted refresh tokens stored in `account.refresh_token`; Better Auth Google provider + per-user `TokenProvider`; Drive/Docs REST wrappers; domain primitives (`createProject`, `createVersion`); canonical comment ingest; reanchoring engine with confidence scoring; overlay applier; doc-watcher with channel renewer + polling fallback; `deno task margin <subcommand>` CLI dispatcher.
 
 ### Phase 2: Backend HTTP API + minimal web entry points
 
@@ -371,21 +371,18 @@ Tracked operational work. The production contract — scoped `--allow-env` + `--
 
 ### 14.1 Pre-launch hardening
 
-- **Litestream WAL replication to S3/R2.** Continuous SQLite backup with seconds-level RPO. Single high-leverage operational item before the first real user lands. Adds one sidecar process to the Fly image; configuration mirrors the project's MARGIN_DB_PATH.
-- **Drop container root.** `USER deno` (UID 1993, shipped by `denoland/deno:alpine`) in the final Dockerfile stage. Requires an entrypoint that `chown -R deno:deno /data` on first boot before exec-ing the deno user (Fly volumes mount as root). Skipped now because Fly already isolates the container on Firecracker and the Deno permission model is the primary defense; revisit when the entrypoint complexity is acceptable.
-- **Scope `--allow-read` / `--allow-write` to known paths.** Currently broad. Safe scoping needs an inventory of every directory Deno itself touches (cache dir, source maps under `$DENO_DIR`, `/tmp`, the SQLite WAL files at `/data`). Tackle as a single audit pass; cost is mostly investigation, not implementation.
-- **Drizzle off RC.** `drizzle-orm` and `drizzle-kit` are pinned at exact `1.0.0-rc.3`. No stable 1.0 has shipped yet; the `node-sqlite` adapter (which the Deno migration depends on) doesn't exist in the 0.x line. Watch `npm view drizzle-orm dist-tags`; switch to `1.0.0` the day it tags.
+- **Drop container root.** `USER deno` (UID 1993, shipped by `denoland/deno:alpine`) in the final Dockerfile stage. Skipped now because Fly already isolates the container on Firecracker and the Deno permission model is the primary defense; revisit when convenient.
+- **Scope `--allow-read` / `--allow-write` to known paths.** Currently broad. Safe scoping needs an inventory of every directory Deno itself touches (cache dir, source maps under `$DENO_DIR`, `/tmp`). Tackle as a single audit pass; cost is mostly investigation, not implementation.
+- **Tighten `--allow-net` to the Postgres host.** Today's `serve`/`migrate` allow-net is broad (with `--deny-net` blocking IMDS) because the Postgres host varies per provider; once the deployment is on a fixed host (e.g. a specific Neon endpoint), pin it.
+- **Drizzle off RC.** `drizzle-orm` and `drizzle-kit` are pinned at exact `1.0.0-rc.3`. No stable 1.0 has shipped yet. Watch `npm view drizzle-orm dist-tags`; switch to `1.0.0` the day it tags.
 - **`--allow-env` maintenance.** Today the allow-list enumerates every env name Better Auth's core/logger/telemetry + drizzle probe at module load (~95 names total). It's stable but tied to dep versions; a Better Auth upgrade may add a probe and break boot. Mitigation: a CI step that boots `serve` under the scoped env in `ci.yml`'s `prod-resolve` job would catch new probes before deploy.
 
-### 14.2 Postgres-swap follow-ups
+### 14.2 Postgres follow-ups
 
-Coupled to the SQLite → Postgres migration. Triggers and timing in earlier prose; this is the checklist of code/infra changes once the trigger fires.
+The SQLite → Postgres swap landed (`pg` driver, native `uuid`/`jsonb`/`timestamptz`, regenerated migrations, async transactions, PGlite-backed test rig via `@electric-sql/pglite-socket`). The items below are the multi-machine / production-hardening tail still pending.
 
-- **Driver swap.** `drizzle-orm/node-sqlite` → `drizzle-orm/postgres-js` (battle-tested, single TCP client; preferred over `pg` to avoid the libpq native-binding surface). `src/db/client.ts`, `src/db/migrate.ts`, and the migrate call in `src/cli/serve.ts` all need the import + instantiation change.
-- **Audit read-then-write paths.** SQLite's single-writer property made SELECT-then-INSERT effectively serial. Under Postgres, all such paths need explicit `INSERT ... ON CONFLICT (...) DO UPDATE`. Start at `src/domain/comments/ingest.ts`, `src/domain/comments/upsert.ts`, anywhere using `requireProject` to mutate. (`isUniqueConstraintError` already recognizes SQLSTATE `23505` so existing callers' fallback paths keep working without code changes.)
-- **`--allow-net` additions.** Add `<pg-host>:5432` to the serve allow-list in `Dockerfile` CMD and `deno.jsonc` `serve` task.
-- **TLS pinning.** Fly Postgres in-VPC uses self-signed-style certs. Pass `ssl: 'verify-full'` to `postgres-js` and ship the Fly CA in the image (or `PGSSLROOTCERT` pointing at a baked-in cert). Otherwise a compromised neighbor on the 6PN network can MITM.
-- **Background-loop advisory locks.** Once two machines can both run `renewExpiringChannels` + `pollAllActiveVersions`, wrap each pass in `pg_try_advisory_lock(<channel>)` to dedupe. SQLite hid this because there's exactly one writer.
-- **PRAGMAs → Postgres equivalents.** Drop the WAL/foreign-keys/synchronous PRAGMAs in `src/db/client.ts`. Add `statement_timeout=5s` and `idle_in_transaction_session_timeout=30s` so a slow worker can't pin a connection.
-- **Move migrations to a Fly `release_command`.** Today `src/cli/serve.ts` calls `migrate(...)` at serve startup. Correct for SQLite-on-volume (a release-phase machine can't see the production volume). Becomes incorrect once Postgres is networked: switch to a `release_command` in `fly.toml` and drop the in-process `migrate()` call so two machines don't both race to apply migrations.
+- **Background-loop advisory locks.** Once two machines can both run `renewExpiringChannels` + `pollAllActiveVersions`, wrap each pass in `pg_try_advisory_lock(<channel>)` to dedupe. SQLite hid this because there was exactly one writer; today it's still hidden by `min_machines_running = 1`.
+- **Move migrations to a Fly `release_command`.** Today `src/cli/serve.ts` calls `migrate(...)` at serve startup against a one-shot direct-URL pool. Acceptable for one machine; becomes a race once two machines boot at once. Move to a `release_command` in `fly.toml` and drop the in-process migrate.
+- **`statement_timeout` + `idle_in_transaction_session_timeout`.** Add to the pool so a slow worker can't pin a connection. The pooled URL (PgBouncer transaction mode) ignores `SET LOCAL`; set these via the connection string or as ALTER ROLE defaults on the DB user.
+- **TLS pinning.** Neon already enforces TLS on the wire; if the deployment moves to a self-hosted Postgres on Fly's 6PN, pass `ssl: 'verify-full'` to `pg.Pool` and ship the Fly CA in the image.
 - **Split background loops onto a separate Fly process group.** Smaller blast radius if a route handler is hijacked; the loops' permission profile (Google + Postgres) is then distinct from the request handler's (Google + Resend + Slack + Postgres). Wire via `[processes]` in `fly.toml`.

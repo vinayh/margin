@@ -51,7 +51,7 @@ For the underlying Google-side constraints that drive these limits, see [`docs/s
 
 ## Stack
 
-Deno runtime with scoped per-task permissions, `node:sqlite` + Drizzle (Postgres swap planned once multi-process matters), `Deno.serve` over a URLPattern-based dispatcher for HTTP, Better Auth (Google provider + bearer plugin), WebCrypto AES-GCM envelope encryption for refresh tokens, `deno test` (JSR `@std/testing/bdd` + `@std/expect`). Backend lives in `backend/`; the public site (Astro) is in `site/` and the browser extension (WXT, MV3) in `extension/`. Cross-surface design tokens and Google-Doc-id helpers in `shared/`.
+Deno runtime with scoped per-task permissions, Postgres via `pg` + Drizzle (native `uuid` / `jsonb` / `timestamptz`; tests run against an in-process PGlite socket server so there's no external dependency), `Deno.serve` over a URLPattern-based dispatcher for HTTP, Better Auth (Google provider + bearer plugin), WebCrypto AES-GCM envelope encryption for refresh tokens, `deno test` (JSR `@std/testing/bdd` + `@std/expect`). Backend lives in `backend/`; the public site (Astro) is in `site/` and the browser extension (WXT, MV3) in `extension/`. Cross-surface design tokens and Google-Doc-id helpers in `shared/`.
 
 ## Contributing
 

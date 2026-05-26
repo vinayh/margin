@@ -4,8 +4,8 @@ import process from "node:process";
 export default defineConfig({
   schema: "./src/db/schema.ts",
   out: "./drizzle",
-  dialect: "sqlite",
+  dialect: "postgresql",
   dbCredentials: {
-    url: process.env.MARGIN_DB_PATH ?? "./margin.db",
+    url: process.env.DATABASE_URL_DIRECT ?? process.env.DATABASE_URL ?? "",
   },
 });

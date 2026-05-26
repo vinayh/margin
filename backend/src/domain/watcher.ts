@@ -1,7 +1,7 @@
 import { Buffer } from "node:buffer";
 import { timingSafeEqual } from "node:crypto";
 import { asc, eq, isNull, lt, or } from "drizzle-orm";
-import { db } from "../db/client.ts";
+import { db, isUuid } from "../db/client.ts";
 import { driveWatchChannel, version, type VersionStatus } from "../db/schema.ts";
 import { stopChannel, type WatchChannel, watchFile } from "../google/drive.ts";
 import { tokenProviderForProject } from "./project.ts";
@@ -69,6 +69,7 @@ export async function subscribeVersionWatch(opts: {
 }
 
 export async function getDriveWatchChannel(id: string): Promise<DriveWatchChannel | null> {
+  if (!isUuid(id)) return null;
   const rows = await db
     .select()
     .from(driveWatchChannel)
@@ -212,18 +213,16 @@ async function replaceWatchChannel(oldRow: DriveWatchChannel): Promise<void> {
   // If the DB swap fails after watchFile succeeded, the new channel is live on Google's side
   // with no row tracking it — best-effort stop it so we don't get orphaned webhook fanout.
   try {
-    db.transaction((tx) => {
-      tx.delete(driveWatchChannel).where(eq(driveWatchChannel.id, oldRow.id)).run();
-      tx.insert(driveWatchChannel)
-        .values({
-          versionId: oldRow.versionId,
-          channelId: channel.id,
-          resourceId: channel.resourceId,
-          token: newToken,
-          address: oldRow.address,
-          expiration: parseExpiration(channel.expiration, expirationMs),
-        })
-        .run();
+    await db.transaction(async (tx) => {
+      await tx.delete(driveWatchChannel).where(eq(driveWatchChannel.id, oldRow.id));
+      await tx.insert(driveWatchChannel).values({
+        versionId: oldRow.versionId,
+        channelId: channel.id,
+        resourceId: channel.resourceId,
+        token: newToken,
+        address: oldRow.address,
+        expiration: parseExpiration(channel.expiration, expirationMs),
+      });
     });
   } catch (err) {
     await stopChannel(tp, { id: channel.id, resourceId: channel.resourceId }).catch((stopErr) => {

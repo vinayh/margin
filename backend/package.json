@@ -9,11 +9,15 @@
     "tailwindcss": "^4.3.0"
   },
   "dependencies": {
+    "@electric-sql/pglite": "^0.4.6",
+    "@electric-sql/pglite-socket": "^0.1.6",
+    "@types/pg": "^8.15.4",
     "better-auth": "^1.6.11",
     "diff": "^9.0.0",
     "drizzle-orm": "1.0.0-rc.3",
     "fast-xml-parser": "^5.8.0",
     "fflate": "^0.8.3",
+    "pg": "^8.13.1",
     "preact": "^10.29.2",
     "preact-render-to-string": "^6.7.0",
     "valibot": "^1.4.1"

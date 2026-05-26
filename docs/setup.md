@@ -34,10 +34,11 @@ All backend commands run from `backend/`. `cd backend` once at the start of a se
    GOOGLE_PROJECT_NUMBER=...             # numeric project number (step 3)
    MARGIN_MASTER_KEY=<first base64 from step 4>
    BETTER_AUTH_SECRET=<second base64 from step 4>
-   MARGIN_DB_PATH=./margin.db
+   DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/margin
+   # DATABASE_URL_DIRECT=...             # only needed when DATABASE_URL is pooled (e.g. Neon)
    ```
 
-   Deno tasks don't auto-load `.env` by default; run them under your shell's env (`set -a; source .env; set +a`) or pass `--env-file=.env` if you wire it into a task. The Picker vars are only required for the extension's "add doc" flow. The rest of the server works without them.
+   Deno tasks don't auto-load `.env` by default; run them under your shell's env (`set -a; source .env; set +a`) or pass `--env-file=.env` if you wire it into a task. The Picker vars are only required for the extension's "add doc" flow. The rest of the server works without them. For `DATABASE_URL`, point at any Postgres instance — local Docker (`docker run --rm -p 5432:5432 -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=margin postgres:17`) or a Neon/Supabase dev branch both work.
 
 6. **Apply migrations** (still inside `backend/`):
 

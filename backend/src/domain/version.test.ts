@@ -197,9 +197,6 @@ describe("getVersion / requireVersion / listVersions", () => {
     const u = await seedUser();
     const p = await seedProject({ ownerUserId: u.id });
     const v1 = await seedVersion({ projectId: p.id, createdByUserId: u.id, label: "v1" });
-    // node:sqlite stores createdAt as ms — wait one tick to avoid identical
-    // timestamps on fast hardware.
-    await new Promise((r) => setTimeout(r, 5));
     const v2 = await seedVersion({ projectId: p.id, createdByUserId: u.id, label: "v2" });
 
     const ordered = await listVersions(p.id);

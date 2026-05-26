@@ -2,14 +2,14 @@
 # set `app` on first launch / `fly apps create`.
 #
 # Why these knobs:
-# - SQLite (`node:sqlite`) lives on a Fly Volume mounted at /data so it
-#   survives machine restarts. MARGIN_DB_PATH points at it.
+# - Postgres lives off-platform (Neon, etc.). DATABASE_URL (pooled) and
+#   DATABASE_URL_DIRECT (unpooled, for migrations) are set via `fly secrets set`.
 # - min_machines_running = 1 keeps the Drive `files.watch` webhook
 #   reachable without cold-start drops (SPEC §9.3). Auto-stop still
 #   trims any auto-scaled extras when idle.
 # - Health check hits /healthz (served by `deno task serve`).
-# - Secrets (GOOGLE_*, MARGIN_MASTER_KEY, BETTER_AUTH_SECRET) are set via
-#   `fly secrets set`.
+# - Secrets (GOOGLE_*, MARGIN_MASTER_KEY, BETTER_AUTH_SECRET,
+#   DATABASE_URL, DATABASE_URL_DIRECT) are set via `fly secrets set`.
 #
 # Build context note: the Dockerfile needs both backend/ and shared/, so
 # the Docker build context is the repo root. Invoke as
@@ -27,7 +27,6 @@ primary_region = "lhr"
 
 [env]
   PORT = "8787"
-  MARGIN_DB_PATH = "/data/margin.db"
   NODE_ENV = "production"
   # Public origin used to compute the Drive files.watch callback URL and to
   # gate the in-process renew + polling loops. Update if the app is renamed.
@@ -38,10 +37,6 @@ primary_region = "lhr"
   # Opt out of Better Auth's telemetry. The runtime env doesn't otherwise
   # set this; explicit "0" makes the intent durable.
   BETTER_AUTH_TELEMETRY = "0"
-
-[[mounts]]
-  source = "margin_data"
-  destination = "/data"
 
 [http_service]
   internal_port = 8787

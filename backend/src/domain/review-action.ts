@@ -104,23 +104,21 @@ export async function redeemReviewActionToken(
   // two concurrent clicks don't double-fire the audit log or race the state
   // transition.
   let resolved: { reviewRequestId: string; assigneeUserId: string } | null = null;
-  const outcome = db.transaction((tx): RedeemOutcome => {
-    const rows = tx
+  const outcome = await db.transaction(async (tx): Promise<RedeemOutcome> => {
+    const rows = await tx
       .select()
       .from(reviewActionToken)
       .where(eq(reviewActionToken.tokenHash, sha256Hex(plaintext)))
-      .limit(1)
-      .all();
+      .limit(1);
     const row = rows[0];
     if (!row) return { ok: false, reason: "invalid" };
     if (row.expiresAt.getTime() < Date.now()) return { ok: false, reason: "expired" };
 
-    tx.update(reviewActionToken)
+    await tx.update(reviewActionToken)
       .set({ lastUsedAt: new Date() })
-      .where(eq(reviewActionToken.id, row.id))
-      .run();
+      .where(eq(reviewActionToken.id, row.id));
 
-    const assignmentRows = tx
+    const assignmentRows = await tx
       .select()
       .from(reviewAssignment)
       .where(
@@ -129,15 +127,14 @@ export async function redeemReviewActionToken(
           eq(reviewAssignment.userId, row.assigneeUserId),
         ),
       )
-      .limit(1)
-      .all();
+      .limit(1);
     const assignment = assignmentRows[0] ?? null;
     if (!assignment) return { ok: false, reason: "assignment_missing" };
 
     const nextStatus = nextAssignmentStatus(action, assignment.status);
 
     // Always set responded_at, even when status doesn't change (accept_reconciliation case).
-    tx.update(reviewAssignment)
+    await tx.update(reviewAssignment)
       .set(
         nextStatus !== assignment.status
           ? { status: nextStatus, respondedAt: new Date() }
@@ -148,17 +145,16 @@ export async function redeemReviewActionToken(
           eq(reviewAssignment.reviewRequestId, assignment.reviewRequestId),
           eq(reviewAssignment.userId, assignment.userId),
         ),
-      )
-      .run();
+      );
 
-    tx.insert(auditLog).values({
+    await tx.insert(auditLog).values({
       actorUserId: row.assigneeUserId,
       action: `review_action.${action}`,
       targetType: "review_assignment",
       targetId: `${assignment.reviewRequestId}:${assignment.userId}`,
       before: { status: assignment.status },
       after: { status: nextStatus },
-    }).run();
+    });
 
     resolved = {
       reviewRequestId: assignment.reviewRequestId,
@@ -167,10 +163,10 @@ export async function redeemReviewActionToken(
     return { ok: true, action, assignmentStatus: nextStatus };
   });
 
-  // Notify the request creator after the transaction commits. Async work
-  // can't live inside `db.transaction`'s callback (node:sqlite is sync),
-  // and the notification isn't part of the atomic state transition — a
-  // failure here must not roll back the redeem.
+  // Notify the request creator after the transaction commits. The notification
+  // isn't part of the atomic state transition — a failure here must not roll
+  // back the redeem, and we don't want to hold the txn open across outbound
+  // notification I/O.
   if (outcome.ok && resolved !== null) {
     await notifyRequesterOfReviewAction(
       (resolved as { reviewRequestId: string; assigneeUserId: string }).reviewRequestId,

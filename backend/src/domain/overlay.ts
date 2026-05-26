@@ -1,5 +1,5 @@
 import { asc, desc, eq } from "drizzle-orm";
-import { db } from "../db/client.ts";
+import { db, isUuid } from "../db/client.ts";
 import {
   derivative,
   overlay,
@@ -67,6 +67,7 @@ export async function addOverlayOperation(opts: {
 }
 
 export async function getOverlay(id: string): Promise<Overlay | null> {
+  if (!isUuid(id)) return null;
   const rows = await db.select().from(overlay).where(eq(overlay.id, id)).limit(1);
   return rows[0] ?? null;
 }

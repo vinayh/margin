@@ -42,14 +42,11 @@ export interface UpsertArgs {
  */
 export async function upsertCanonical(args: UpsertArgs): Promise<string> {
   args.seenExternalIds?.add(args.googleCommentId);
-  // `userIdByEmail` hits the DB but isn't part of the upsert atomicity — pull
-  // it outside the transaction so the txn callback can stay synchronous
-  // (node:sqlite transactions cannot await).
   const originUserId = await userIdByEmail(args.authorEmail);
 
   try {
-    return db.transaction((tx) => {
-      const existing = tx
+    return await db.transaction(async (tx) => {
+      const existing = await tx
         .select({ canonicalId: commentProjection.canonicalCommentId })
         .from(commentProjection)
         .where(
@@ -58,8 +55,7 @@ export async function upsertCanonical(args: UpsertArgs): Promise<string> {
             eq(commentProjection.googleCommentId, args.googleCommentId),
           ),
         )
-        .limit(1)
-        .all();
+        .limit(1);
       if (existing[0]) {
         args.result.alreadyPresent++;
         return existing[0].canonicalId;
@@ -69,7 +65,7 @@ export async function upsertCanonical(args: UpsertArgs): Promise<string> {
       const matchConfidence = args.anchor.structuralPosition ? 100 : 0;
       const createdAt = parseIsoOrNow(args.createdIso);
 
-      const inserted = tx
+      const inserted = await tx
         .insert(canonicalComment)
         .values({
           projectId: args.projectId,
@@ -84,8 +80,7 @@ export async function upsertCanonical(args: UpsertArgs): Promise<string> {
           body: args.body,
           parentCommentId: args.parentCommentId,
         })
-        .returning({ id: canonicalComment.id })
-        .all();
+        .returning({ id: canonicalComment.id });
       const canonicalId = inserted[0]!.id;
 
       // The unique index on (version_id, google_comment_id) is the backstop
@@ -93,13 +88,13 @@ export async function upsertCanonical(args: UpsertArgs): Promise<string> {
       // our SELECT and INSERT. If that happens, this throws and the
       // transaction rolls back the canonical insert above; the outer catch
       // re-reads the winner.
-      tx.insert(commentProjection).values({
+      await tx.insert(commentProjection).values({
         canonicalCommentId: canonicalId,
         versionId: args.versionId,
         googleCommentId: args.googleCommentId,
         anchorMatchConfidence: matchConfidence,
         projectionStatus: status,
-      }).run();
+      });
 
       args.result.inserted++;
       return canonicalId;

@@ -341,9 +341,6 @@ describe("listDerivatives", () => {
       overlayId: ovA.id,
       audienceLabel: "first",
     });
-    // node:sqlite stores createdAt as ms — wait a tick so the order test is
-    // stable on fast hardware.
-    await new Promise((r) => setTimeout(r, 5));
     const d2 = await seedDerivative({
       projectId: a.id,
       versionId: vA.id,

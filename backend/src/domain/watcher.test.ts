@@ -1,13 +1,14 @@
 import "../../test/setup.ts";
 import { afterEach, beforeEach, describe, it as test } from "@std/testing/bdd";
 import { expect } from "@std/expect";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import {
   cleanDb,
   seedDriveWatchChannel,
   seedProject,
   seedUser,
   seedVersion,
+  withFkChecksDisabled,
 } from "../../test/db.ts";
 import { setFetch } from "../../test/fetch.ts";
 import { db } from "../db/client.ts";
@@ -413,11 +414,11 @@ describe("unsubscribeVersionWatch", () => {
     const v = await seedVersion({ projectId: p.id, createdByUserId: owner.id });
     const row = await seedDriveWatchChannel({ versionId: v.id });
 
-    // Disable FKs so we can delete the version while the channel row points
+    // Bypass FKs so we can delete the version while the channel row points
     // at it (real FK would CASCADE; we want the stranded-row case).
-    db.run(sql`PRAGMA foreign_keys = OFF`);
-    await db.delete(version).where(eq(version.id, v.id));
-    db.run(sql`PRAGMA foreign_keys = ON`);
+    await withFkChecksDisabled(async () => {
+      await db.delete(version).where(eq(version.id, v.id));
+    });
 
     setFetch(async () => {
       throw new Error("must not call fetch when version is missing");

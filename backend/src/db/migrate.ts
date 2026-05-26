@@ -1,5 +1,11 @@
-import { migrate } from "drizzle-orm/node-sqlite/migrator";
-import { db } from "./client.ts";
+import pg from "pg";
+import { drizzle } from "drizzle-orm/node-postgres";
+import { migrate } from "drizzle-orm/node-postgres/migrator";
+import { config } from "../config.ts";
 
-migrate(db, { migrationsFolder: "./drizzle" });
+const pool = new pg.Pool({ connectionString: config.databaseUrlDirect });
+const db = drizzle({ client: pool });
+
+await migrate(db, { migrationsFolder: "./drizzle" });
 console.log("migrations applied");
+await pool.end();

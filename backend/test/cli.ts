@@ -1,9 +1,10 @@
 /**
  * Run `deno run … src/cli/index.ts <args…>` as a subprocess. The child
- * inherits `MARGIN_DB_PATH` + `MARGIN_MASTER_KEY` + `BETTER_AUTH_SECRET`
- * from the parent test process so both operate on the same temp SQLite
- * (WAL mode handles cross-process concurrency). `env` overrides individual
- * vars; pass `undefined` to unset a single variable in the child.
+ * inherits `DATABASE_URL` + `MARGIN_MASTER_KEY` + `BETTER_AUTH_SECRET` from
+ * the parent test process; the URL points at the PGlite-backed socket
+ * server started in `test/setup.ts`, so the subprocess hits the same DB
+ * over real `pg`. `env` overrides individual vars; pass `undefined` to
+ * unset a single variable in the child.
  */
 export interface CliResult {
   stdout: string;
