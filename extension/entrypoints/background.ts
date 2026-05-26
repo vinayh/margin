@@ -6,7 +6,7 @@ import {
   type MessageResponse,
   MessageSchema,
 } from "../utils/messages.ts";
-import { parseDocIdFromUrl } from "../utils/ids.ts";
+import { parseDocIdFromUrl } from "../../shared/doc-id.ts";
 import { getBackendUrl, getSettings, patchSettings } from "../utils/storage.ts";
 import { DEFAULT_BACKEND_URL } from "../utils/types.ts";
 import { openDashboard, openOptions } from "../utils/ui-surfaces.ts";

@@ -1,8 +1,12 @@
-import "../../test/setup.ts";
+import "../backend/test/setup.ts";
 import { describe, it as test } from "@std/testing/bdd";
 import { expect } from "@std/expect";
-import { googleDocUrl, parseGoogleDocId } from "./google-doc-url.ts";
-import { parseDocIdFromUrl } from "../../../extension/utils/ids.ts";
+import {
+  cleanDocTitleFallback,
+  googleDocUrl,
+  parseDocIdFromUrl,
+  parseGoogleDocId,
+} from "./doc-id.ts";
 
 describe("parseGoogleDocId", () => {
   test("extracts id from a standard edit URL", () => {
@@ -48,50 +52,51 @@ describe("parseGoogleDocId", () => {
   });
 });
 
+describe("parseDocIdFromUrl", () => {
+  test("returns the id from a docs URL", () => {
+    expect(
+      parseDocIdFromUrl(
+        "https://docs.google.com/document/d/1AbCdEfGhIjKlMnOpQrStUv/edit",
+      ),
+    ).toBe("1AbCdEfGhIjKlMnOpQrStUv");
+  });
+
+  test("returns null for non-doc URLs", () => {
+    expect(parseDocIdFromUrl("https://example.com/foo")).toBeNull();
+  });
+
+  test("returns null for too-short id", () => {
+    expect(
+      parseDocIdFromUrl("https://docs.google.com/document/d/short/edit"),
+    ).toBeNull();
+  });
+});
+
 describe("googleDocUrl", () => {
   test("builds a docs URL from an id", () => {
     expect(googleDocUrl("abc123")).toBe("https://docs.google.com/document/d/abc123/edit");
   });
 });
 
-/**
- * The extension bundle can't import backend code, so its URL parser is a
- * hand-mirrored copy. These cases pin the two parsers to the same accept/
- * reject set: drift here is the bug we'd catch.
- */
-describe("doc-id parser parity (backend ↔ extension)", () => {
-  const FORTYTWO = "1AbCdEfGhIjKlMnOpQrStUvWxYz0123456789ABCDE";
-  const accepts: { url: string; id: string }[] = [
-    {
-      url: `https://docs.google.com/document/d/${FORTYTWO}/edit`,
-      id: FORTYTWO,
-    },
-    {
-      url: `https://docs.google.com/document/d/${FORTYTWO}/edit?tab=t.0#h`,
-      id: FORTYTWO,
-    },
-    {
-      url: `https://docs.google.com/document/d/${FORTYTWO}`,
-      id: FORTYTWO,
-    },
-  ];
-  const rejects = [
-    "https://drive.google.com/file/d/abc/view",
-    "https://docs.google.com/document/d/short", // < 20 chars
-    "https://example.com/foo",
-  ];
+describe("cleanDocTitleFallback", () => {
+  test("strips the Docs suffix in english", () => {
+    expect(cleanDocTitleFallback("My Doc - Google Docs")).toBe("My Doc");
+  });
 
-  for (const { url, id } of accepts) {
-    test(`both parsers accept ${url}`, () => {
-      expect(parseGoogleDocId(url)).toBe(id);
-      expect(parseDocIdFromUrl(url)).toBe(id);
-    });
-  }
+  test("strips localized Docs suffixes (Google noun stays)", () => {
+    expect(cleanDocTitleFallback("Mon Doc - Documents Google")).toBe("Mon Doc");
+    expect(cleanDocTitleFallback("Mi Doc - Documentos de Google")).toBe("Mi Doc");
+    expect(cleanDocTitleFallback("Mein Doc - Google Dokumente")).toBe("Mein Doc");
+  });
 
-  for (const url of rejects) {
-    test(`both parsers reject ${url}`, () => {
-      expect(() => parseGoogleDocId(url)).toThrow();
-      expect(parseDocIdFromUrl(url)).toBeNull();
-    });
-  }
+  test("only strips the last suffix when it contains Google", () => {
+    expect(cleanDocTitleFallback("Foo - Bar - Google Docs")).toBe("Foo - Bar");
+    expect(cleanDocTitleFallback("Foo - Bar")).toBe("Foo - Bar");
+  });
+
+  test("empty / nullish input → empty string", () => {
+    expect(cleanDocTitleFallback("")).toBe("");
+    expect(cleanDocTitleFallback(null)).toBe("");
+    expect(cleanDocTitleFallback(undefined)).toBe("");
+  });
 });

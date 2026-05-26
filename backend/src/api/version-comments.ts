@@ -1,6 +1,7 @@
 import * as v from "valibot";
 import {
   authenticateBearer,
+  DEFAULT_MAX_BODY_BYTES,
   IdSchema,
   jsonOk,
   notFound,
@@ -8,8 +9,6 @@ import {
   unauthorized,
 } from "./middleware.ts";
 import { getVersionCommentsPayload } from "../domain/version-comments.ts";
-
-const MAX_BODY_BYTES = 4 * 1024;
 
 const VersionCommentsBodySchema = v.object({
   versionId: IdSchema,
@@ -30,7 +29,7 @@ export async function handleVersionCommentsPost(req: Request): Promise<Response>
   const auth = await authenticateBearer(req);
   if (!auth) return unauthorized();
 
-  const parsed = await readAndParseJson(req, MAX_BODY_BYTES, VersionCommentsBodySchema);
+  const parsed = await readAndParseJson(req, DEFAULT_MAX_BODY_BYTES, VersionCommentsBodySchema);
   if (parsed instanceof Response) return parsed;
 
   const result = await getVersionCommentsPayload({

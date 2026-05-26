@@ -39,6 +39,15 @@ describe("handleAuthExtLaunchTab", () => {
     const res = await handleAuthExtLaunchTab(req);
     expect(res.status).toBe(400);
   });
+
+  test("rejects 36 dashes as a Firefox UUID", async () => {
+    const bad = "-".repeat(36);
+    const req = new Request(
+      `http://localhost/api/auth/ext/launch-tab?ext=${encodeURIComponent(bad)}`,
+    );
+    const res = await handleAuthExtLaunchTab(req);
+    expect(res.status).toBe(400);
+  });
 });
 
 // Test-only nonce mint that mirrors the production /launch-tab path without

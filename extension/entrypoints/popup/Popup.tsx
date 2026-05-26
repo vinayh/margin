@@ -1,6 +1,6 @@
 import { useEffect, useState } from "preact/hooks";
 import { browser } from "wxt/browser";
-import { cleanDocTitleFallback, parseDocIdFromUrl } from "../../utils/ids.ts";
+import { cleanDocTitleFallback, parseDocIdFromUrl } from "../../../shared/doc-id.ts";
 import type { DocState } from "../../utils/types.ts";
 import { Header } from "../../ui/Header.tsx";
 import { getSettingsStatus, sendMessage } from "../../ui/sendMessage.ts";

@@ -1,6 +1,7 @@
 import * as v from "valibot";
 import {
   authenticateBearer,
+  DEFAULT_MAX_BODY_BYTES,
   IdSchema,
   jsonOk,
   notFound,
@@ -8,8 +9,6 @@ import {
   unauthorized,
 } from "./middleware.ts";
 import { getProjectDetail } from "../domain/project-detail.ts";
-
-const MAX_BODY_BYTES = 4 * 1024;
 
 const ProjectDetailBodySchema = v.object({
   projectId: IdSchema,
@@ -34,7 +33,7 @@ export async function handleProjectDetailPost(req: Request): Promise<Response> {
   const auth = await authenticateBearer(req);
   if (!auth) return unauthorized();
 
-  const parsed = await readAndParseJson(req, MAX_BODY_BYTES, ProjectDetailBodySchema);
+  const parsed = await readAndParseJson(req, DEFAULT_MAX_BODY_BYTES, ProjectDetailBodySchema);
   if (parsed instanceof Response) return parsed;
 
   const detail = await getProjectDetail({

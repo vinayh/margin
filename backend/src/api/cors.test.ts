@@ -44,7 +44,11 @@ describe("isAllowedOrigin", () => {
   test("rejects malformed extension origins", () => {
     expect(isAllowedOrigin("chrome-extension://short")).toBe(false);
     expect(isAllowedOrigin("chrome-extension://" + "A".repeat(32))).toBe(false); // uppercase
+    // Chrome ext ids use the alphabet a-p only; q-z are not legal.
+    expect(isAllowedOrigin("chrome-extension://" + "z".repeat(32))).toBe(false);
     expect(isAllowedOrigin("moz-extension://not-a-uuid")).toBe(false);
+    // 36 dashes is not a UUID.
+    expect(isAllowedOrigin("moz-extension://" + "-".repeat(36))).toBe(false);
   });
 });
 

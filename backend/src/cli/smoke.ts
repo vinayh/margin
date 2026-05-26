@@ -1,4 +1,4 @@
-import { parseGoogleDocId } from "../domain/google-doc-url.ts";
+import { parseGoogleDocId } from "../../../shared/doc-id.ts";
 import { runSmoke } from "../domain/smoke.ts";
 import { defaultUser, usage } from "./util.ts";
 

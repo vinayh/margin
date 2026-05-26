@@ -2,6 +2,7 @@ import { asc, desc, eq, sql } from "drizzle-orm";
 import { db, isUniqueConstraintError } from "../db/client.ts";
 import { project, version } from "../db/schema.ts";
 import { tokenProviderForUser } from "../auth/credentials.ts";
+import type { TokenProvider } from "../google/api.ts";
 import { copyFile, getFile, trashFile } from "../google/drive.ts";
 import { extractPlainText, getDocument } from "../google/docs.ts";
 import { config } from "../config.ts";
@@ -84,7 +85,7 @@ export async function createVersion(opts: {
 }
 
 async function copyAndInsertVersion(opts: {
-  tp: ReturnType<typeof tokenProviderForUser>;
+  tp: TokenProvider;
   proj: { id: string; parentDocId: string };
   parentFile: { name: string };
   parentVersionId: string | null;

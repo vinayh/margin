@@ -2,6 +2,7 @@ import * as v from "valibot";
 import {
   authenticateBearer,
   badRequest,
+  DEFAULT_MAX_BODY_BYTES,
   IdSchema,
   jsonOk,
   notFound,
@@ -13,8 +14,6 @@ import {
   CommentActionNotFoundError,
   performCommentAction,
 } from "../domain/comment-action.ts";
-
-const MAX_BODY_BYTES = 4 * 1024;
 
 const CommentActionBodySchema = v.object({
   canonicalCommentId: IdSchema,
@@ -46,7 +45,7 @@ export async function handleCommentActionPost(req: Request): Promise<Response> {
   const auth = await authenticateBearer(req);
   if (!auth) return unauthorized();
 
-  const parsed = await readAndParseJson(req, MAX_BODY_BYTES, CommentActionBodySchema);
+  const parsed = await readAndParseJson(req, DEFAULT_MAX_BODY_BYTES, CommentActionBodySchema);
   if (parsed instanceof Response) return parsed;
 
   try {

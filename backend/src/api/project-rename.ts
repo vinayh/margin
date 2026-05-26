@@ -2,6 +2,7 @@ import * as v from "valibot";
 import {
   authenticateBearer,
   badRequest,
+  DEFAULT_MAX_BODY_BYTES,
   IdSchema,
   jsonOk,
   notFound,
@@ -10,7 +11,6 @@ import {
 } from "./middleware.ts";
 import { renameOwnedProject } from "../domain/project.ts";
 
-const MAX_BODY_BYTES = 4 * 1024;
 const MAX_NAME_LEN = 256;
 
 const ProjectRenameBodySchema = v.object({
@@ -29,7 +29,7 @@ export async function handleProjectRenamePost(req: Request): Promise<Response> {
   const auth = await authenticateBearer(req);
   if (!auth) return unauthorized();
 
-  const parsed = await readAndParseJson(req, MAX_BODY_BYTES, ProjectRenameBodySchema);
+  const parsed = await readAndParseJson(req, DEFAULT_MAX_BODY_BYTES, ProjectRenameBodySchema);
   if (parsed instanceof Response) return parsed;
 
   if (parsed.name.trim().length === 0) {

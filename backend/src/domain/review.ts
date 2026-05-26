@@ -9,6 +9,7 @@ import {
 } from "../db/schema.ts";
 import { writeAudit } from "../db/audit.ts";
 import { tokenProviderForUser } from "../auth/credentials.ts";
+import type { TokenProvider } from "../google/api.ts";
 import { createPermission } from "../google/drive.ts";
 import { config } from "../config.ts";
 import { type EmailTransport, getEmailTransport } from "../notify/email.ts";
@@ -210,7 +211,7 @@ interface FanOutArgs {
   user: { id: string; email: string };
   reviewRequestId: string;
   googleDocId: string;
-  tp: ReturnType<typeof tokenProviderForUser>;
+  tp: TokenProvider;
   actions: ReviewActionKind[];
   baseUrl: string | null;
   transport: EmailTransport;

@@ -8,7 +8,7 @@
     "zip": "node ./node_modules/.bin/wxt zip",
     "zip:firefox": "node ./node_modules/.bin/wxt zip -b firefox",
     "prepare": "node ./node_modules/.bin/wxt prepare",
-    "test": "node --test utils/emails.test.ts utils/ids.test.ts entrypoints/sidepanel/diff/align.test.ts"
+    "test": "node --test utils/emails.test.ts entrypoints/sidepanel/diff/align.test.ts"
   },
   "lint": {
     "exclude": ["node_modules/", "dist/", ".wxt/", ".output/"]

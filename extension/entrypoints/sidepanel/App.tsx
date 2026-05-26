@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import { browser } from "wxt/browser";
-import { parseDocIdFromUrl } from "../../utils/ids.ts";
+import { parseDocIdFromUrl } from "../../../shared/doc-id.ts";
 import { Header } from "../../ui/Header.tsx";
 import {
   formatProjectMeta,

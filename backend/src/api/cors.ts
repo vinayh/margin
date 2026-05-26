@@ -19,8 +19,8 @@ const ALLOWED_HEADERS = "authorization, content-type";
 const EXPOSED_HEADERS = "x-margin-rate-limit-remaining";
 
 const ORIGIN_PATTERNS: readonly RegExp[] = [
-  /^chrome-extension:\/\/[a-z]{32}$/,
-  /^moz-extension:\/\/[0-9a-fA-F-]{36}$/,
+  /^chrome-extension:\/\/[a-p]{32}$/,
+  /^moz-extension:\/\/[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/,
   /^http:\/\/localhost(?::\d{1,5})?$/,
   /^http:\/\/127\.0\.0\.1(?::\d{1,5})?$/,
 ];

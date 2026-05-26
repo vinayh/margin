@@ -1,6 +1,7 @@
 import * as v from "valibot";
 import {
   authenticateBearer,
+  DEFAULT_MAX_BODY_BYTES,
   IdSchema,
   jsonOk,
   notFound,
@@ -10,7 +11,6 @@ import {
 import { getOwnedProject } from "../domain/project.ts";
 import { createVersion } from "../domain/version.ts";
 
-const MAX_BODY_BYTES = 4 * 1024;
 const MAX_LABEL_LEN = 64;
 
 const VersionCreateBodySchema = v.object({
@@ -33,7 +33,7 @@ export async function handleVersionCreatePost(req: Request): Promise<Response> {
 
   const parsed = await readAndParseJson(
     req,
-    MAX_BODY_BYTES,
+    DEFAULT_MAX_BODY_BYTES,
     VersionCreateBodySchema,
   );
   if (parsed instanceof Response) return parsed;

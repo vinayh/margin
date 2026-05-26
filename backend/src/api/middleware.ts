@@ -9,6 +9,10 @@ export interface AuthenticatedRequest {
 // Upper bound for opaque ids on the wire. Routes with user-supplied URLs override locally.
 export const MAX_ID_LEN = 200;
 
+// Default cap for request bodies that carry a handful of ids + small flags.
+// Routes that accept larger payloads (settings, review-request, batch ops) override locally.
+export const DEFAULT_MAX_BODY_BYTES = 4 * 1024;
+
 export const IdSchema = v.pipe(v.string(), v.minLength(1), v.maxLength(MAX_ID_LEN));
 
 // Memoized on Request so pre-handler gates + the handler share one session lookup.
@@ -69,10 +73,20 @@ export function jsonOk<T>(body: T, init?: ResponseInit): Response {
 }
 
 // Enforces the size cap at the stream level; Content-Length is advisory and can lie.
+//
+// Also rejects bodies whose `Content-Type` doesn't claim JSON. The `corsRoute`
+// wrapper already blocks cross-origin browsers via `disallowedOriginResponse`,
+// but a future route added without that wrapper would otherwise be open to a
+// CSRF via a `<form enctype="text/plain">` submission (which is a CORS-simple
+// request type and skips preflight). This is defense in depth.
 export async function readJsonBody(
   req: Request,
   maxBodyBytes: number,
 ): Promise<Record<string, unknown> | Response> {
+  const contentType = (req.headers.get("content-type") ?? "").toLowerCase();
+  if (!contentType.startsWith("application/json")) {
+    return badRequest("expected content-type: application/json");
+  }
   const headerLength = Number(req.headers.get("content-length") ?? "0");
   if (Number.isFinite(headerLength) && headerLength > maxBodyBytes) {
     return badRequest(`request too large: ${headerLength} > ${maxBodyBytes}`);

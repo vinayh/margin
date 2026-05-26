@@ -1,3 +1,5 @@
+import { inlineJson } from "../render.ts";
+
 /**
  * Inline script for `/api/picker/page`. Loads Google's Picker JS, opens
  * a Doc-only picker, and POSTs the picked file's id to
@@ -16,11 +18,9 @@ export interface PickerScriptInputs {
 }
 
 export function buildPickerScript(v: PickerScriptInputs): string {
-  // JSON.stringify produces a JS-safe string literal: it escapes quotes,
-  // newlines, and the dangerous `</script>` separators.
-  const apiKey = JSON.stringify(v.apiKey);
-  const projectNumber = JSON.stringify(v.projectNumber);
-  const accessToken = JSON.stringify(v.accessToken);
+  const apiKey = inlineJson(v.apiKey);
+  const projectNumber = inlineJson(v.projectNumber);
+  const accessToken = inlineJson(v.accessToken);
   return [
     "(function () {",
     `  var apiKey = ${apiKey};`,

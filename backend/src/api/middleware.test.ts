@@ -8,6 +8,7 @@ import {
   IdSchema,
   jsonOk,
   MAX_ID_LEN,
+  readJsonBody,
   unauthorized,
 } from "./middleware.ts";
 
@@ -49,6 +50,45 @@ describe("response helpers", () => {
     expect(r.status).toBe(200);
     expect(r.headers.get("content-type")).toBe("application/json");
     expect(await r.json()).toEqual({ x: 1 });
+  });
+});
+
+describe("readJsonBody content-type check", () => {
+  function jsonBodyReq(contentType: string | null, body: string): Request {
+    const headers = new Headers();
+    if (contentType !== null) headers.set("content-type", contentType);
+    return new Request("http://localhost/", { method: "POST", headers, body });
+  }
+
+  test("accepts application/json", async () => {
+    const out = await readJsonBody(jsonBodyReq("application/json", `{"x":1}`), 1024);
+    expect(out).toEqual({ x: 1 });
+  });
+
+  test("accepts application/json with charset suffix", async () => {
+    const out = await readJsonBody(
+      jsonBodyReq("application/json; charset=utf-8", `{"x":1}`),
+      1024,
+    );
+    expect(out).toEqual({ x: 1 });
+  });
+
+  test("rejects text/plain (CORS-simple CSRF vector)", async () => {
+    const out = await readJsonBody(jsonBodyReq("text/plain", `{"x":1}`), 1024);
+    expect(out).toBeInstanceOf(Response);
+    expect((out as Response).status).toBe(400);
+  });
+
+  test("rejects multipart/form-data", async () => {
+    const out = await readJsonBody(jsonBodyReq("multipart/form-data; boundary=---", `{"x":1}`), 1024);
+    expect(out).toBeInstanceOf(Response);
+    expect((out as Response).status).toBe(400);
+  });
+
+  test("rejects missing content-type", async () => {
+    const out = await readJsonBody(jsonBodyReq(null, `{"x":1}`), 1024);
+    expect(out).toBeInstanceOf(Response);
+    expect((out as Response).status).toBe(400);
   });
 });
 

@@ -1,6 +1,6 @@
 import { parseArgs } from "node:util";
 import { config } from "../config.ts";
-import { googleDocUrl, parseGoogleDocId } from "../domain/google-doc-url.ts";
+import { googleDocUrl, parseGoogleDocId } from "../../../shared/doc-id.ts";
 import { seedDevProject, SeedOwnerMismatchError } from "../domain/dev-seed.ts";
 import { dispatchSubcommands, fatal, usage } from "./util.ts";
 

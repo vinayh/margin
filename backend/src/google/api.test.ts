@@ -134,5 +134,9 @@ describe("authedJson", () => {
     expect(caught?.status).toBe(429);
     expect(caught?.url).toBe("https://example.com/quota");
     expect(caught?.body).toBe("rate limited");
+    // Body is exposed via the field but kept out of the message — the
+    // message is what shows up in shared logs via console.error.
+    expect(caught?.message).toBe("429 https://example.com/quota");
+    expect(caught?.message).not.toContain("rate limited");
   });
 });

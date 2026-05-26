@@ -13,6 +13,7 @@ import {
   countCommentsByOriginVersion,
   countOpenReviews,
   pickLastSyncedAt,
+  pickLastSyncedAtByProject,
   pickLastSyncedAtByVersion,
 } from "./stats.ts";
 import { seedReviewRequest } from "../../test/db.ts";
@@ -69,6 +70,31 @@ describe("pickLastSyncedAtByVersion", () => {
   test("empty input → empty map", async () => {
     const map = await pickLastSyncedAtByVersion([]);
     expect(map.size).toBe(0);
+  });
+});
+
+describe("pickLastSyncedAtByProject", () => {
+  test("returns max(version.lastSyncedAt) per project", async () => {
+    const u = await seedUser();
+    const proj = await seedProject({ ownerUserId: u.id });
+    const recent = new Date("2025-06-01T00:00:00Z");
+    const old = new Date("2025-01-01T00:00:00Z");
+    await seedVersion({
+      projectId: proj.id,
+      createdByUserId: u.id,
+      lastSyncedAt: recent,
+    });
+    await seedVersion({
+      projectId: proj.id,
+      createdByUserId: u.id,
+      lastSyncedAt: old,
+    });
+    const proj2 = await seedProject({ ownerUserId: u.id });
+    await seedVersion({ projectId: proj2.id, createdByUserId: u.id });
+
+    const map = await pickLastSyncedAtByProject([proj.id, proj2.id]);
+    expect(map.get(proj.id)).toBe(recent.getTime());
+    expect(map.get(proj2.id)).toBe(null);
   });
 });
 

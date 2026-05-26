@@ -1,6 +1,6 @@
 import { parseArgs } from "node:util";
 import { createTestDocument } from "../domain/doc.ts";
-import { googleDocUrl } from "../domain/google-doc-url.ts";
+import { googleDocUrl } from "../../../shared/doc-id.ts";
 import { dispatchSubcommands, resolveUser } from "./util.ts";
 
 const USAGE = `\

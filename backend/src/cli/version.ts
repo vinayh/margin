@@ -1,6 +1,6 @@
 import { parseArgs } from "node:util";
 import { createVersion, listVersions } from "../domain/version.ts";
-import { googleDocUrl } from "../domain/google-doc-url.ts";
+import { googleDocUrl } from "../../../shared/doc-id.ts";
 import { dispatchSubcommands, resolveUser, usage } from "./util.ts";
 
 const USAGE = `\

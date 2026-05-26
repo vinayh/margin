@@ -1,3 +1,5 @@
+import { inlineJson } from "../render.ts";
+
 /**
  * Inline bridge script for `/api/auth/ext/success`. Hands the session
  * token to the extension's service worker. Chromium path:
@@ -6,12 +8,13 @@
  * listener (Firefox doesn't expose `chrome.runtime` on regular pages,
  * Bugzilla 1319168).
  *
- * JSON.stringify is the escape boundary — it produces JS-safe string
- * literals (quotes/newlines/`</script>` separators all encoded).
+ * `inlineJson` handles JS-string-literal escaping AND closes the
+ * `</script>` / `<!--` breakout vectors that bare `JSON.stringify` leaves
+ * open. Defense in depth on top of the CSP nonce.
  */
 export function buildBridgeScript(extId: string, token: string): string {
-  const extJson = JSON.stringify(extId);
-  const tokenJson = JSON.stringify(token);
+  const extJson = inlineJson(extId);
+  const tokenJson = inlineJson(token);
   return [
     "(function () {",
     `  var extId = ${extJson};`,

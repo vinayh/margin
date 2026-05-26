@@ -9,7 +9,11 @@ export class GoogleApiError extends Error {
     public readonly url: string,
     public readonly body: string,
   ) {
-    super(`${status} ${url}: ${body}`);
+    // Message intentionally omits `body`: this error propagates through
+    // `console.error` in `route-wrappers.ts`, and Drive responses can
+    // include file names and parent ids that shouldn't reach shared logs.
+    // Callers that need the body have it as a public field.
+    super(`${status} ${url}`);
     this.name = "GoogleApiError";
   }
 }

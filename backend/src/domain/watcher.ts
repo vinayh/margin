@@ -1,3 +1,5 @@
+import { Buffer } from "node:buffer";
+import { timingSafeEqual } from "node:crypto";
 import { asc, eq, isNull, lt, or } from "drizzle-orm";
 import { db } from "../db/client.ts";
 import { driveWatchChannel, version, type VersionStatus } from "../db/schema.ts";
@@ -10,6 +12,19 @@ export type DriveWatchChannel = typeof driveWatchChannel.$inferSelect;
 
 const DEFAULT_CHANNEL_TTL_MS = 24 * 60 * 60 * 1000; // 24h, well within Drive's 7-day max
 const RENEW_HORIZON_MS = 60 * 60 * 1000; // renew when < 1h remaining
+
+// timingSafeEqual requires equal-length buffers; pad with a known mismatch on
+// length difference so the timing of the rejection doesn't depend on the
+// attacker-supplied length.
+function constantTimeEqual(a: string, b: string): boolean {
+  const ab = Buffer.from(a, "utf8");
+  const bb = Buffer.from(b, "utf8");
+  if (ab.length !== bb.length) {
+    timingSafeEqual(ab, ab);
+    return false;
+  }
+  return timingSafeEqual(ab, bb);
+}
 
 // new Date(NaN) → NULL in Drizzle → row matches isNull and gets renewed every sweep. Guard against it.
 function parseExpiration(raw: string | undefined, fallbackMs: number): Date {
@@ -103,8 +118,9 @@ export async function handleDriveWatchEvent(opts: {
   const row = await getDriveWatchChannelByChannelId(opts.channelId);
   if (!row) return null;
   // Defense in depth: refuse when token is null (manual seeding, future migration) so an
-  // attacker who learns a channel id can't trigger ingests.
-  if (!row.token || opts.channelToken !== row.token) {
+  // attacker who learns a channel id can't trigger ingests. Constant-time compare to
+  // close any timing oracle on the channel token (which is a 256-bit random secret).
+  if (!row.token || !opts.channelToken || !constantTimeEqual(opts.channelToken, row.token)) {
     throw new Error(`channel ${opts.channelId}: token mismatch`);
   }
 

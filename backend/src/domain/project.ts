@@ -7,7 +7,7 @@ import { getFile } from "../google/drive.ts";
 import { extractPlainText, getDocument } from "../google/docs.ts";
 import { config } from "../config.ts";
 import { paragraphHash } from "./anchor.ts";
-import { parseGoogleDocId } from "./google-doc-url.ts";
+import { parseGoogleDocId } from "../../../shared/doc-id.ts";
 import { subscribeVersionWatch } from "./watcher.ts";
 
 const GOOGLE_DOC_MIME = "application/vnd.google-apps.document";

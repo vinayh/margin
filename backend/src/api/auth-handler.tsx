@@ -15,7 +15,7 @@ export function handleAuthRequest(req: Request): Response | Promise<Response> {
 // Chrome IDs are 32 lowercase a-p chars; Firefox IDs are UUIDs. Reject anything else.
 const EXT_ID_PATTERNS: readonly RegExp[] = [
   /^[a-p]{32}$/, // Chrome / Edge
-  /^\{?[0-9a-fA-F-]{36}\}?$/, // Firefox (UUID, optional braces)
+  /^\{?[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}\}?$/, // Firefox (UUID, optional braces)
 ];
 
 function isAllowedExtId(id: string): boolean {

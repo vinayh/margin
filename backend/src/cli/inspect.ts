@@ -1,5 +1,5 @@
 import { inspectDoc } from "../domain/inspect.ts";
-import { parseGoogleDocId } from "../domain/google-doc-url.ts";
+import { parseGoogleDocId } from "../../../shared/doc-id.ts";
 import { defaultUser, usage } from "./util.ts";
 
 export async function run(args: string[]): Promise<void> {
