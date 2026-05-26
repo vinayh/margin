@@ -33,16 +33,16 @@ Three layers:
 
 ## 4. Data model
 
-16 tables (`src/db/schema.ts`):
+17 tables (`src/db/schema.ts`):
 
 | Table | Purpose |
 |---|---|
 | `project` | parent_doc_id, owner_user_id, name (Drive title at register time), settings (default reviewers, default overlay). Project identity is **not** bound to parent_doc_id; the parent can be swapped over a project's lifetime. `createProject`'s "already tracked" pre-check is an application-layer hint, not a DB constraint. |
-| `version` | google_doc_id, parent_version_id, label, name (Drive title), snapshot_content_hash, status. Every project starts with a `label = "main"` row whose `google_doc_id` is the parent doc; subsequent snapshots are v1, v2, … (`pickNextLabel` skips non-`v\d+` labels). |
+| `version` | google_doc_id, parent_version_id, label, name (Drive title), snapshot_content_hash, status, last_synced_at. Every project starts with a `label = "main"` row whose `google_doc_id` is the parent doc; subsequent snapshots are v1, v2, … (`pickNextLabel` skips non-`v\d+` labels). |
 | `overlay` | name, ordered ops (JSON), project |
 | `overlay_operation` | type, anchor (quoted text + context), payload, confidence_threshold |
 | `derivative` | version_id, overlay_id, google_doc_id, audience_label |
-| `canonical_comment` | origin_version_id, origin_user (+ `origin_photo_hash` for display-name disambiguation, §9.8), anchor (text + paragraph hash + structural offset), body, status, parent_comment_id |
+| `canonical_comment` | origin_version_id, origin_user (+ `origin_photo_hash` for display-name disambiguation, §9.8), kind (`comment` / `suggestion_insert` / `suggestion_delete`), anchor (text + paragraph hash + structural offset + optional `additionalRanges` for disjoint multi-range comments), body, status, parent_comment_id, deleted_at (set when the upstream Drive comment disappears) |
 | `comment_projection` | canonical_comment_id, version_id, google_comment_id, anchor_match_confidence, projection_status, last_synced_at |
 | `review_request` | project, version, status, deadline, slack_thread_ref |
 | `review_assignment` | review_request, user, status, responded_at |
@@ -52,6 +52,7 @@ Three layers:
 | `verification` | Better Auth's identifier/value table (unused today; required by the adapter) |
 | `drive_watch_channel` | per-version Drive `files.watch` channel + token (renew + dedup state) |
 | `review_action_token` | magic-link tokens for review-assignment emails. One row per `(review_request_id, assignee_user_id)`; multi-use until `expires_at`. Action passed at redeem time via `?action=…`. |
+| `notification` | per-user inbox of review-lifecycle events (`review_assigned`, `review_completed`, `review_changes_requested`, `review_declined`). Read by the side-panel notifications view; marked read via `/api/extension/notifications/mark-read`. |
 | `audit_log` | actor, action, target, before/after for sensitive ops |
 
 The anchor schema is rich enough to resolve to on-screen coordinates without Google's APIs (§9.1).
@@ -248,22 +249,17 @@ Question: if Margin uploads a `.docx` with anchored comments + tracked-change su
 
 ## 12. Build sequence
 
-Phases 1 to 4 are the MVP. Phase 5 adds Slack. Phase 6 covers cross-org polish + extension visualization. Phase 7 is the Workspace add-on + marketplace + advanced overlay primitives. Each phase has a `Status:` line; keep it current as work lands.
+Shipped vs. pending tracked in the [README's Build status section](../README.md#build-status).
 
 ### Phase 1: Core engine
-**Status: shipped.** ✅
 
 Headless backend + CLI. Drizzle schema on `node:sqlite` WAL; envelope-encrypted refresh tokens stored in `account.refresh_token`; Better Auth Google provider + per-user `TokenProvider`; Drive/Docs REST wrappers; domain primitives (`createProject`, `createVersion`); canonical comment ingest; reanchoring engine with confidence scoring; overlay applier; doc-watcher with channel renewer + polling fallback; `deno task margin <subcommand>` CLI dispatcher.
 
 ### Phase 2: Backend HTTP API + minimal web entry points
-**Status: shipped.** ✅
 
-Fly.io deploy + GitHub Actions auto-deploy on `main`. `deno task margin serve` HTTP host: `/healthz`, `/api/auth/**` (Better Auth + tab-based OAuth bridge, §6.3), `/webhooks/drive`, `/api/picker/{page,register-doc}` (backend-hosted Drive Picker + register endpoint, §6.3). Better Auth sessions over the bearer plugin (`Authorization: Bearer <sessionToken>`). MV3 extension scaffolded (Chrome / Edge / Firefox). Auto-subscribe of Drive `files.watch` per new version + in-process renew + polling loops, gated on `MARGIN_PUBLIC_BASE_URL`.
-
-The extension originally carried a client-side capture role (sidebar `MutationObserver` scraping suggestion-thread replies). That whole pipeline was removed in Phase 4 once the docx-export ingest path (§9.8) covered the same data server-side with exact anchors and ISO timestamps. The extension is now a pure UI surface.
+Fly.io deploy + GitHub Actions auto-deploy on `main`. `deno task serve` HTTP host: `/healthz`, `/api/auth/**` (Better Auth + tab-based OAuth bridge, §6.3), `/webhooks/drive`, `/api/picker/{page,register-doc}` (backend-hosted Drive Picker + register endpoint, §6.3). Better Auth sessions over the bearer plugin (`Authorization: Bearer <sessionToken>`). MV3 extension scaffolded (Chrome / Edge / Firefox). Auto-subscribe of Drive `files.watch` per new version + in-process renew + polling loops, gated on `MARGIN_PUBLIC_BASE_URL` (and `MARGIN_RUN_BACKGROUND_LOOPS != 0` for the loops). Ingest is fully server-side via docx export (§9.8); the extension is a pure UI surface with no content script and no `docs.google.com` host permissions beyond what's needed to read the active tab's URL + title.
 
 ### Phase 3: Extension popup as project surface
-**Status: shipped.** ✅
 
 Replaces the Workspace add-on as the lightweight "I'm in a doc, what does Margin know about it?" surface (§6.4). The Workspace add-on is deferred to Phase 7 as a managed-device fallback.
 
@@ -278,18 +274,16 @@ Routes:
 Popup state machine + OAuth/Picker mechanics live in [`extension/README.md`](../extension/README.md). The popup never holds the session token; everything routes through the SW.
 
 ### Phase 4: Extension rich UI + docx-export ingest + magic-link action handlers
-**Status: shipped.** ✅
 
 The popup retains the lightweight view; the side panel hosts the rich Preact app. Side panel covers the full §7.4 review cycle end-to-end without dropping to the CLI.
 
-Shipped:
-
-- **Side-panel scaffold + project dashboard** (`POST /api/extension/project`), with "Snapshot new version" on the dashboard (`POST /api/extension/version/create`) and a project-picker fallback for when the active tab isn't a tracked Doc (`POST /api/extension/projects`).
+- **Side-panel scaffold + project dashboard** (`POST /api/extension/project`), with "Snapshot new version" on the dashboard (`POST /api/extension/version/create`), a project-picker fallback for when the active tab isn't a tracked Doc (`POST /api/extension/projects`), and project delete + rename (`POST /api/extension/project-delete`, `POST /api/extension/project-rename`).
 - **Structured side-by-side version diff** (`POST /api/extension/version-diff`): client renders against `documents.get` structural content. Two-pass: paragraph-level alignment keyed by `(hash(plaintext), namedStyleType)`, then intra-paragraph run diff preserving style boundaries. Style-only changes render distinctly.
-- **Comment reconciliation list** (`POST /api/extension/version-comments`) with per-row actions (`POST /api/extension/comment-action`): `accept_projection`, `reanchor`, `mark_resolved`, `mark_wontfix`, `reopen`. Audit-logged.
-- **Docx-export ingest** (§9.8). `ingestVersionComments` exports the doc as `.docx`, parses OOXML via `src/google/docx.ts` (fflate + fast-xml-parser, `preserveOrder: true`), and writes canonical_comment / comment_projection rows. Recovers disjoint multi-range comments (collapsed by `(author, date, body)` onto `anchor.additionalRanges`), exact anchor coordinates, suggestion-thread replies, and suggestion author + timestamp. `comments.list` retained alongside only to reconstruct plain-comment reply trees that OOXML flattens and to recover `me` + `photoLink` for author-identity disambig.
-- **Per-version "Request review"** (`POST /api/extension/review/request`): mints magic-link tokens, runs Drive `permissions.create`, renders the URLs inline. Email transport is log-only until Phase 5 wires Slack/email; magic links surface inline so they can be redeemed manually.
+- **Comment reconciliation list** (`POST /api/extension/version-comments`) with per-row actions (`POST /api/extension/comment-action`, batch via `POST /api/extension/comment-action/batch`): `accept_projection`, `reanchor`, `mark_resolved`, `mark_wontfix`, `reopen`. Audit-logged.
+- **Docx-export ingest** (§9.8). `ingestVersionComments` exports the doc as `.docx`, parses OOXML via `src/google/docx.ts` (fflate + fast-xml-parser, `preserveOrder: true`), and writes canonical_comment / comment_projection rows. Recovers disjoint multi-range comments (collapsed by `(author, date, body)` onto `anchor.additionalRanges`), exact anchor coordinates, suggestion-thread replies, and suggestion author + timestamp. Walks body, headers, footers, and footnotes. `comments.list` retained alongside only to reconstruct plain-comment reply trees that OOXML flattens and to recover `me` + `photoLink` for author-identity disambig.
+- **Per-version "Request review"** (`POST /api/extension/review/request`): mints magic-link tokens, runs Drive `permissions.create`, fans out via the email transport (Resend if `MARGIN_EMAIL_TRANSPORT=resend`, log-only otherwise). Magic links surface inline so they can be redeemed manually when no transport is wired up.
 - **Magic-link `/r/<token>` handlers.** `review_action_token` table keyed by `(reviewRequestId, assigneeUserId)`. `GET /r/<token>?action=<kind>` renders an HTML confirmation and transitions the matching `review_assignment.status`; missing or unknown `action` renders a chooser page. Multi-use until `expiresAt` so reviewers can change their response. Actions: `mark_reviewed`, `decline`, `request_changes`, `accept_reconciliation`.
+- **In-app notifications.** `notification` table + `POST /api/extension/notifications` (list) and `POST /api/extension/notifications/mark-read`. Writes happen alongside Slack/email fan-out so the side-panel inbox stays consistent regardless of transport.
 - **Settings** (`POST /api/extension/settings`, load + patch over `project.settings`). Side-panel Settings view covers notification prefs, default reviewer emails, Slack workspace linking (free-form placeholder until Phase 5 wires the bot). Patches are diff-applied; `audit_log` records before/after JSON.
 - **V2 validation tooling.** `deno task margin v2-check` (see [§9.9](#99-docx-round-trip-on-drive-upload-v2-validation)).
 
@@ -298,7 +292,6 @@ The overlay applier + domain helpers stay shipped (§5, `src/domain/overlay.ts`)
 **Delivers:** MVP. Cross-org workflows possible via one-click email actions; the extension is purely a UI surface.
 
 ### Phase 5: Slack bot
-**Status: not started.**
 
 - Event subscriptions, slash commands, interactive payloads.
 - Slack OAuth + workspace-linking flow.
@@ -309,7 +302,8 @@ The overlay applier + domain helpers stay shipped (§5, `src/domain/overlay.ts`)
 **Delivers:** `/review-request`, `/review-status`, `/review-close` (§6.1); per-reviewer DMs; thread updates; home-tab dashboards.
 
 ### Phase 6: Cross-org polish + extension visualization
-**Status: not started. Visualization gated on the two empirical validation tasks below.**
+
+Visualization gated on the two empirical validation tasks below.
 
 - Slack Connect for shared review channels across orgs.
 - External-reviewer onboarding via magic-link auth + identity verification (OAuth `sub`/email vs. share list).
@@ -322,7 +316,6 @@ The overlay applier + domain helpers stay shipped (§5, `src/domain/overlay.ts`)
 - **V2: `.docx` upload preserves anchored comments.** Run via `deno task margin v2-check` (§9.9). If anchors survive, this opens a "derivative Doc with materialized comments" path that sidesteps canvas overlay entirely for the review-only cohort (magic-link reviewers, mobile); see [§9.7](#97-documentsbatchupdate-is-sufficient-for-overlays) for the existing derivative infrastructure.
 
 ### Phase 7: Workspace add-on, marketplace listings, advanced features
-**Status: not started.**
 
 - **Workspace add-on.** Unified Workspace Add-on (CardService UI; §9.4) covering the same affordances as the Phase-3 popup, for users on managed devices or in environments that block extension installs. `onFileScopeGranted` integrates per-file `drive.file` with Margin's token store (§9.2). Apps Script identity-token verification on the backend. Named-range bookkeeping in the overlay applier powers add-on "comments at this paragraph" affordances.
 - Workspace Marketplace listing (OAuth verification + security assessment).
@@ -374,7 +367,7 @@ Privacy: LLM only sees what the calling user can already see. Doc body fetched f
 
 ## 14. Operational follow-ups
 
-Tracking items that are intentionally deferred from the current Deno hardening pass. Already done in-tree: scoped `--allow-net` + `--deny-net` + `--allow-env=<list>` on `serve`/`migrate`, `--frozen` on `deno install`, `bun.lock` removed, URLPattern hardening tests in `src/api/router.test.ts`, `BETTER_AUTH_TELEMETRY=0` in `fly.toml`, `isUniqueConstraintError` recognizes SQLSTATE `23505` (forward-compatible for §14.2). The deno.jsonc and Dockerfile carry the production contract; see those for what's enforced today.
+Tracked operational work. The production contract — scoped `--allow-env` + `--allow-net` + `--deny-net` on `serve`/`migrate`, URLPattern hardening, `BETTER_AUTH_TELEMETRY=0`, unique-constraint-error recognition — lives in `backend/deno.jsonc` and `backend/Dockerfile`; this section covers what's still deferred.
 
 ### 14.1 Pre-launch hardening
 
@@ -388,7 +381,7 @@ Tracking items that are intentionally deferred from the current Deno hardening p
 
 Coupled to the SQLite → Postgres migration. Triggers and timing in earlier prose; this is the checklist of code/infra changes once the trigger fires.
 
-- **Driver swap.** `drizzle-orm/node-sqlite` → `drizzle-orm/postgres-js` (battle-tested, single TCP client; preferred over `pg` to avoid the libpq native-binding surface). `src/db/client.ts`, `src/db/migrate.ts`, and `src/cli/serve.ts` all need the import + instantiation change.
+- **Driver swap.** `drizzle-orm/node-sqlite` → `drizzle-orm/postgres-js` (battle-tested, single TCP client; preferred over `pg` to avoid the libpq native-binding surface). `src/db/client.ts`, `src/db/migrate.ts`, and the migrate call in `src/cli/serve.ts` all need the import + instantiation change.
 - **Audit read-then-write paths.** SQLite's single-writer property made SELECT-then-INSERT effectively serial. Under Postgres, all such paths need explicit `INSERT ... ON CONFLICT (...) DO UPDATE`. Start at `src/domain/comments/ingest.ts`, `src/domain/comments/upsert.ts`, anywhere using `requireProject` to mutate. (`isUniqueConstraintError` already recognizes SQLSTATE `23505` so existing callers' fallback paths keep working without code changes.)
 - **`--allow-net` additions.** Add `<pg-host>:5432` to the serve allow-list in `Dockerfile` CMD and `deno.jsonc` `serve` task.
 - **TLS pinning.** Fly Postgres in-VPC uses self-signed-style certs. Pass `ssl: 'verify-full'` to `postgres-js` and ship the Fly CA in the image (or `PGSSLROOTCERT` pointing at a baked-in cert). Otherwise a compromised neighbor on the 6PN network can MITM.

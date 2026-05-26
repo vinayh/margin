@@ -24,4 +24,4 @@ Read `AGENTS.md` before opening a PR.
 
 - `deno task test` and `deno task typecheck` must pass.
 - Keep diffs focused. Match the surrounding style. Don't introduce abstractions beyond what the task requires.
-- If you touch a phase listed in [`spec.md` §12](./spec.md#12-build-sequence), keep its `Status:` line current.
+- If you touch a phase listed in [`spec.md` §12](./spec.md#12-build-sequence), keep its checkbox in the [README Build status list](../README.md#build-status) current.

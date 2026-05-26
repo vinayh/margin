@@ -4,7 +4,17 @@
 
 Structured review of Google Docs across drafts, audiences, and orgs. Snapshot a doc as a versioned project, capture every comment and suggestion against a version, project comments across versions, and generate audience-specific copies with reusable edit recipes. Surfaces today: browser extension (popup + side panel). Slack bot and Workspace Add-on are planned.
 
-See [`docs/spec.md`](./docs/spec.md) for the design and per-phase build status. [§12](./docs/spec.md#12-build-sequence) tracks what's shipped, in-flight, and ahead.
+## Build status
+
+- [x] [Phase 1: Core engine](./docs/spec.md#phase-1-core-engine) — backend primitives + CLI
+- [x] [Phase 2: Backend HTTP API + minimal web entry points](./docs/spec.md#phase-2-backend-http-api--minimal-web-entry-points) — `deno task serve`, Better Auth, watcher loops
+- [x] [Phase 3: Extension popup as project surface](./docs/spec.md#phase-3-extension-popup-as-project-surface) — tracked-state lookup + Drive Picker
+- [x] [Phase 4: Extension rich UI + docx-export ingest + magic-link action handlers](./docs/spec.md#phase-4-extension-rich-ui--docx-export-ingest--magic-link-action-handlers) — MVP
+- [ ] [Phase 5: Slack bot](./docs/spec.md#phase-5-slack-bot)
+- [ ] [Phase 6: Cross-org polish + extension visualization](./docs/spec.md#phase-6-cross-org-polish--extension-visualization) — gated on V1/V2 validation
+- [ ] [Phase 7: Workspace add-on, marketplace listings, advanced features](./docs/spec.md#phase-7-workspace-add-on-marketplace-listings-advanced-features)
+
+See [`docs/spec.md` §12](./docs/spec.md#12-build-sequence) for per-phase details.
 
 ## Example workflows
 
@@ -41,7 +51,7 @@ For the underlying Google-side constraints that drive these limits, see [`docs/s
 
 ## Stack
 
-Deno runtime with scoped per-task permissions, `node:sqlite` + Drizzle (Postgres later when we need multi-process), `Deno.serve` over a URLPattern-based dispatcher for HTTP, WebCrypto AES-GCM envelope encryption for refresh tokens, `deno test` (JSR `@std/testing/bdd` + `@std/expect`). Backend lives in `backend/`; the public site (Astro) is in `site/` and the browser extension (WXT) in `extension/`. Cross-surface design tokens in `shared/tokens.css`.
+Deno runtime with scoped per-task permissions, `node:sqlite` + Drizzle (Postgres swap planned once multi-process matters), `Deno.serve` over a URLPattern-based dispatcher for HTTP, Better Auth (Google provider + bearer plugin), WebCrypto AES-GCM envelope encryption for refresh tokens, `deno test` (JSR `@std/testing/bdd` + `@std/expect`). Backend lives in `backend/`; the public site (Astro) is in `site/` and the browser extension (WXT, MV3) in `extension/`. Cross-surface design tokens and Google-Doc-id helpers in `shared/`.
 
 ## Contributing
 

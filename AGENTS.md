@@ -1,6 +1,6 @@
 # Margin: project conventions
 
-Phased build plan in [`docs/spec.md` §12](./docs/spec.md#12-build-sequence). Each phase has a `Status:` line; keep it current as work lands.
+Phased build plan in [`docs/spec.md` §12](./docs/spec.md#12-build-sequence); shipped vs. pending is tracked in the [README Build status list](./README.md#build-status).
 
 ## Repo layout
 
@@ -14,25 +14,30 @@ backend/             Deno backend (runtime + tests + CLI). Run `deno task ...`
     db/              drizzle schema (SPEC §4) + node:sqlite client + migrator
     auth/            Better Auth server config (Google provider + bearer plugin),
                      envelope encryption, TokenProvider, test-only session helper
-    google/          endpoint-shaped REST wrappers (drive/docs + token-refresh
+    google/          endpoint-shaped REST wrappers (drive/docs/docx + token-refresh
                      helper). No domain logic.
     domain/          business logic composing db/google/auth. No HTTP, no CLI.
     cli/             thin parse-and-call shells dispatched by index.ts
                      (`deno task margin <cmd>`)
-    api/             Deno.serve HTTP host. server.ts owns the route table +
-                     in-process renew/poll loops; one module per route.
+    api/             Deno.serve HTTP host. server.ts owns the route table;
+                     background.ts owns the renew/poll loops; one module per route.
                      router.ts is the URLPattern-based dispatcher;
-                     middleware.ts + cors.ts hold bearer-auth + CORS helpers.
+                     middleware.ts + cors.ts hold bearer-auth + CORS helpers;
+                     route-wrappers.ts wraps handlers with CSP + rate limit.
+                     pages/ holds Preact-rendered HTML pages (picker, auth bridge,
+                     review-action chooser/confirm).
     notify/          transport abstraction for outbound notifications
                      (email.ts, slack.ts)
   test/              test suite (Deno BDD; see Tests section below)
   drizzle/           generated migration directories (one per migration)
   deno.jsonc         tasks + import map (margin, migrate, serve, test, …)
-  Dockerfile         multi-stage Deno-on-Alpine image; runs migrate then serve
-                     (styles stage is Node-based for @tailwindcss/cli)
+  Dockerfile         multi-stage Deno-on-Alpine image; runs migrate then serve.
+                     Styles stage runs `npm:@tailwindcss/cli` under Deno's npm compat.
   fly.toml           Fly.io app config (see docs/deployment.md)
 shared/              cross-surface assets shared between backend, site, and
-                     extension. Currently just tokens.css (Tailwind v4 @theme).
+                     extension. `tokens.css` (Tailwind v4 @theme) and
+                     `doc-id.ts` (Google Doc id/URL helpers used by both
+                     backend domain/CLI and the extension popup/SW).
 extension/           MV3 extension (Chrome / Edge / Firefox), WXT-driven.
                      See extension/README.md
 site/                Astro + Preact public site; deploys to GitHub Pages
@@ -67,7 +72,7 @@ docs/                internal markdown. Public README + contributor guide
 - **Auth.** Better Auth (`src/auth/server.ts`) owns the `/api/auth/**` route tree plus the `user`, `session`, `account`, and `verification` tables. `authenticateBearer` in `src/api/middleware.ts` wraps `auth.api.getSession({ headers })` and returns `{ userId, sessionId }`; the bearer plugin accepts the raw `session.token` as `Authorization: Bearer …`. Google refresh tokens are envelope-encrypted in `account.refreshToken` via a `databaseHooks.account` write hook; `TokenProvider` in `src/auth/credentials.ts` decrypts them and refreshes Drive access tokens against Google directly. `GET /api/picker/page` authenticates via the session cookie (top-level navigation, not a CORS XHR).
 - **Extension sign-in.** `GET /api/auth/ext/launch-tab?ext=<chrome.runtime.id>` kicks off Google OAuth via Better Auth's `signInSocial`; the inner `callbackURL` points at `/api/auth/ext/success`, which renders an HTML bridge page that hands the session token to the SW. Chromium uses `chrome.runtime.sendMessage` gated by `externally_connectable.matches`; Firefox parks the token in `location.hash` for the SW's `tabs.onUpdated` to pick up. The SW persists it in `chrome.storage.local`. The `ext` parameter is allow-listed against Chromium/Firefox id formats.
 - **CORS.** Allow-list (extension + localhost origins) on cross-origin routes; see `src/api/cors.ts`.
-- **Background loops.** `startServer` launches `renewExpiringChannels` (~30 min) and `pollAllActiveVersions` (~10 min) timers in-process when `MARGIN_PUBLIC_BASE_URL` is set. `createVersion` also auto-subscribes a Drive `files.watch` channel best-effort. Pass `{ backgroundLoops: false }` to `startServer` in tests.
+- **Background loops.** `startBackgroundLoops` (`src/api/background.ts`) launches `renewExpiringChannels` (~30 min) and `pollAllActiveVersions` (~10 min) timers in-process when `MARGIN_PUBLIC_BASE_URL` is set and `MARGIN_RUN_BACKGROUND_LOOPS != 0`. `createVersion` also auto-subscribes a Drive `files.watch` channel best-effort. Pass `{ backgroundLoops: false }` to `startServer` in tests.
 - **Webhooks.** `POST /webhooks/drive` always responds 200 OK so Google stops retrying; channel-level errors get logged.
 
 ## Frontend stack
@@ -91,6 +96,7 @@ Build pipeline, popup state machine, Picker mechanics, and toolbar-icon routing 
 - Edit `src/db/schema.ts`, then `deno run -A npm:drizzle-kit generate`, then `deno task migrate`.
 - Migrations apply at runtime via `drizzle-orm/node-sqlite/migrator`. The drizzle 1.0 format stores each migration as a directory under `drizzle/<timestamp>_<name>/` containing `migration.sql` + `snapshot.json`.
 - `drizzle.config.ts` runs under Node (drizzle-kit), so it uses `process.env`, not `Deno.env`.
+- The migrator silently skips a migration file whose journal `when` is `≤ MAX(created_at)` in `__drizzle_migrations`. If a new migration appears not to run, bump its `when` past the checkpoint.
 
 ## Config
 

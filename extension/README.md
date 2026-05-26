@@ -131,7 +131,7 @@ inside a user gesture.
 Tracked docs use `DocState.title` from `/api/extension/doc-state`, which is the
 canonical Drive name (`files.get` result, stored on `project.name` /
 `version.name` at register / create time). Untracked docs fall back to
-`cleanDocTitleFallback(tab.title)` in `utils/ids.ts`: a locale-agnostic strip
+`cleanDocTitleFallback(tab.title)` in `shared/doc-id.ts`: a locale-agnostic strip
 that drops the trailing `- <suffix>` only when the suffix contains the literal
 word "Google" (the brand is never localized).
 
