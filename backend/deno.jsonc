@@ -49,9 +49,9 @@
 
   "imports": {
     "@std/expect": "jsr:@std/expect@^1.0.19",
-    "@std/testing/bdd": "jsr:@std/testing@^1.0.18/bdd",
-    "@std/fs/walk": "jsr:@std/fs@^1.0.23/walk",
-    "@std/path": "jsr:@std/path@^1.1.4"
+    "@std/testing/bdd": "jsr:@std/testing@^1.0.19/bdd",
+    "@std/fs/walk": "jsr:@std/fs@^1.0.24/walk",
+    "@std/path": "jsr:@std/path@^1.1.5"
   },
 
   "compilerOptions": {

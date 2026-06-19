@@ -374,7 +374,7 @@ Tracked operational work. The production contract — scoped `--allow-env` + `--
 - **Drop container root.** `USER deno` (UID 1993, shipped by `denoland/deno:alpine`) in the final Dockerfile stage. Skipped now because Fly already isolates the container on Firecracker and the Deno permission model is the primary defense; revisit when convenient.
 - **Scope `--allow-read` / `--allow-write` to known paths.** Currently broad. Safe scoping needs an inventory of every directory Deno itself touches (cache dir, source maps under `$DENO_DIR`, `/tmp`). Tackle as a single audit pass; cost is mostly investigation, not implementation.
 - **Tighten `--allow-net` to the Postgres host.** Today's `serve`/`migrate` allow-net is broad (with `--deny-net` blocking IMDS) because the Postgres host varies per provider; once the deployment is on a fixed host (e.g. a specific Neon endpoint), pin it.
-- **Drizzle off RC.** `drizzle-orm` and `drizzle-kit` are pinned at exact `1.0.0-rc.3`. No stable 1.0 has shipped yet. Watch `npm view drizzle-orm dist-tags`; switch to `1.0.0` the day it tags.
+- **Drizzle on 1.0 RC.** `drizzle-orm`/`drizzle-kit` pinned at exact `1.0.0-rc.3`; no stable 1.0 has shipped. Dropping to stable 0.45.x would mean down-migrating the 1.0 migration-directory format, so wait for `1.0.0`.
 - **`--allow-env` maintenance.** Today the allow-list enumerates every env name Better Auth's core/logger/telemetry + drizzle probe at module load (~95 names total). It's stable but tied to dep versions; a Better Auth upgrade may add a probe and break boot. Mitigation: a CI step that boots `serve` under the scoped env in `ci.yml`'s `prod-resolve` job would catch new probes before deploy.
 
 ### 14.2 Postgres follow-ups

@@ -95,6 +95,7 @@ Build pipeline, popup state machine, Picker mechanics, and toolbar-icon routing 
 
 - Edit `src/db/schema.ts`, then `node node_modules/drizzle-kit/bin.cjs generate`, then `deno task migrate`. (Use `node` directly, not `deno run npm:drizzle-kit` — Deno's npm compat layer trips the drizzle-kit 1.0-rc internal version check and exits silently.)
 - Migrations apply at runtime via `drizzle-orm/node-postgres/migrator`. The drizzle 1.0 format stores each migration as a directory under `drizzle/<timestamp>_<name>/` containing `migration.sql` + `snapshot.json`.
+- `drizzle-orm`/`drizzle-kit` are pinned at exact `1.0.0-rc.3` (no stable 1.0 yet; see spec §14.1).
 - `drizzle.config.ts` runs under Node (drizzle-kit), so it uses `process.env`, not `Deno.env`.
 - The migrator uses `DATABASE_URL_DIRECT` (unpooled) — PgBouncer transaction mode can't host a session-bound migrator. The app uses `DATABASE_URL` (pooled) for ordinary queries.
 - The migrator silently skips a migration file whose journal `when` is `≤ MAX(created_at)` in `__drizzle_migrations`. If a new migration appears not to run, bump its `when` past the checkpoint.
