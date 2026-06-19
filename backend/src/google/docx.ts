@@ -46,6 +46,13 @@ export interface DocxSuggestion {
 export interface DocxAnnotations {
   comments: DocxComment[];
   suggestions: DocxSuggestion[];
+  /**
+   * True when the export couldn't be parsed (missing word/document.xml). Distinct
+   * from a genuinely empty doc: callers must NOT treat a malformed export as
+   * "zero annotations" for deletion-reaping, or a transient bad export wipes
+   * every comment on the version.
+   */
+  malformed?: boolean;
 }
 
 export function parseDocx(bytes: Uint8Array): DocxAnnotations {
@@ -53,7 +60,7 @@ export function parseDocx(bytes: Uint8Array): DocxAnnotations {
   const docXml = readEntry(entries, "word/document.xml");
   if (!docXml) {
     // Malformed export: return empty so the polling loop doesn't trip on it.
-    return { comments: [], suggestions: [] };
+    return { comments: [], suggestions: [], malformed: true };
   }
 
   const docTree = parseXml(docXml);

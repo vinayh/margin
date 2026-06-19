@@ -1,5 +1,5 @@
 import { useState } from "preact/hooks";
-import { sendMessage } from "../../../ui/sendMessage.ts";
+import { requestOrThrow, sendMessage } from "../../../ui/sendMessage.ts";
 import {
   ArrowLeftRight,
   MessageSquare,
@@ -56,11 +56,11 @@ export function Dashboard({
   }
 
   async function snapshotVersion(): Promise<void> {
-    const r = await sendMessage({
+    const r = await requestOrThrow({
       kind: "version/create",
       projectId: current.project.id,
     });
-    if (r?.kind === "version/create" && r.error) throw new Error(r.error);
+    if (!r.result) throw new Error("snapshot failed");
     await refreshAll();
   }
 
@@ -72,13 +72,11 @@ export function Dashboard({
     versionId: string,
     assigneeEmails: string[],
   ): Promise<void> {
-    const r = await sendMessage({
+    const r = await requestOrThrow({
       kind: "review/request",
       versionId,
       assigneeEmails,
     });
-    if (r?.kind !== "review/request") throw new Error("unexpected response");
-    if (r.error) throw new Error(r.error);
     if (!r.result) throw new Error("no result returned");
     setIssuedLinks((prev) => ({
       ...prev,

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import { Bell, BellRing, Check } from "lucide-preact";
-import { sendMessage } from "../../../ui/sendMessage.ts";
+import { requestOrThrow, sendMessage } from "../../../ui/sendMessage.ts";
 import { formatRelative } from "../../../ui/format-time.ts";
 import type { NotificationView } from "../../../utils/messages.ts";
 
@@ -30,11 +30,7 @@ export function NotificationsBell({
   async function reload(): Promise<void> {
     setState({ kind: "loading" });
     try {
-      const r = await sendMessage({ kind: "notifications/list" });
-      if (r?.kind !== "notifications/list") {
-        throw new Error("unexpected response");
-      }
-      if (r.error) throw new Error(r.error);
+      const r = await requestOrThrow({ kind: "notifications/list" });
       setState({ kind: "loaded", items: r.items, unread: r.unread });
     } catch (err) {
       setState({

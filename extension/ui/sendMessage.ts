@@ -16,6 +16,25 @@ export function sendMessage(
 }
 
 /**
+ * Send a message and return the matching response, throwing on the three
+ * failure modes every caller otherwise re-checks by hand: no response from the
+ * SW, a response of the wrong kind, or a response carrying `error`. The
+ * returned value is narrowed to the response variant for `msg.kind`, so callers
+ * read its payload field directly (a null payload is caller-specific and still
+ * checked at the call site).
+ */
+export async function requestOrThrow<M extends Message>(
+  msg: M,
+): Promise<Extract<MessageResponse, { kind: M["kind"] }>> {
+  const r = await sendMessage(msg);
+  if (!r) throw new Error("no response from the background worker");
+  if (r.kind !== msg.kind) throw new Error(`unexpected response: ${r.kind}`);
+  const resp = r as Extract<MessageResponse, { kind: M["kind"] }>;
+  if (resp.error) throw new Error(resp.error);
+  return resp;
+}
+
+/**
  * Convenience wrapper used by popup + side-panel surfaces. Returns null
  * when settings aren't configured or the SW reports an error; callers
  * branch on null rather than catching.

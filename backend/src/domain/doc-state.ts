@@ -1,7 +1,7 @@
 import { and, desc, eq } from "drizzle-orm";
 import { db } from "../db/client.ts";
 import { project, version } from "../db/schema.ts";
-import { ensureMainVersion } from "./project.ts";
+import { ensureMainVersion, getProjectByParentDoc } from "./project.ts";
 import { countComments, countOpenReviews, pickLastSyncedAt } from "./stats.ts";
 import { userEmailById } from "./user.ts";
 
@@ -55,18 +55,7 @@ export async function getDocState(opts: {
   docId: string;
   userId: string;
 }): Promise<DocStateResponse> {
-  const projectRow = (
-    await db
-      .select()
-      .from(project)
-      .where(
-        and(
-          eq(project.parentDocId, opts.docId),
-          eq(project.ownerUserId, opts.userId),
-        ),
-      )
-      .limit(1)
-  )[0];
+  const projectRow = await getProjectByParentDoc(opts.docId, opts.userId);
 
   if (projectRow) {
     // Parent doc is registered as the "main" version (see createProject).

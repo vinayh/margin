@@ -116,8 +116,17 @@ export default defineBackground(() => {
   browser.action.onClicked.addListener((tab) => {
     if (!tab || tab.id === undefined) return;
     const windowId = tab.windowId;
+    // Native-sidebar path: the panel reports its host window via the lifecycle
+    // port, so toggle-to-close keys off `panelOpenWindowIds`.
     if (windowId !== undefined && panelOpenWindowIds.has(windowId)) {
       closeSidePanelForWindow(windowId);
+      return;
+    }
+    // Detached-window path (Edge/Brave/Opera/Arc/…): the panel lives in its own
+    // popup window whose id never matches the Doc tab's `windowId`, so it isn't
+    // in `panelOpenWindowIds`. Track it separately and close it to toggle.
+    if (detachedSidepanelWindowId !== undefined) {
+      closeDetachedSidepanelWindow();
       return;
     }
     openDashboardForTab(tab);
@@ -164,6 +173,15 @@ export default defineBackground(() => {
   // a query inside `action.onClicked` without losing the user-gesture chain
   // that Chrome's `sidePanel.open/close` requires, so the open-state has to
   // be cached synchronously here.
+  // The detached sidepanel window can be closed by the user directly (window
+  // chrome, not the toolbar icon) — drop the tracked id so the next toolbar
+  // click reopens instead of trying to close a window that's already gone.
+  browser.windows.onRemoved.addListener((windowId) => {
+    if (windowId === detachedSidepanelWindowId) {
+      detachedSidepanelWindowId = undefined;
+    }
+  });
+
   browser.runtime.onConnect.addListener((port) => {
     if (port.name !== PANEL_LIFECYCLE_PORT) return;
     let windowId: number | undefined;
@@ -195,6 +213,10 @@ const trackedCache = new Map<string, { tracked: boolean; ts: number }>();
 // Shared with the side panel; renaming requires updating the panel's connect() call too.
 const PANEL_LIFECYCLE_PORT = "margin-panel-lifecycle";
 const panelOpenWindowIds = new Set<number>();
+// Id of the detached sidepanel popup window (non-native-sidebar browsers).
+// Tracked so the toolbar icon can toggle it closed; cleared by
+// windows.onRemoved when the user closes it directly.
+let detachedSidepanelWindowId: number | undefined;
 
 async function isDocTracked(docId: string): Promise<boolean> {
   const hit = trackedCache.get(docId);
@@ -289,8 +311,25 @@ function openDashboardForTab(tab: chrome.tabs.Tab): void {
     useNativeSidebar: cachedUseNativeSidebar,
     windowId: tab.windowId,
     tabId: tab.id,
-  }).catch((err) => {
-    console.warn("[margin] openDashboard failed:", err);
+  })
+    .then((detachedWindowId) => {
+      // Non-undefined only on the detached-window path; record it so the next
+      // toolbar click toggles it closed.
+      if (detachedWindowId !== undefined) {
+        detachedSidepanelWindowId = detachedWindowId;
+      }
+    })
+    .catch((err) => {
+      console.warn("[margin] openDashboard failed:", err);
+    });
+}
+
+function closeDetachedSidepanelWindow(): void {
+  const windowId = detachedSidepanelWindowId;
+  detachedSidepanelWindowId = undefined;
+  if (windowId === undefined) return;
+  browser.windows.remove(windowId).catch((err) => {
+    console.warn("[margin] could not close detached sidepanel window:", err);
   });
 }
 

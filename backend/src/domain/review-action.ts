@@ -13,6 +13,7 @@ import {
   user,
 } from "../db/schema.ts";
 import { sha256Hex } from "./anchor.ts";
+import { errMessage } from "../errors.ts";
 import { createNotification } from "./notification.ts";
 
 // Magic-link review actions. One token per (review_request_id, assignee_user_id);
@@ -174,7 +175,7 @@ export async function redeemReviewActionToken(
       action,
     ).catch((err) => {
       console.warn(
-        `[review-action] notify failed: ${err instanceof Error ? err.message : String(err)}`,
+        `[review-action] notify failed: ${errMessage(err)}`,
       );
     });
   }

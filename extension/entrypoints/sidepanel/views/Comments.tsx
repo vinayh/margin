@@ -1,5 +1,5 @@
 import { useEffect, useState } from "preact/hooks";
-import { sendMessage } from "../../../ui/sendMessage.ts";
+import { requestOrThrow } from "../../../ui/sendMessage.ts";
 import { formatDateTime } from "../../../ui/format-time.ts";
 import type {
   CanonicalCommentKind,
@@ -44,16 +44,8 @@ export function Comments({ versionId, versionLabel, onClose }: Props) {
     let cancelled = false;
     void (async () => {
       try {
-        const r = await sendMessage({ kind: "version/comments", versionId });
+        const r = await requestOrThrow({ kind: "version/comments", versionId });
         if (cancelled) return;
-        if (r?.kind !== "version/comments") {
-          setState({ kind: "error", message: "unexpected response" });
-          return;
-        }
-        if (r.error) {
-          setState({ kind: "error", message: r.error });
-          return;
-        }
         if (!r.payload) {
           setState({ kind: "error", message: "comments unavailable" });
           return;
@@ -79,14 +71,12 @@ export function Comments({ versionId, versionLabel, onClose }: Props) {
     setActionError(null);
     setPendingId(entry.canonicalCommentId);
     try {
-      const r = await sendMessage({
+      const r = await requestOrThrow({
         kind: "comment/action",
         canonicalCommentId: entry.canonicalCommentId,
         action,
         targetVersionId: versionId,
       });
-      if (r?.kind !== "comment/action") throw new Error("unexpected response");
-      if (r.error) throw new Error(r.error);
       if (!r.result) throw new Error("no result returned");
       applyResult(setState, r.result);
     } catch (err) {

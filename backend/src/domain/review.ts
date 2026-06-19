@@ -19,6 +19,8 @@ import { loadOwnedVersion } from "./version.ts";
 import { getOrCreateUserByEmail, userEmailById } from "./user.ts";
 import { issueReviewActionToken } from "./review-action.ts";
 import { createNotification } from "./notification.ts";
+import { googleDocUrl } from "../../../shared/doc-id.ts";
+import { errMessage } from "../errors.ts";
 
 export type ReviewRequest = typeof reviewRequest.$inferSelect;
 
@@ -187,7 +189,7 @@ export async function createReviewRequest(opts: {
     });
   } catch (err) {
     console.warn(
-      `[review] slack notify failed: ${err instanceof Error ? err.message : String(err)}`,
+      `[review] slack notify failed: ${errMessage(err)}`,
     );
   }
 
@@ -200,7 +202,7 @@ function renderSlackSummary(opts: {
   assignees: AssigneeMagicLinks[];
   deadline: Date | null;
 }): string {
-  const docUrl = `https://docs.google.com/document/d/${encodeURIComponent(opts.googleDocId)}/edit`;
+  const docUrl = googleDocUrl(opts.googleDocId);
   const who = opts.requesterEmail ?? "Someone";
   const reviewers = opts.assignees.map((a) => a.email).join(", ");
   const deadline = opts.deadline ? ` (due ${opts.deadline.toISOString()})` : "";
@@ -227,7 +229,7 @@ async function fanOutAssignee(args: FanOutArgs): Promise<AssigneeMagicLinks> {
       role: "commenter",
     });
   } catch (err) {
-    shareError = err instanceof Error ? err.message : String(err);
+    shareError = errMessage(err);
     console.warn(
       `[review] permission share failed for ${args.user.email} on ${args.googleDocId}: ${shareError}`,
     );
@@ -260,7 +262,7 @@ async function fanOutAssignee(args: FanOutArgs): Promise<AssigneeMagicLinks> {
         }),
       });
     } catch (err) {
-      emailError = err instanceof Error ? err.message : String(err);
+      emailError = errMessage(err);
       console.warn(
         `[review] email transport failed for ${args.user.email}: ${emailError}`,
       );
@@ -308,7 +310,7 @@ function renderReviewEmailBody(opts: {
     decline: "Decline",
     accept_reconciliation: "Accept reconciliation",
   };
-  const docUrl = `https://docs.google.com/document/d/${encodeURIComponent(opts.googleDocId)}/edit`;
+  const docUrl = googleDocUrl(opts.googleDocId);
   const lines: string[] = [];
   lines.push(
     opts.requesterEmail

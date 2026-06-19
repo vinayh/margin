@@ -301,10 +301,10 @@ describe("parseDocx", () => {
     expect(out.suggestions).toEqual([]);
   });
 
-  test("malformed: missing document.xml entry returns empty annotations instead of throwing", () => {
+  test("malformed: missing document.xml entry returns empty annotations flagged malformed instead of throwing", () => {
     const bytes = zipSync({ "irrelevant.xml": strToU8("<x/>") });
     const out = parseDocx(bytes);
-    expect(out).toEqual({ comments: [], suggestions: [] });
+    expect(out).toEqual({ comments: [], suggestions: [], malformed: true });
   });
 
   test("orphan comment metadata (no commentRangeStart/End) is dropped", () => {

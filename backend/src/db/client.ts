@@ -1,5 +1,7 @@
 import pg from "pg";
 import { drizzle } from "drizzle-orm/node-postgres";
+import { count, type SQL } from "drizzle-orm";
+import type { PgTable } from "drizzle-orm/pg-core";
 import { config } from "../config.ts";
 
 // Lazy under a Proxy so importing this module doesn't eagerly read
@@ -23,6 +25,15 @@ export const pool: pg.Pool = new Proxy({} as pg.Pool, {
 
 export const db = drizzle({ client: pool });
 export type DB = typeof db;
+
+/**
+ * Count rows in `table` matching `where`. Collapses the
+ * select-count → `[0]` → `?? 0` idiom repeated across the count helpers.
+ */
+export async function countWhere(table: PgTable, where: SQL | undefined): Promise<number> {
+  const rows = await db.select({ n: count() }).from(table).where(where);
+  return rows[0]?.n ?? 0;
+}
 
 /**
  * True when `err` is a UNIQUE-constraint violation. Used by upsert paths

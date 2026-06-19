@@ -45,7 +45,7 @@ describe("e2e seed-project", () => {
     expect(r.stderr).toContain("no user");
   });
 
-  test("happy path: creates project + v1 row for the named owner", async () => {
+  test("happy path: creates project + main version row for the named owner", async () => {
     const u = await seedUser({ email: "owner@e.com" });
     const r = await runCli(
       ["e2e", "seed-project", "1AbcDEF0123456789_xyz_test_doc", "--user", "owner@e.com"],
@@ -65,7 +65,8 @@ describe("e2e seed-project", () => {
       .from(version)
       .where(eq(version.projectId, projects[0]!.id));
     expect(versions.length).toBe(1);
-    expect(versions[0]!.label).toBe("v1");
+    // "main" mirrors createProject's parent-doc-as-version row.
+    expect(versions[0]!.label).toBe("main");
     expect(versions[0]!.googleDocId).toBe("1AbcDEF0123456789_xyz_test_doc");
   });
 

@@ -36,7 +36,7 @@ export function parseDocIdFromUrl(href: string): string | null {
 }
 
 export function googleDocUrl(docId: string): string {
-  return `https://docs.google.com/document/d/${docId}/edit`;
+  return `https://docs.google.com/document/d/${encodeURIComponent(docId)}/edit`;
 }
 
 // TEMPORARY fallback used only when the backend can't supply the canonical

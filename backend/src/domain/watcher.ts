@@ -4,6 +4,8 @@ import { asc, eq, isNull, lt, or } from "drizzle-orm";
 import { db, isUuid } from "../db/client.ts";
 import { driveWatchChannel, version, type VersionStatus } from "../db/schema.ts";
 import { stopChannel, type WatchChannel, watchFile } from "../google/drive.ts";
+import { config } from "../config.ts";
+import { errMessage } from "../errors.ts";
 import { tokenProviderForProject } from "./project.ts";
 import { getVersion, requireVersion } from "./version.ts";
 import { type IngestResult, ingestVersionComments } from "./comments.ts";
@@ -66,6 +68,24 @@ export async function subscribeVersionWatch(opts: {
     })
     .returning();
   return inserted[0]!;
+}
+
+/**
+ * Best-effort Drive watch subscription for a freshly-created version. Builds the
+ * webhook address from the public base URL, subscribes, and logs-and-swallows
+ * any failure (the polling loop is the safety net). No-op when
+ * MARGIN_PUBLIC_BASE_URL is unset. Callers fire-and-forget with `void`.
+ */
+export async function autoSubscribeVersionWatch(versionId: string): Promise<void> {
+  const baseUrl = config.publicBaseUrl;
+  if (!baseUrl) return;
+  const address = baseUrl.replace(/\/+$/, "") + "/webhooks/drive";
+  try {
+    await subscribeVersionWatch({ versionId, address });
+  } catch (err) {
+    const msg = errMessage(err);
+    console.warn(`auto-subscribe failed for version ${versionId}: ${msg}`);
+  }
 }
 
 export async function getDriveWatchChannel(id: string): Promise<DriveWatchChannel | null> {
@@ -153,7 +173,7 @@ export async function pollAllActiveVersions(): Promise<PollOutcome[]> {
       out.push({ versionId: v.id, result: await ingestVersionComments(v.id) });
     } catch (err) {
       // One bad version shouldn't stall the cron; record and continue.
-      const message = err instanceof Error ? err.message : String(err);
+      const message = errMessage(err);
       out.push({ versionId: v.id, error: message });
     }
   }
@@ -189,7 +209,7 @@ export async function renewExpiringChannels(opts: { now?: number } = {}): Promis
       renewed++;
     } catch (err) {
       failed++;
-      const msg = err instanceof Error ? err.message : String(err);
+      const msg = errMessage(err);
       console.error(`renew failed for channel ${row.channelId}: ${msg}`);
     }
   }
@@ -226,7 +246,7 @@ async function replaceWatchChannel(oldRow: DriveWatchChannel): Promise<void> {
     });
   } catch (err) {
     await stopChannel(tp, { id: channel.id, resourceId: channel.resourceId }).catch((stopErr) => {
-      const msg = stopErr instanceof Error ? stopErr.message : String(stopErr);
+      const msg = errMessage(stopErr);
       console.warn(
         `renew: failed to stop orphan new channel ${channel.id} after DB swap failure: ${msg}`,
       );
@@ -238,7 +258,7 @@ async function replaceWatchChannel(oldRow: DriveWatchChannel): Promise<void> {
   try {
     await stopChannel(tp, { id: oldRow.channelId, resourceId: oldRow.resourceId });
   } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
+    const msg = errMessage(err);
     console.warn(
       `renew: stop-old failed for channel ${oldRow.channelId} (new channel is live): ${msg}`,
     );

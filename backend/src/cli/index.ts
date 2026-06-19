@@ -1,4 +1,5 @@
 import { config } from "../config.ts";
+import { errMessage } from "../errors.ts";
 import { run as runSmoke } from "./smoke.ts";
 import { run as runV2Check } from "./v2-check.ts";
 import { run as runDoc } from "./doc.ts";
@@ -42,7 +43,7 @@ if (!name || isHelp || !commands[name]) {
 try {
   await commands[name](rest);
 } catch (err) {
-  const message = err instanceof Error ? err.message : String(err);
+  const message = errMessage(err);
   console.error(`error: ${message}`);
   if (config.debug && err instanceof Error && err.stack) {
     console.error(err.stack);

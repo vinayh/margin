@@ -12,7 +12,11 @@ import {
   projectRowLabel,
   sortProjectsByLastSync,
 } from "../../ui/project-row.ts";
-import { getSettingsStatus, sendMessage } from "../../ui/sendMessage.ts";
+import {
+  getSettingsStatus,
+  requestOrThrow,
+  sendMessage,
+} from "../../ui/sendMessage.ts";
 import { subscribeSessionTokenChanges } from "../../utils/storage.ts";
 import type {
   DocState,
@@ -340,18 +344,14 @@ async function getActiveDocId(): Promise<string | null> {
 }
 
 async function fetchDocState(docId: string): Promise<DocState | null> {
-  const r = await sendMessage({ kind: "doc/state", docId });
-  if (r?.kind !== "doc/state") return null;
-  if (r.error) throw new Error(r.error);
+  const r = await requestOrThrow({ kind: "doc/state", docId });
   return r.state;
 }
 
 async function fetchProjectDetail(
   projectId: string,
 ): Promise<ProjectDetail | null> {
-  const r = await sendMessage({ kind: "project/detail", projectId });
-  if (r?.kind !== "project/detail") return null;
-  if (r.error) throw new Error(r.error);
+  const r = await requestOrThrow({ kind: "project/detail", projectId });
   return r.detail;
 }
 
@@ -377,9 +377,7 @@ function loadProjectInto(setView: (v: View) => void, projectId: string): void {
 }
 
 async function fetchProjects(): Promise<ProjectListEntry[] | null> {
-  const r = await sendMessage({ kind: "projects/list" });
-  if (r?.kind !== "projects/list") return null;
-  if (r.error) throw new Error(r.error);
+  const r = await requestOrThrow({ kind: "projects/list" });
   return r.projects;
 }
 

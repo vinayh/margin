@@ -5,6 +5,7 @@ import {
   notFound,
   validatedPost,
 } from "./middleware.ts";
+import { checkRateLimit } from "./rate-limit.ts";
 import {
   createReviewRequest,
   ReviewRequestBadRequestError,
@@ -17,6 +18,12 @@ const MAX_BODY_BYTES = 16 * 1024;
 // be the same on all three layers.
 const MAX_EMAILS = 64;
 const MAX_EMAIL_LEN = 254;
+
+// Each request fans out one Drive share + one email per assignee (up to
+// MAX_EMAILS) and materializes a user row per address. The generic 120/min
+// limiter is far too loose for that amplification (120 × 64 ≈ 7.7k emails/min),
+// so review requests get a dedicated, much tighter per-user cap.
+const REVIEW_REQUEST_LIMIT_PER_MIN = 10;
 
 const ReviewRequestBodySchema = v.object({
   versionId: IdSchema,
@@ -46,6 +53,22 @@ export function handleReviewRequestPost(req: Request): Promise<Response> {
     req,
     ReviewRequestBodySchema,
     async ({ auth, body }) => {
+      const gate = checkRateLimit(
+        `review-request:u:${auth.userId}`,
+        REVIEW_REQUEST_LIMIT_PER_MIN,
+      );
+      if (!gate.allowed) {
+        return new Response(
+          JSON.stringify({ error: "rate_limited", scope: "review_request" }),
+          {
+            status: 429,
+            headers: {
+              "content-type": "application/json",
+              "retry-after": String(gate.resetSeconds),
+            },
+          },
+        );
+      }
       try {
         return await createReviewRequest({
           versionId: body.versionId,

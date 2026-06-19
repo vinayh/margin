@@ -1,4 +1,5 @@
 import { and, eq, inArray, isNotNull, isNull } from "drizzle-orm";
+import { config } from "../../config.ts";
 import { db } from "../../db/client.ts";
 import {
   type AnchorRange,
@@ -108,11 +109,31 @@ async function runIngest(versionId: string): Promise<IngestResult> {
     seenExternalIds,
   });
 
-  await reapDeletedCanonicals({
-    versionId,
-    seenExternalIds,
-    result,
-  });
+  // Guard the reap against transient/partial exports. Google's .docx export is
+  // eventually-consistent: a malformed export, or one that comes back empty
+  // while comments.list still sees comments, means this snapshot is stale — not
+  // that every comment was deleted. Reaping against an empty `seenExternalIds`
+  // in that case marks the whole version's comments deleted until the next clean
+  // ingest. Skip the reap; the next run self-heals.
+  const exportLooksStale = annotations.malformed ||
+    (annotations.comments.length === 0 &&
+      annotations.suggestions.length === 0 &&
+      driveComments.length > 0);
+  if (exportLooksStale) {
+    if (config.debug) {
+      console.warn(
+        `[ingest] skipping reap for version ${versionId}: export looks stale ` +
+          `(malformed=${annotations.malformed ?? false}, docxComments=${annotations.comments.length}, ` +
+          `docxSuggestions=${annotations.suggestions.length}, driveComments=${driveComments.length})`,
+      );
+    }
+  } else {
+    await reapDeletedCanonicals({
+      versionId,
+      seenExternalIds,
+      result,
+    });
+  }
 
   // Stamp the version's last-synced timestamp on every successful ingest, even
   // when zero comments were found — the projection table doesn't grow in that

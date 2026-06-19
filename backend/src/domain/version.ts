@@ -5,10 +5,10 @@ import { tokenProviderForUser } from "../auth/credentials.ts";
 import type { TokenProvider } from "../google/api.ts";
 import { copyFile, getFile, trashFile } from "../google/drive.ts";
 import { extractPlainText, getDocument } from "../google/docs.ts";
-import { config } from "../config.ts";
 import { requireProject } from "./project.ts";
-import { subscribeVersionWatch } from "./watcher.ts";
+import { autoSubscribeVersionWatch } from "./watcher.ts";
 import { paragraphHash } from "./anchor.ts";
+import { errMessage } from "../errors.ts";
 
 export type Version = typeof version.$inferSelect;
 
@@ -31,7 +31,10 @@ export async function createVersion(opts: {
       .select({ id: version.id })
       .from(version)
       .where(eq(version.projectId, proj.id))
-      .orderBy(desc(version.createdAt))
+      // desc(id) tiebreaker: the "main" version is backfilled with
+      // createdAt = project.createdAt and same-instant inserts tie, so ordering
+      // on createdAt alone picks an arbitrary sibling as the parent.
+      .orderBy(desc(version.createdAt), desc(version.id))
       .limit(1);
     parentVersionId = previous[0]?.id ?? null;
   } else {
@@ -50,10 +53,7 @@ export async function createVersion(opts: {
       label: opts.label,
       createdByUserId: opts.createdByUserId,
     });
-    autoSubscribeWatch(ver.id).catch((err) => {
-      const msg = err instanceof Error ? err.message : String(err);
-      console.warn(`auto-subscribe failed for version ${ver.id}: ${msg}`);
-    });
+    void autoSubscribeVersionWatch(ver.id);
     return ver;
   }
 
@@ -69,10 +69,7 @@ export async function createVersion(opts: {
         label,
         createdByUserId: opts.createdByUserId,
       });
-      autoSubscribeWatch(ver.id).catch((err) => {
-        const msg = err instanceof Error ? err.message : String(err);
-        console.warn(`auto-subscribe failed for version ${ver.id}: ${msg}`);
-      });
+      void autoSubscribeVersionWatch(ver.id);
       return ver;
     } catch (err) {
       if (!isUniqueConstraintError(err)) throw err;
@@ -123,18 +120,11 @@ async function copyAndInsertVersion(opts: {
   } catch (err) {
     // INSERT failed (label-race UNIQUE or otherwise) — the Drive copy is now orphaned.
     await trashFile(opts.tp, copy.id).catch((trashErr) => {
-      const msg = trashErr instanceof Error ? trashErr.message : String(trashErr);
+      const msg = errMessage(trashErr);
       console.warn(`createVersion: failed to trash orphan copy ${copy.id}: ${msg}`);
     });
     throw err;
   }
-}
-
-async function autoSubscribeWatch(versionId: string): Promise<void> {
-  const baseUrl = config.publicBaseUrl;
-  if (!baseUrl) return;
-  const address = baseUrl.replace(/\/+$/, "") + "/webhooks/drive";
-  await subscribeVersionWatch({ versionId, address });
 }
 
 // MAX+1 on parsed `v\d+` suffixes. Concurrent auto-labels can collide; the unique index

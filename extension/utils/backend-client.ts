@@ -14,9 +14,11 @@ import type {
   VersionDiffPayload,
 } from "./types.ts";
 
-// Authenticated client used only from the SW. Popup / sidepanel never see the session token —
-// they sendMessage to the SW and the SW attaches the Bearer header here.
+// Authenticated backend client. Runs only in the SW; popup/sidepanel reach it
+// via sendMessage and never see the session token. The Bearer header is added here.
 
+// Throws on any non-2xx (including 404). Use when a 404 is a real failure;
+// reach for postJsonOrNull when "missing" is an expected, non-error null.
 async function postJson<T>(
   path: string,
   body: unknown,
@@ -30,7 +32,7 @@ async function postJson<T>(
   return (await res.json()) as T;
 }
 
-// Returns null on 404 (e.g. "no such project / not yours"); throws otherwise.
+// Returns null on 404 (missing / not yours); throws on any other error.
 async function postJsonOrNull<T>(
   path: string,
   body: unknown,
@@ -60,13 +62,13 @@ async function postJsonRaw(
     body: JSON.stringify(body),
   });
   if (res.status === 401 || res.status === 403) {
-    throw new Error("session rejected — sign in again from Options");
+    throw new Error("session rejected; sign in again from Options");
   }
   return res;
 }
 
-// Calls Better Auth's /sign-out so the DB session row is invalidated. Backend failures
-// still clear the local token (the row will expire on its own).
+// Invalidates the DB session via Better Auth's /sign-out. On backend failure
+// the local token is still cleared (the row expires on its own).
 export async function signOutFromBackend(): Promise<void> {
   const settings = await getSettings();
   if (settings) {
@@ -89,9 +91,8 @@ export interface WhoamiResponse {
   image: string | null;
 }
 
-// Returns the authenticated user's profile — used by the Options page to
-// render the signed-in identity block (avatar + name + email). Null when
-// no session or backend unreachable.
+// Authenticated user's profile for the Options identity block (avatar, name,
+// email). Null when there's no session or the backend is unreachable.
 export async function fetchWhoami(): Promise<WhoamiResponse | null> {
   const settings = await getSettings();
   if (!settings) return null;
@@ -193,7 +194,9 @@ export async function createVersion(opts: {
 }): Promise<VersionCreateResult | null> {
   const settings = await getSettings();
   if (!settings) return null;
-  return postJsonOrNull<VersionCreateResult>(
+  // 404 = missing / not owned: a real failure for a user-triggered snapshot,
+  // not a silent no-op. null is reserved for "settings missing" above.
+  return postJson<VersionCreateResult>(
     "/api/extension/version/create",
     opts,
     settings,
@@ -259,7 +262,9 @@ export async function createReviewRequest(opts: {
 }): Promise<ReviewRequestResult | null> {
   const settings = await getSettings();
   if (!settings) return null;
-  return postJsonOrNull<ReviewRequestResult>(
+  // 4xx = missing / not owned / rejected (e.g. rate-limited): all real failures
+  // for a user-requested review. null is reserved for "settings missing" above.
+  return postJson<ReviewRequestResult>(
     "/api/extension/review/request",
     opts,
     settings,

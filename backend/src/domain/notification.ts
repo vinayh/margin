@@ -1,5 +1,5 @@
-import { and, count, desc, eq, inArray, isNull } from "drizzle-orm";
-import { db } from "../db/client.ts";
+import { and, desc, eq, inArray, isNull } from "drizzle-orm";
+import { countWhere, db } from "../db/client.ts";
 import { notification, type NotificationKind, type NotificationPayload } from "../db/schema.ts";
 
 type Notification = typeof notification.$inferSelect;
@@ -52,15 +52,10 @@ export async function listNotificationsForUser(
 }
 
 export async function countUnreadNotifications(userId: string): Promise<number> {
-  const row = (
-    await db
-      .select({ n: count() })
-      .from(notification)
-      .where(
-        and(eq(notification.userId, userId), isNull(notification.readAt)),
-      )
-  )[0];
-  return row?.n ?? 0;
+  return countWhere(
+    notification,
+    and(eq(notification.userId, userId), isNull(notification.readAt)),
+  );
 }
 
 /**

@@ -18,6 +18,12 @@ export class GoogleApiError extends Error {
   }
 }
 
+// Hard ceiling per request attempt. Google export/list calls normally finish in
+// well under a second; this only fires when a connection hangs open without
+// erroring, which would otherwise stall callers indefinitely (the polling loop
+// runs versions serially, so one hung export blocks every version after it).
+const REQUEST_TIMEOUT_MS = 60_000;
+
 export async function authedFetch(
   tp: TokenProvider,
   url: string | URL,
@@ -33,7 +39,12 @@ export async function authedFetch(
   const send = (token: string) => {
     const headers = new Headers(init.headers);
     headers.set("Authorization", `Bearer ${token}`);
-    return fetch(url, { ...init, headers });
+    // Fresh timeout per attempt. Combine with any caller signal so an
+    // explicit abort still works. Rejects with a TimeoutError on expiry,
+    // which callers handle like any other fetch failure.
+    const timeout = AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+    const signal = init.signal ? AbortSignal.any([init.signal, timeout]) : timeout;
+    return fetch(url, { ...init, headers, signal });
   };
 
   let res = await send(await tp.getAccessToken());

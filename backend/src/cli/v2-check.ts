@@ -1,5 +1,6 @@
 import { runV2Check } from "../domain/v2-check.ts";
 import { defaultUser } from "./util.ts";
+import { googleDocUrl } from "../../../shared/doc-id.ts";
 
 export async function run(_args: string[]): Promise<void> {
   const u = await defaultUser();
@@ -9,9 +10,7 @@ export async function run(_args: string[]): Promise<void> {
   );
   const r = await runV2Check({ userId: u.id });
   console.log(`\nuploaded: ${r.uploadedFileName} (id=${r.uploadedFileId})`);
-  console.log(
-    `https://docs.google.com/document/d/${encodeURIComponent(r.uploadedFileId)}/edit`,
-  );
+  console.log(googleDocUrl(r.uploadedFileId));
 
   console.log("\nINPUT:");
   console.log(

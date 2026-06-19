@@ -1,6 +1,6 @@
 import { useEffect, useState } from "preact/hooks";
 import { Trash2 } from "lucide-preact";
-import { sendMessage } from "../../../ui/sendMessage.ts";
+import { requestOrThrow } from "../../../ui/sendMessage.ts";
 import { parseEmails, validateEmails } from "../../../utils/emails.ts";
 import type { ProjectSettingsView } from "../../../utils/types.ts";
 
@@ -49,16 +49,8 @@ export function Settings({
     let cancelled = false;
     void (async () => {
       try {
-        const r = await sendMessage({ kind: "settings/load", projectId });
+        const r = await requestOrThrow({ kind: "settings/load", projectId });
         if (cancelled) return;
-        if (r?.kind !== "settings/load") {
-          setState({ kind: "error", message: "unexpected response" });
-          return;
-        }
-        if (r.error) {
-          setState({ kind: "error", message: r.error });
-          return;
-        }
         if (!r.settings) {
           setState({ kind: "error", message: "settings unavailable" });
           return;
@@ -89,13 +81,11 @@ export function Settings({
     setRenameError(null);
     setRenaming(true);
     try {
-      const r = await sendMessage({
+      const r = await requestOrThrow({
         kind: "project/rename",
         projectId,
         name: trimmed,
       });
-      if (r?.kind !== "project/rename") throw new Error("unexpected response");
-      if (r.error) throw new Error(r.error);
       if (!r.project) throw new Error("rename failed");
       onRenamed?.(r.project.name);
     } catch (err) {
@@ -113,10 +103,8 @@ export function Settings({
     setError(null);
     setDeleting(true);
     try {
-      const r = await sendMessage({ kind: "project/delete", projectId });
-      if (r?.kind !== "project/delete" || !r.deleted) {
-        throw new Error(r?.error ?? "delete failed");
-      }
+      const r = await requestOrThrow({ kind: "project/delete", projectId });
+      if (!r.deleted) throw new Error("delete failed");
       onDeleted();
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
@@ -145,13 +133,11 @@ export function Settings({
         setSaving(false);
         return;
       }
-      const r = await sendMessage({
+      const r = await requestOrThrow({
         kind: "settings/update",
         projectId,
         patch,
       });
-      if (r?.kind !== "settings/update") throw new Error("unexpected response");
-      if (r.error) throw new Error(r.error);
       if (!r.settings) throw new Error("no settings returned");
       setState({ kind: "loaded", settings: r.settings });
       setForm(r.settings);

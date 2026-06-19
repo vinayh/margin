@@ -3,7 +3,7 @@ import { browser } from "wxt/browser";
 import { cleanDocTitleFallback, parseDocIdFromUrl } from "../../../shared/doc-id.ts";
 import type { DocState } from "../../utils/types.ts";
 import { Header } from "../../ui/Header.tsx";
-import { getSettingsStatus, sendMessage } from "../../ui/sendMessage.ts";
+import { getSettingsStatus, requestOrThrow } from "../../ui/sendMessage.ts";
 import { subscribeSessionTokenChanges } from "../../utils/storage.ts";
 import { Diagnostics } from "./Diagnostics.tsx";
 import { NoSettings } from "./views/NoSettings.tsx";
@@ -125,12 +125,8 @@ async function renderDocState(
 ): Promise<void> {
   let state: DocState | null;
   try {
-    const r = await sendMessage({ kind: "doc/state", docId: tab.docId });
-    state = r?.kind === "doc/state" ? r.state : null;
-    if (r && "error" in r && r.error) {
-      setView({ kind: "error", tab, message: r.error });
-      return;
-    }
+    const r = await requestOrThrow({ kind: "doc/state", docId: tab.docId });
+    state = r.state;
   } catch (err) {
     setView({
       kind: "error",
@@ -155,15 +151,7 @@ async function runSync(
   setView: (v: View) => void,
 ): Promise<void> {
   try {
-    const r = await sendMessage({ kind: "doc/sync", docId: tab.docId });
-    if (r?.kind !== "doc/sync") {
-      setView({ kind: "error", tab, message: "no response from backend" });
-      return;
-    }
-    if (r.error) {
-      setView({ kind: "error", tab, message: r.error });
-      return;
-    }
+    const r = await requestOrThrow({ kind: "doc/sync", docId: tab.docId });
     if (r.state?.tracked) {
       setView({ kind: "tracked", tab, state: r.state });
       return;

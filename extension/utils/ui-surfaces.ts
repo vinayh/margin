@@ -37,6 +37,10 @@ export async function shouldUseNativeSidebar(): Promise<boolean> {
  * detached popup window loading `sidepanel.html`. Repeat clicks focus an
  * existing detached window instead of stacking duplicates.
  *
+ * Returns the id of the detached window when the fallback path runs (so the SW
+ * can track it for toolbar toggle-to-close), or `undefined` when the native
+ * sidebar handled it (the SW toggles that via `panelOpenWindowIds`).
+ *
  * `useNativeSidebar` is the *cached* boolean from the SW (so the click
  * handler can dispatch synchronously, keeping the user gesture intact for
  * the native sidebar call). Callers without a synchronous cache should
@@ -46,7 +50,7 @@ export async function openDashboard(opts: {
   useNativeSidebar: boolean;
   windowId?: number;
   tabId?: number;
-}): Promise<void> {
+}): Promise<number | undefined> {
   if (opts.useNativeSidebar) {
     const api = browser as unknown as SidebarApi;
     if (api.sidePanel?.open) {
@@ -56,7 +60,7 @@ export async function openDashboard(opts: {
           : { tabId: opts.tabId };
       try {
         await api.sidePanel.open(param);
-        return;
+        return undefined;
       } catch (err) {
         console.warn(
           "[margin] sidePanel.open rejected, falling back to window:",
@@ -66,7 +70,7 @@ export async function openDashboard(opts: {
     } else if (api.sidebarAction?.open) {
       try {
         await api.sidebarAction.open();
-        return;
+        return undefined;
       } catch (err) {
         console.warn(
           "[margin] sidebarAction.open rejected, falling back to window:",
@@ -77,10 +81,10 @@ export async function openDashboard(opts: {
     // Fall through to the detached-window path if the native API rejected
     // — at least the user sees the dashboard.
   }
-  await openOrFocusSidepanelWindow();
+  return await openOrFocusSidepanelWindow();
 }
 
-async function openOrFocusSidepanelWindow(): Promise<void> {
+async function openOrFocusSidepanelWindow(): Promise<number | undefined> {
   const url = browser.runtime.getURL(`/${SIDEPANEL_PATH}`);
   // tabs.query by URL works for the extension's own pages without the "tabs"
   // permission. Derive the host window and prefer popup-type windows so we
@@ -91,15 +95,16 @@ async function openOrFocusSidepanelWindow(): Promise<void> {
     const win = await browser.windows.get(tab.windowId);
     if (win.type === "popup" && win.id !== undefined) {
       await browser.windows.update(win.id, { focused: true });
-      return;
+      return win.id;
     }
   }
-  await browser.windows.create({
+  const created = await browser.windows.create({
     url,
     type: "popup",
     width: FALLBACK_WIDTH,
     height: FALLBACK_HEIGHT,
   });
+  return created.id;
 }
 
 /**

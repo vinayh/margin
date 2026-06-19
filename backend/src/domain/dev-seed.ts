@@ -86,7 +86,11 @@ export async function seedDevProject(opts: {
         projectId,
         googleDocId: opts.parentDocId,
         parentVersionId: null,
-        label: opts.versionLabel ?? "v1",
+        // Default "main" to match real projects: createProject inserts a "main"
+        // version pointing at the parent doc, and several code paths special-case
+        // it (ensureMainVersion, doc-state parent/version role). Seeding "v1"
+        // would exercise a shape production never produces.
+        label: opts.versionLabel ?? "main",
         createdByUserId: owner.id,
         snapshotContentHash: null,
         status: "active",

@@ -5,10 +5,10 @@ import { tokenProviderForUser } from "../auth/credentials.ts";
 import type { TokenProvider } from "../google/api.ts";
 import { getFile } from "../google/drive.ts";
 import { extractPlainText, getDocument } from "../google/docs.ts";
-import { config } from "../config.ts";
 import { paragraphHash } from "./anchor.ts";
 import { parseGoogleDocId } from "../../../shared/doc-id.ts";
-import { subscribeVersionWatch } from "./watcher.ts";
+import { autoSubscribeVersionWatch } from "./watcher.ts";
+import { errMessage } from "../errors.ts";
 
 const GOOGLE_DOC_MIME = "application/vnd.google-apps.document";
 
@@ -34,7 +34,7 @@ export async function createProject(opts: {
   const parentDocId = parseGoogleDocId(opts.parentDocUrlOrId);
 
   // Cheap dup check before the Drive round-trip.
-  const preExisting = await loadExistingProject(parentDocId, opts.ownerUserId);
+  const preExisting = await getProjectByParentDoc(parentDocId, opts.ownerUserId);
   if (preExisting) {
     throw new DuplicateProjectError(preExisting.id, parentDocId);
   }
@@ -84,9 +84,7 @@ export async function createProject(opts: {
     snapshotContentHash = paragraphHash(extractPlainText(doc));
   } catch (err) {
     console.warn(
-      `createProject: parent doc snapshot hash failed for ${parentDocId}: ${
-        err instanceof Error ? err.message : String(err)
-      }`,
+      `createProject: parent doc snapshot hash failed for ${parentDocId}: ${errMessage(err)}`,
     );
   }
 
@@ -107,24 +105,14 @@ export async function createProject(opts: {
 
   // Subscribe a Drive watch channel on main so parent-doc edits flow into the
   // polling/webhook loop. Best-effort: same pattern as createVersion.
-  void autoSubscribeWatch(mainVer.id);
+  void autoSubscribeVersionWatch(mainVer.id);
 
   return inserted;
 }
 
-async function autoSubscribeWatch(versionId: string): Promise<void> {
-  const baseUrl = config.publicBaseUrl;
-  if (!baseUrl) return;
-  const address = baseUrl.replace(/\/+$/, "") + "/webhooks/drive";
-  try {
-    await subscribeVersionWatch({ versionId, address });
-  } catch (err) {
-    const msg = err instanceof Error ? err.message : String(err);
-    console.warn(`createProject: watch subscribe failed for version ${versionId}: ${msg}`);
-  }
-}
-
-async function loadExistingProject(
+// Owner-scoped lookup by parent doc id. Nullable getter: "missing" is a normal
+// branch (dup pre-check, doc-state resolution).
+export async function getProjectByParentDoc(
   parentDocId: string,
   ownerUserId: string,
 ): Promise<Project | null> {

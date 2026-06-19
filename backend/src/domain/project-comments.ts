@@ -94,12 +94,27 @@ export async function projectCommentsOntoVersion(
     }
 
     if (!existing) {
-      await db.insert(commentProjection).values({
-        canonicalCommentId: cc.id,
-        versionId: targetVersionId,
-        anchorMatchConfidence: r.confidence,
-        projectionStatus: r.status,
-      });
+      // onConflict guards the (canonicalCommentId, versionId) PK against a
+      // concurrent reanchor/projection inserting the same pair — the batched
+      // `existingByCanonical` snapshot can be stale by the time we write, and a
+      // bare insert would throw and abort the whole run. Mirror the reanchor
+      // path's upsert.
+      await db
+        .insert(commentProjection)
+        .values({
+          canonicalCommentId: cc.id,
+          versionId: targetVersionId,
+          anchorMatchConfidence: r.confidence,
+          projectionStatus: r.status,
+        })
+        .onConflictDoUpdate({
+          target: [commentProjection.canonicalCommentId, commentProjection.versionId],
+          set: {
+            anchorMatchConfidence: r.confidence,
+            projectionStatus: r.status,
+            lastSyncedAt: new Date(),
+          },
+        });
       result.inserted++;
       result.byStatus[r.status]++;
       continue;

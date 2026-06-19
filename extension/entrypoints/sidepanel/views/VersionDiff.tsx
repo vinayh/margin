@@ -1,7 +1,7 @@
 import type { ComponentChildren } from "preact";
 import { useEffect, useState } from "preact/hooks";
 import type { Change } from "diff";
-import { sendMessage } from "../../../ui/sendMessage.ts";
+import { requestOrThrow } from "../../../ui/sendMessage.ts";
 import type {
   ParagraphSummary,
   RunSummary,
@@ -27,20 +27,12 @@ export function VersionDiff({ fromVersionId, toVersionId, onClose }: Props) {
     let cancelled = false;
     void (async () => {
       try {
-        const r = await sendMessage({
+        const r = await requestOrThrow({
           kind: "version/diff",
           fromVersionId,
           toVersionId,
         });
         if (cancelled) return;
-        if (r?.kind !== "version/diff") {
-          setState({ kind: "error", message: "unexpected response" });
-          return;
-        }
-        if (r.error) {
-          setState({ kind: "error", message: r.error });
-          return;
-        }
         if (!r.payload) {
           setState({ kind: "error", message: "diff payload unavailable" });
           return;

@@ -1,5 +1,5 @@
 import { and, count, eq, inArray, isNull, max } from "drizzle-orm";
-import { db } from "../db/client.ts";
+import { countWhere, db } from "../db/client.ts";
 import { canonicalComment, reviewRequest, version } from "../db/schema.ts";
 
 /**
@@ -47,18 +47,13 @@ export async function pickLastSyncedAtByVersion(
 }
 
 export async function countComments(projectId: string): Promise<number> {
-  const row = (
-    await db
-      .select({ n: count() })
-      .from(canonicalComment)
-      .where(
-        and(
-          eq(canonicalComment.projectId, projectId),
-          isNull(canonicalComment.deletedAt),
-        ),
-      )
-  )[0];
-  return row?.n ?? 0;
+  return countWhere(
+    canonicalComment,
+    and(
+      eq(canonicalComment.projectId, projectId),
+      isNull(canonicalComment.deletedAt),
+    ),
+  );
 }
 
 /**
@@ -139,16 +134,11 @@ function coerceTs(v: string | Date | null | undefined): number | null {
 }
 
 export async function countOpenReviews(projectId: string): Promise<number> {
-  const row = (
-    await db
-      .select({ n: count() })
-      .from(reviewRequest)
-      .where(
-        and(
-          eq(reviewRequest.projectId, projectId),
-          eq(reviewRequest.status, "open"),
-        ),
-      )
-  )[0];
-  return row?.n ?? 0;
+  return countWhere(
+    reviewRequest,
+    and(
+      eq(reviewRequest.projectId, projectId),
+      eq(reviewRequest.status, "open"),
+    ),
+  );
 }
