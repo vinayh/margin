@@ -1,0 +1,13 @@
+<svg width="224" height="224" viewBox="0 0 224 224" fill="none" role="img" xmlns="http://www.w3.org/2000/svg">
+  <title>Margin</title>
+  <desc>A document with a folded corner and a two-pronged fork emerging from its right edge, on a yellow tile — Margin's versioned document mark.</desc>
+
+  <rect x="0" y="0" width="224" height="224" rx="44" fill="#faf6ec"/>
+
+  <g transform="translate(-44, 14)" stroke="#15140f" fill="none">
+    <path d="M88 28H144L184 68V144C184 157 173 168 160 168H96C83 168 72 157 72 144V44C72 35 79 28 88 28Z" stroke-width="16" stroke-linejoin="round"/>
+    <path d="M144 28V68H184" stroke-width="16" stroke-linejoin="round"/>
+    <path d="M184 98H212L240 66" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M212 98L240 130" stroke-width="16" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+</svg>

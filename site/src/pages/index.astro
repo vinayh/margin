@@ -14,6 +14,7 @@ const nav = [
   { href: "#track", label: "Track a doc" },
   { href: "#capture", label: "Capture replies" },
   { href: "#projects", label: "Projects & versions" },
+  { href: "#reviews", label: "Request a review" },
   { href: "#privacy", label: "Privacy" },
   { href: "#open-source", label: "Open source" },
   { href: "#faq", label: "FAQ" },
@@ -126,20 +127,33 @@ const nav = [
       <SectionItem
         num="05"
         id="projects"
-        title="Projects, versions, overlays."
-        lede="A project owns a doc. A version is an immutable snapshot. An overlay is a planned set of edits you apply as Suggested Edits on a derivative copy."
+        title="Projects, versions, reconciliation."
+        lede="A project owns a doc. A version is an immutable snapshot. Comments re-anchor across versions, so a note left on v1 still lands in the right place on v3."
       >
         <p>
-          The point: your originals stay clean. Suggestions land on a derivative
-          copy that the original author can accept, reject, or ignore. Comments
-          re-anchor automatically across versions using paragraph-hash plus
-          structural offset, with confidence scoring for the cases where the
-          text moved.
+          Comments re-anchor automatically using paragraph-hash plus structural
+          offset, with confidence scoring for the cases where the text moved far
+          enough to need a second look. When a comment can't be placed cleanly,
+          it surfaces in the reconciliation view instead of being dropped.
         </p>
       </SectionItem>
 
       <SectionItem
         num="06"
+        id="reviews"
+        title="Request a review."
+        lede="Pick a version, name your reviewers, send. Margin shares a frozen copy, collects what comes back, and reconciles it onto your current draft."
+      >
+        <p>
+          External reviewers never need a Margin account. Each one gets a
+          one-click email link to mark a version reviewed, request changes, or
+          decline. Their comments ingest through the doc owner's Drive access,
+          so cross-org review works without asking anyone to grant Drive scope.
+        </p>
+      </SectionItem>
+
+      <SectionItem
+        num="07"
         id="privacy"
         title="Privacy by default."
         lede="No analytics, no telemetry, no third-party calls beyond Google's own Drive and Docs APIs."
@@ -154,7 +168,7 @@ const nav = [
       </SectionItem>
 
       <SectionItem
-        num="07"
+        num="08"
         id="open-source"
         title="Open source."
         lede="GPL v3 licensed. The full source is public."
@@ -166,7 +180,7 @@ const nav = [
       </SectionItem>
 
       <SectionItem
-        num="08"
+        num="09"
         id="faq"
         title="FAQ."
       >

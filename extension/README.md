@@ -54,7 +54,9 @@ loadable directly:
    `location.hash`, picked up by the SW's `tabs.onUpdated` listener). The SW
    persists it under `chrome.storage.local.settings.sessionToken`; the Options
    page's `chrome.storage.onChanged` listener flips the UI to "Signed in"
-   without a reload.
+   without a reload. Once signed in, the Options page reads
+   `POST /api/extension/whoami` (via the SW) to show the account's email / name /
+   avatar alongside the tracked-project list.
 
 ## Popup project surface
 
@@ -148,7 +150,8 @@ extension/
     sidepanel/              Preact rich UI: dashboard, diff, reconciliation
   ui/                       shared Preact components (Header, project-row, sendMessage)
   utils/                    ids, messages, storage, types, browser-detect
-  public/icons/             placeholder artwork; replace before publish
+  public/                   toolbar/store icons icon-{16,32,48,128}.png
+                            (rasterized from shared/icon.svg)
   dist/                     build output, gitignored
   .wxt/                     generated types (wxt prepare), gitignored
 ```

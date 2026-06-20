@@ -35,9 +35,11 @@ backend/             Deno backend (runtime + tests + CLI). Run `deno task ...`
                      Styles stage runs `npm:@tailwindcss/cli` under Deno's npm compat.
   fly.toml           Fly.io app config (see docs/deployment.md)
 shared/              cross-surface assets shared between backend, site, and
-                     extension. `tokens.css` (Tailwind v4 @theme) and
-                     `doc-id.ts` (Google Doc id/URL helpers used by both
-                     backend domain/CLI and the extension popup/SW).
+                     extension. `tokens.css` (Tailwind v4 @theme), `doc-id.ts`
+                     (Google Doc id/URL helpers used by both backend domain/CLI
+                     and the extension popup/SW), and the brand mark
+                     `icon.svg` / `icon-simple.svg` (simplified small-size
+                     variant; source for the extension PNGs + the site favicon).
 extension/           MV3 extension (Chrome / Edge / Firefox), WXT-driven.
                      See extension/README.md
 site/                Astro + Preact public site; deploys to GitHub Pages
