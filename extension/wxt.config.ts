@@ -2,6 +2,15 @@ import { defineConfig } from "wxt";
 import preact from "@preact/preset-vite";
 import tailwindcss from "@tailwindcss/vite";
 
+function backendMatches(mode: string): string[] {
+  return [
+    "https://api.margin.pub/*",
+    ...(mode === "development"
+      ? ["http://localhost/*", "http://127.0.0.1/*"]
+      : []),
+  ];
+}
+
 /**
  * WXT config. Replaces the hand-rolled `build.ts` + dual `manifest.*.json`
  * setup. Entrypoints under `entrypoints/` are auto-detected by filename
@@ -29,7 +38,7 @@ export default defineConfig({
   vite: () => ({
     plugins: [preact(), tailwindcss()],
   }),
-  manifest: ({ browser }) => ({
+  manifest: ({ browser, mode }) => ({
     name: "Margin",
     short_name: "Margin",
     version: "0.1.0",
@@ -48,23 +57,15 @@ export default defineConfig({
     // through to the no-doc view. Static grants happen at install with a
     // single consent prompt — no second-step "Test connection" needed.
     //
-    // The user-configured backend URL is the only thing we genuinely can't
-    // pin at build time, so `<all_urls>` stays optional and the Options
-    // page calls `permissions.request` on save (see
-    // entrypoints/options/main.ts).
+    // Backend hosts are a fixed production origin plus explicit local-dev
+    // origins. Keep the runtime grant narrow instead of asking for all sites.
     host_permissions: ["https://docs.google.com/*"],
-    optional_host_permissions: ["<all_urls>"],
+    optional_host_permissions: backendMatches(mode),
     // Tab-based OAuth bridge: the success page (`/api/auth/ext/success`)
     // `chrome.runtime.sendMessage`s the session token to this extension.
     // Match patterns don't accept ports, so the localhost entries cover any
     // port. SW also gates on `sender.origin === stored backendUrl`.
-    externally_connectable: {
-      matches: [
-        "https://api.margin.pub/*",
-        "http://localhost/*",
-        "http://127.0.0.1/*",
-      ],
-    },
+    externally_connectable: { matches: backendMatches(mode) },
     action: {
       default_title: "Margin",
       default_icon: {
@@ -84,7 +85,19 @@ export default defineConfig({
       browser_specific_settings: {
         gecko: {
           id: "extension@margin.dev",
-          strict_min_version: "121.0",
+          // Firefox 140 introduced the built-in data-collection consent UI.
+          // Margin sends selected Docs and account/review data to its backend,
+          // so new installs must see and accept the corresponding categories.
+          strict_min_version: "140.0",
+          data_collection_permissions: {
+            required: [
+              "personallyIdentifyingInfo",
+              "authenticationInfo",
+              "personalCommunications",
+              "browsingActivity",
+              "websiteContent",
+            ],
+          },
         },
       },
       // Firefox sidebar lives under `sidebar_action`. Chromium uses the

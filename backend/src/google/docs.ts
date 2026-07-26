@@ -100,14 +100,6 @@ export const op = {
   deleteContentRange(startIndex: number, endIndex: number): BatchUpdateRequest {
     return { deleteContentRange: { range: { startIndex, endIndex } } };
   },
-  replaceAllText(containsText: string, replaceText: string, matchCase = true): BatchUpdateRequest {
-    return {
-      replaceAllText: {
-        containsText: { text: containsText, matchCase },
-        replaceText,
-      },
-    };
-  },
 };
 
 export function extractPlainText(doc: Document): string {

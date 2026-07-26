@@ -1,5 +1,5 @@
 import * as v from "valibot";
-import { IdSchema, validatedPost } from "./middleware.ts";
+import { UuidSchema, validatedPost } from "./middleware.ts";
 import {
   CommentActionBadRequestError,
   CommentActionNotFoundError,
@@ -11,7 +11,7 @@ const MAX_BATCH_SIZE = 64;
 const MAX_BODY_BYTES = MAX_BATCH_SIZE * 256;
 
 const BatchItemSchema = v.object({
-  canonicalCommentId: IdSchema,
+  canonicalCommentId: UuidSchema,
   action: v.picklist([
     "accept_projection",
     "reanchor",
@@ -19,7 +19,7 @@ const BatchItemSchema = v.object({
     "mark_wontfix",
     "reopen",
   ]),
-  targetVersionId: v.optional(v.nullable(IdSchema)),
+  targetVersionId: v.optional(v.nullable(UuidSchema)),
 });
 
 const BatchBodySchema = v.object({

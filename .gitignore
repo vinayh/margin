@@ -17,8 +17,8 @@ lerna-debug.log*
 *.db-wal
 
 # npm lockfile — every workspace uses deno.lock as the source of truth.
-# package-lock.json only shows up transiently when running `npm install`
-# (e.g. the backend CI prod-resolve job).
+# package-lock.json only shows up transiently when someone runs npm instead of
+# the repository's Deno package-manager workflow.
 package-lock.json
 
 # Diagnostic reports (https://nodejs.org/api/report.html)
@@ -87,7 +87,9 @@ typings/
 .env
 .env.test
 
-CLAUDE.md
+# Local agent-tool configuration.
+.agents/
+.codex/
 
 # WXT (extension build)
 .wxt

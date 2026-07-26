@@ -138,23 +138,8 @@ describe("createReviewRequest", () => {
     // Default action set: mark_reviewed, request_changes, decline.
     for (const a of result.assignees) {
       expect(a.shareError).toBeNull();
-      expect(a.emailError).toBeNull();
-      expect(a.links.map((l) => l.action).sort()).toEqual([
-        "decline",
-        "mark_reviewed",
-        "request_changes",
-      ]);
-      // All three links share a single token (one row per assignee) and vary
-      // only in the ?action= query string.
-      const tokens = new Set(
-        a.links.map((l) => l.url.replace(/\?action=.*/, "")),
-      );
-      expect(tokens.size).toBe(1);
-      for (const l of a.links) {
-        expect(l.url).toMatch(/\/r\/mra_.+\?action=/);
-        expect(l.url).toContain(`?action=${l.action}`);
-        expect(l.expiresAt).toBeGreaterThan(Date.now());
-      }
+      expect(a.emailError).toBe("email transport is not configured");
+      expect(a).not.toHaveProperty("links");
     }
 
     const reqs = await db
@@ -223,7 +208,7 @@ describe("createReviewRequest", () => {
       ownerUserId: owner.id,
       assigneeEmails: ["alice@example.com"],
     });
-    expect(result.assignees[0]!.links).toHaveLength(3);
+    expect(result.assignees[0]).not.toHaveProperty("links");
     expect(result.assignees[0]!.shareError).not.toBeNull();
     expect(result.assignees[0]!.shareError).toContain("500");
 
@@ -323,7 +308,7 @@ describe("createReviewRequest", () => {
     });
 
     expect(result.assignees[0]!.emailError).toBe("smtp 421");
-    expect(result.assignees[0]!.links).toHaveLength(3);
+    expect(result.assignees[0]).not.toHaveProperty("links");
     // One DB row backs the three per-action URLs.
     const tokenRows = await db
       .select()

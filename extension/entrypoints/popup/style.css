@@ -5,10 +5,12 @@
     @apply text-[13px] leading-[1.5] w-[320px];
   }
   header {
-    @apply flex items-center justify-between px-[0.85rem] pt-[0.65rem] pb-[0.5rem] border-b border-rule;
+    @apply flex items-center justify-between px-[0.85rem] pt-[0.65rem]
+      pb-[0.5rem] border-b border-rule;
   }
   header strong {
-    @apply font-display text-[20px] font-normal tracking-[-0.01em] leading-none relative top-[-3px];
+    @apply font-display text-[20px] font-normal tracking-[-0.01em] leading-none
+      relative top-[-3px];
   }
   main {
     @apply px-[0.85rem] py-[0.7rem];
@@ -17,10 +19,12 @@
 
 @layer components {
   #diagnostics {
-    @apply px-[0.85rem] pt-[0.5rem] pb-[0.65rem] text-[12px] border-t border-rule;
+    @apply px-[0.85rem] pt-[0.5rem] pb-[0.65rem] text-[12px] border-t
+      border-rule;
   }
   #diagnostics summary {
-    @apply cursor-pointer text-muted font-mono text-[11px] uppercase tracking-[0.06em] py-[0.2rem];
+    @apply cursor-pointer text-muted font-mono text-[11px] uppercase
+      tracking-[0.06em] py-[0.2rem];
     list-style: none;
   }
   #diagnostics summary::-webkit-details-marker {

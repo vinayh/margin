@@ -6,7 +6,9 @@ import { writeAudit } from "../db/audit.ts";
 import { getOwnedProject } from "./project.ts";
 
 /**
- * Settings surface (SPEC §12 Phase 4). Backs the side-panel "Settings" view.
+ * Stored project settings domain. No current extension controls consume these
+ * fields; keep it for compatibility until the roadmap behavior is implemented
+ * or the JSON keys are removed.
  * Project settings live as a JSON blob on `project.settings` so adding a
  * field is a schema-free change. Anything the UI hasn't touched falls back
  * to a baseline default — callers should always read through

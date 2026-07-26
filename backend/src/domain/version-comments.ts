@@ -12,7 +12,7 @@ import {
 import { loadOwnedVersion } from "./version.ts";
 
 /**
- * Side-panel "comments on this version" payload (SPEC §12 Phase 4, comment-
+ * Side-panel "comments on this version" payload (comment-
  * reconciliation slice). The frontend renders one row per projected
  * canonical comment, with badge + action menu driven by `projection.status`
  * (`clean` / `fuzzy` / `orphaned` / `manually_resolved`).

@@ -2,7 +2,7 @@ import { config } from "../config.ts";
 import { pollAllActiveVersions, renewExpiringChannels } from "../domain/watcher.ts";
 
 /**
- * In-process renew + polling loops (SPEC §9.3). Both gate on
+ * In-process renew + polling loops (SPEC §8.3). Both gate on
  * `MARGIN_PUBLIC_BASE_URL`: there's nothing to renew if no production
  * webhook address has been configured, and the polling fallback is just
  * paired infrastructure for the same setup.

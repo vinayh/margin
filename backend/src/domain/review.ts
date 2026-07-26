@@ -30,33 +30,38 @@ const DEFAULT_ACTIONS: ReviewActionKind[] = [
   "decline",
 ];
 
-export interface AssigneeMagicLinks {
+interface ReviewActionLink {
+  action: ReviewActionKind;
+  url: string;
+  expiresAt: number;
+}
+
+export interface AssigneeDeliveryResult {
   email: string;
   userId: string;
-  links: { action: ReviewActionKind; url: string; expiresAt: number }[];
-  // Non-null when Drive `permissions.create` failed for this assignee — the
-  // magic links are still issued (the reviewer can act on them) but they
-  // won't have direct doc access until the share is retried.
+  // Non-null when Drive `permissions.create` failed for this assignee.
   shareError: string | null;
-  // Non-null when the configured email transport failed. The links are still
-  // valid and visible in the side panel — the owner can copy them manually.
+  // Non-null when the configured email transport failed. Redeemable links are
+  // deliberately never returned to the requester.
   emailError: string | null;
+}
+
+interface AssigneeFanOutResult extends AssigneeDeliveryResult {
+  links: ReviewActionLink[];
 }
 
 export interface CreateReviewRequestResult {
   reviewRequestId: string;
   versionId: string;
-  assignees: AssigneeMagicLinks[];
+  assignees: AssigneeDeliveryResult[];
 }
 
 /**
  * Create a review_request, fan out review_assignment rows, share the version
  * doc with each assignee (Drive `commenter`), and mint one magic-link token
- * per assignee × action. Email transport isn't wired yet — callers receive
- * the issued `/r/<token>` URLs in the response so the side-panel POC can
- * display them inline. The audit log captures the request creation so the
- * later email-transport implementation has a record of which tokens were
- * generated.
+ * per assignee. Redeemable URLs are sent only through the configured email
+ * transport; the requester-facing result contains delivery status but never
+ * the bearer capabilities themselves.
  *
  * Drive share failures are caught per-assignee so a single bad email doesn't
  * abort the whole request; the failing share is reported back as `null` URLs
@@ -125,7 +130,7 @@ export async function createReviewRequest(opts: {
   // previous sequential loop blocked the request on the sum of each round-trip;
   // Promise.all caps it at the slowest assignee. Per-assignee failures are
   // captured into the result, so one bad email doesn't sink the batch.
-  const out: AssigneeMagicLinks[] = await Promise.all(
+  const out: AssigneeFanOutResult[] = await Promise.all(
     assignees.map((u) =>
       fanOutAssignee({
         user: u,
@@ -193,13 +198,22 @@ export async function createReviewRequest(opts: {
     );
   }
 
-  return { reviewRequestId, versionId: ver.id, assignees: out };
+  return {
+    reviewRequestId,
+    versionId: ver.id,
+    assignees: out.map(({ email, userId, shareError, emailError }) => ({
+      email,
+      userId,
+      shareError,
+      emailError,
+    })),
+  };
 }
 
 function renderSlackSummary(opts: {
   requesterEmail: string | null;
   googleDocId: string;
-  assignees: AssigneeMagicLinks[];
+  assignees: AssigneeDeliveryResult[];
   deadline: Date | null;
 }): string {
   const docUrl = googleDocUrl(opts.googleDocId);
@@ -221,7 +235,7 @@ interface FanOutArgs {
   deadline: Date | null;
 }
 
-async function fanOutAssignee(args: FanOutArgs): Promise<AssigneeMagicLinks> {
+async function fanOutAssignee(args: FanOutArgs): Promise<AssigneeFanOutResult> {
   let shareError: string | null = null;
   try {
     await createPermission(args.tp, args.googleDocId, {
@@ -242,7 +256,7 @@ async function fanOutAssignee(args: FanOutArgs): Promise<AssigneeMagicLinks> {
   const baseUrlForToken = args.baseUrl
     ? `${args.baseUrl.replace(/\/+$/, "")}/r/${issued.token}`
     : `/r/${issued.token}`;
-  const links: AssigneeMagicLinks["links"] = args.actions.map((action) => ({
+  const links: ReviewActionLink[] = args.actions.map((action) => ({
     action,
     url: `${baseUrlForToken}?action=${action}`,
     expiresAt: issued.expiresAt.getTime(),
@@ -261,6 +275,9 @@ async function fanOutAssignee(args: FanOutArgs): Promise<AssigneeMagicLinks> {
           links,
         }),
       });
+      if (args.transport.available === false) {
+        emailError = "email transport is not configured";
+      }
     } catch (err) {
       emailError = errMessage(err);
       console.warn(
@@ -302,7 +319,7 @@ function renderReviewEmailBody(opts: {
   requesterEmail: string | null;
   googleDocId: string;
   deadline: Date | null;
-  links: AssigneeMagicLinks["links"];
+  links: ReviewActionLink[];
 }): string {
   const ACTION_LABEL: Record<ReviewActionKind, string> = {
     mark_reviewed: "Mark reviewed",
@@ -334,7 +351,7 @@ function renderReviewEmailBody(opts: {
   return lines.join("\n");
 }
 
-function expiresAtIso(links: AssigneeMagicLinks["links"]): string {
+function expiresAtIso(links: ReviewActionLink[]): string {
   const first = links[0];
   if (!first) return "the request expires";
   return new Date(first.expiresAt).toISOString();

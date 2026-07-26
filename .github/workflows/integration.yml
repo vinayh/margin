@@ -27,8 +27,8 @@ jobs:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v6
-      - uses: denoland/setup-deno@v2
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: denoland/setup-deno@f2274c2c340e0c81c8f7dc407b2a477b8935f171 # v2
         with:
           deno-version: v2.x
       - run: deno ci
@@ -42,11 +42,10 @@ jobs:
           GOOGLE_CI_REFRESH_TOKEN: ${{ secrets.GOOGLE_CI_REFRESH_TOKEN }}
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
-          GOOGLE_REDIRECT_URI: http://localhost:8787/oauth/callback
           MARGIN_MASTER_KEY: ${{ secrets.MARGIN_MASTER_KEY }}
 
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v6
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: backend/coverage/lcov.info

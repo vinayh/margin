@@ -1,6 +1,5 @@
 ---
 import "../styles/global.css";
-import { Font } from "astro:assets";
 import faviconUrl from "../../../shared/icon-simple.svg?url";
 
 interface Props {
@@ -10,7 +9,7 @@ interface Props {
 
 const {
   title = "Margin. Comments on Google Docs, where you actually work.",
-  description = "Margin captures Google Docs comments and suggestions into a project workspace. Local-first, open source, built for teams that live in Docs.",
+  description = "Margin captures Google Docs comments and suggestions into a project workspace. Open source and built for teams that live in Docs.",
 } = Astro.props;
 
 const canonical = new URL(Astro.url.pathname, Astro.site).toString();
@@ -33,9 +32,6 @@ const canonical = new URL(Astro.url.pathname, Astro.site).toString();
     <meta property="og:url" content={canonical} />
     <meta name="twitter:card" content="summary_large_image" />
 
-    <Font cssVariable="--font-display" preload={[{ subset: "latin" }]} />
-    <Font cssVariable="--font-sans" />
-    <Font cssVariable="--font-mono" />
   </head>
   <body class="min-h-dvh">
     <slot />

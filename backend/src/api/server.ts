@@ -49,7 +49,7 @@ export interface ServeOptions {
  * `*` parent. Unknown paths fall through to the dispatcher's 404.
  *
  * `backgroundLoops` (default true) controls the in-process renew + poll
- * timers (SPEC §9.3). Tests pass `false` to keep the server quiet; in
+ * timers (SPEC §8.3). Tests pass `false` to keep the server quiet; in
  * prod the loops gate themselves on `MARGIN_PUBLIC_BASE_URL` being set.
  */
 export interface StartServerResult {

@@ -10,7 +10,7 @@
 # the host layout under /app keeps that relative path identical.
 # Invoke as `flyctl deploy --config backend/fly.toml` from the repo root.
 
-FROM denoland/deno:alpine AS deps
+FROM denoland/deno:2.9.3-alpine AS deps
 WORKDIR /app/backend
 COPY backend/deno.jsonc backend/deno.lock backend/package.json ./
 # `deno ci` materializes node_modules strictly from deno.lock (analogous to
@@ -21,7 +21,7 @@ COPY backend/deno.jsonc backend/deno.lock backend/package.json ./
 # class attack vector); opt-in via --allow-scripts.
 RUN deno ci
 
-FROM denoland/deno:alpine AS styles
+FROM denoland/deno:2.9.3-alpine AS styles
 WORKDIR /app/backend
 # Native bindings pulled in by @tailwindcss/cli need two alpine-runtime
 # shims that denoland/deno:alpine doesn't ship:
@@ -36,7 +36,7 @@ COPY backend/src ./src
 COPY shared/tokens.css /app/shared/tokens.css
 RUN deno run -A npm:@tailwindcss/cli -i src/api/styles/input.css -o dist/backend.css --minify
 
-FROM denoland/deno:alpine
+FROM denoland/deno:2.9.3-alpine
 WORKDIR /app/backend
 COPY --from=deps /app/backend/node_modules ./node_modules
 COPY backend/deno.jsonc backend/deno.lock backend/package.json backend/tsconfig.json ./
@@ -49,6 +49,8 @@ ENV NODE_ENV=production
 ENV PORT=8787
 
 EXPOSE 8787
+
+USER deno
 
 # Scoped runtime permissions. A compromised dep in the import tree can
 # only reach the env vars, network hosts, and syscalls listed below.

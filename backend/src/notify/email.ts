@@ -1,4 +1,5 @@
 import { config } from "../config.ts";
+import { UpstreamTransportError } from "../errors.ts";
 
 export interface EmailMessage {
   to: string;
@@ -7,12 +8,15 @@ export interface EmailMessage {
 }
 
 export interface EmailTransport {
+  readonly available?: boolean;
   send(msg: EmailMessage): Promise<void>;
 }
 
 /** Default transport when nothing is configured. Logs a redacted preview so
  * operators see what would be sent without leaking redeemable URLs. */
 export class LogEmailTransport implements EmailTransport {
+  readonly available = false;
+
   async send(msg: EmailMessage): Promise<void> {
     console.log(
       `[email/log] to=${msg.to} subject=${JSON.stringify(msg.subject)}\n${redactSecrets(msg.text)}`,
@@ -54,7 +58,7 @@ export class ResendEmailTransport implements EmailTransport {
     });
     if (!res.ok) {
       const body = await res.text().catch(() => "<no body>");
-      throw new Error(`resend: ${res.status} ${body}`);
+      throw new UpstreamTransportError("resend", res.status, body);
     }
   }
 }

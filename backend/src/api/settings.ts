@@ -1,5 +1,5 @@
 import * as v from "valibot";
-import { IdSchema, notFound, validatedPost } from "./middleware.ts";
+import { notFound, UuidSchema, validatedPost } from "./middleware.ts";
 import {
   loadProjectSettings,
   ProjectSettingsPatchSchema,
@@ -10,13 +10,13 @@ import {
 const MAX_BODY_BYTES = 8 * 1024;
 
 const SettingsBodySchema = v.object({
-  projectId: IdSchema,
+  projectId: UuidSchema,
   patch: v.optional(ProjectSettingsPatchSchema),
 });
 
 /**
  * POST /api/extension/settings — project settings surface for the side
- * panel (SPEC §12 Phase 4: notification prefs, default reviewers, Slack
+ * clients that still use stored notification prefs, default reviewers, Slack
  * workspace linking).
  *
  * Body shape:

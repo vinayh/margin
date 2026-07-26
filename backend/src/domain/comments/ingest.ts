@@ -40,7 +40,7 @@ const inFlight = new Map<string, Promise<IngestResult>>();
  * Pull every annotation from a version's doc and normalize into canonical_comment +
  * comment_projection. Idempotent: existing projections short-circuit via google_comment_id.
  *
- * Source of truth is the .docx export (SPEC §9.8) — it has exact anchors, disjoint multi-range
+ * Source of truth is the .docx export (SPEC §8.7) — it has exact anchors, disjoint multi-range
  * comments, and suggestion author+timestamp that comments.list / documents.get don't expose.
  * comments.list runs in parallel only to (a) recover the author email for `me === true` (OOXML
  * drops it) and (b) reconstruct reply chains (OOXML flattens replies).
@@ -123,7 +123,9 @@ async function runIngest(versionId: string): Promise<IngestResult> {
     if (config.debug) {
       console.warn(
         `[ingest] skipping reap for version ${versionId}: export looks stale ` +
-          `(malformed=${annotations.malformed ?? false}, docxComments=${annotations.comments.length}, ` +
+          `(malformed=${
+            annotations.malformed ?? false
+          }, docxComments=${annotations.comments.length}, ` +
           `docxSuggestions=${annotations.suggestions.length}, driveComments=${driveComments.length})`,
       );
     }

@@ -1,10 +1,13 @@
 # Setup
 
-Local development setup for Margin. For deployment to Fly.io see [`deployment.md`](./deployment.md). For CI / integration-test secrets see [`testing.md`](./testing.md).
+Local development setup for Margin. For deployment to Fly.io see
+[`deployment.md`](./deployment.md). For CI / integration-test secrets see
+[`testing.md`](./testing.md).
 
 ## Install + configure
 
-All backend commands run from `backend/`. `cd backend` once at the start of a session, or prefix invocations with it.
+All backend commands run from `backend/`. `cd backend` once at the start of a
+session, or prefix invocations with it.
 
 1. **Install:**
 
@@ -13,13 +16,25 @@ All backend commands run from `backend/`. `cd backend` once at the start of a se
    deno install --frozen
    ```
 
-   This populates `backend/node_modules/` (via `nodeModulesDir: "auto"` in `deno.jsonc`). The extension and site each have their own `node_modules/` under their workspace dirs and are independent.
+   This populates `backend/node_modules/` (via `nodeModulesDir: "auto"` in
+   `deno.jsonc`). The extension and site each have their own `node_modules/`
+   under their workspace dirs and are independent.
 
-2. **Create a Google Cloud OAuth client.** In [console.cloud.google.com](https://console.cloud.google.com), create a project, enable the **Google Drive API**, **Google Docs API**, and **Google Picker API**, then create an OAuth 2.0 client (type: web application). Add `http://localhost:8787/api/auth/callback/google` as an authorized redirect URI (Better Auth's default callback path).
+2. **Create a Google Cloud OAuth client.** In
+   [console.cloud.google.com](https://console.cloud.google.com), create a
+   project, enable the **Google Drive API**, **Google Docs API**, and **Google
+   Picker API**, then create an OAuth 2.0 client (type: web application). Add
+   `http://localhost:8787/api/auth/callback/google` as an authorized redirect
+   URI (Better Auth's default callback path).
 
-3. **Create a Picker API key.** In the same GCP project: APIs & Services → Credentials → "Create credentials" → API key. Restrict it to the Picker API. Note the GCP project number (Cloud Console → "Project info" → "Project number", *not* the project ID).
+3. **Create a Picker API key.** In the same GCP project: APIs & Services →
+   Credentials → "Create credentials" → API key. Restrict it to the Picker API.
+   Note the GCP project number (Cloud Console → "Project info" → "Project
+   number", _not_ the project ID).
 
-4. **Generate two independent 32-byte base64 secrets.** One for envelope encryption of Google refresh tokens at rest, one for Better Auth (cookie HMAC + OAuth-state encryption). Run the one-liner twice:
+4. **Generate two independent 32-byte base64 secrets.** One for envelope
+   encryption of Google refresh tokens at rest, one for Better Auth (cookie
+   HMAC + OAuth-state encryption). Run the one-liner twice:
 
    ```sh
    deno eval 'console.log(btoa(String.fromCharCode(...crypto.getRandomValues(new Uint8Array(32)))))'
@@ -38,7 +53,13 @@ All backend commands run from `backend/`. `cd backend` once at the start of a se
    # DATABASE_URL_DIRECT=...             # only needed when DATABASE_URL is pooled (e.g. Neon)
    ```
 
-   Deno tasks don't auto-load `.env` by default; run them under your shell's env (`set -a; source .env; set +a`) or pass `--env-file=.env` if you wire it into a task. The Picker vars are only required for the extension's "add doc" flow. The rest of the server works without them. For `DATABASE_URL`, point at any Postgres instance — local Docker (`docker run --rm -p 5432:5432 -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=margin postgres:17`) or a Neon/Supabase dev branch both work.
+   Deno tasks don't auto-load `.env` by default; run them under your shell's env
+   (`set -a; source .env; set +a`) or pass `--env-file=.env` if you wire it into
+   a task. The Picker vars are only required for the extension's "add doc" flow.
+   The rest of the server works without them. For `DATABASE_URL`, point at any
+   Postgres instance — local Docker
+   (`docker run --rm -p 5432:5432 -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=margin postgres:17`)
+   or a Neon/Supabase dev branch both work.
 
 6. **Apply migrations** (still inside `backend/`):
 
@@ -48,7 +69,10 @@ All backend commands run from `backend/`. `cd backend` once at the start of a se
 
 ## CLI
 
-Run any subcommand with `deno task margin <subcommand>`. Extra args after the task name pass through to the underlying CLI. The `--user <email>` flag selects which connected account acts as the doc owner; if omitted, the first user in the DB is used.
+Run any subcommand with `deno task margin <subcommand>`. Extra args after the
+task name pass through to the underlying CLI. The `--user <email>` flag selects
+which connected account acts as the doc owner; if omitted, the first user in the
+DB is used.
 
 **Docs**
 
@@ -58,7 +82,9 @@ deno task margin smoke <doc-url>                                getFile + copyFi
 deno task margin inspect <doc-url>                              dump raw Drive/Docs API responses
 ```
 
-Sign-in happens in the browser extension (Options → "Sign in with Google"), not on the CLI. Better Auth handles the OAuth dance and stores the envelope-encrypted refresh token in `account.refresh_token`.
+Sign-in happens in the browser extension (Options → "Sign in with Google"), not
+on the CLI. Better Auth handles the OAuth dance and stores the
+envelope-encrypted refresh token in `account.refresh_token`.
 
 **Projects, versions, comments**
 
@@ -102,7 +128,8 @@ deno task serve [--port <n>]                                    start the HTTP A
 
 ## Validate the backend end-to-end
 
-After the steps above, connect a real Google account and exercise the full backend stack:
+After the steps above, connect a real Google account and exercise the full
+backend stack:
 
 ```sh
 # 1. Build and load the browser extension (see "Test the browser extension"
@@ -133,18 +160,32 @@ deno task margin comments ingest <version-id>
 deno task margin comments list <project-id>
 ```
 
-`version create` copies the parent doc via Drive, names the copy `[Margin vN] <original>`, and stores a SHA-256 hash of the copy's plaintext as the snapshot fingerprint. `comments ingest` pulls Drive comments + replies, computes a canonical anchor (quoted text + paragraph hash + structural offset) against the version's doc, and is idempotent on re-run.
+`version create` copies the parent doc via Drive, names the copy
+`[Margin vN] <original>`, and stores a SHA-256 hash of the copy's plaintext as
+the snapshot fingerprint. `comments ingest` pulls Drive comments + replies,
+computes a canonical anchor (quoted text + paragraph hash + structural offset)
+against the version's doc, and is idempotent on re-run.
 
 ## Track an existing doc via the Drive Picker
 
-The Picker is the only mechanism that grants `drive.file` access to a doc the OAuth client didn't create ([`spec.md` §9.2](./spec.md#92-drivefile-scope)). Open any Google Doc, click the Margin toolbar icon, click **Add to Margin**. The backend-hosted Picker (`/api/picker/page`) opens in a new tab. Pick the doc; the page POSTs to `/api/picker/register-doc` and auto-closes. Works on Chromium and Firefox.
+The Picker is the only mechanism that grants `drive.file` access to a doc the
+OAuth client didn't create
+([`spec.md` §8.2](./spec.md#82-drivefile-is-per-file)). Open any Google Doc,
+click the Margin toolbar icon, click **Add to Margin**. The backend-hosted
+Picker (`/api/picker/page`) opens in a new tab. Pick the doc; the page POSTs to
+`/api/picker/register-doc` and auto-closes. Works on Chromium and Firefox.
 
 ## Test the browser extension
 
-The MV3 extension lives in [`extension/`](../extension/). Build, load, configure, and sign-in steps are in its [README](../extension/README.md). End-to-end smoke test after that:
+The MV3 extension lives in [`extension/`](../extension/). Build, load,
+configure, and sign-in steps are in its [README](../extension/README.md).
+End-to-end smoke test after that:
 
 1. Start the backend: `deno task serve` (defaults to `http://localhost:8787`).
-2. Open a Google Doc, click the toolbar icon, click **Add to Margin**. The Picker tab opens; pick the doc and the page registers it as a project.
-3. `deno task margin comments list <project-id>` shows ingested comments after the first webhook fires (or `deno task margin watcher poll` to force-pull).
+2. Open a Google Doc, click the toolbar icon, click **Add to Margin**. The
+   Picker tab opens; pick the doc and the page registers it as a project.
+3. `deno task margin comments list <project-id>` shows ingested comments after
+   the first webhook fires (or `deno task margin watcher poll` to force-pull).
 
-For the manual test checklist covering popup states, toolbar routing, review flow, CORS, and cross-browser, see [`extension-qa.md`](./extension-qa.md).
+For the manual test checklist covering popup states, toolbar routing, review
+flow, CORS, and cross-browser, see [`extension-qa.md`](./extension-qa.md).

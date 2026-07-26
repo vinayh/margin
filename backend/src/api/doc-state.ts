@@ -17,6 +17,9 @@ export const DocIdBodySchema = v.object({
  * which is all POST.
  */
 export function handleDocStatePost(req: Request): Promise<Response> {
-  return validatedPost(req, DocIdBodySchema, ({ auth, body }) =>
-    getDocState({ docId: body.docId, userId: auth.userId }));
+  return validatedPost(
+    req,
+    DocIdBodySchema,
+    ({ auth, body }) => getDocState({ docId: body.docId, userId: auth.userId }),
+  );
 }

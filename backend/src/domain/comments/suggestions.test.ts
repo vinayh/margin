@@ -152,7 +152,7 @@ describe("ingestSuggestions", () => {
   test("re-ingest with a rotated date but identical position dedupes", async () => {
     // Drive's docx export stamps a fresh `w:date` on every export of an
     // unchanged revision, so the idempotency key must ignore the timestamp.
-    // Regression for spec.md §14 — without this, every watcher poll inserts
+    // Regression: without this, every watcher poll inserts
     // a duplicate canonical row per suggestion.
     const { proj, ver } = await seedHarness();
     const sug = suggestion({ id: "sug-1", date: "2026-01-01T00:00:00Z" });

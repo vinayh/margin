@@ -1,5 +1,5 @@
 import { useEffect, useState } from "preact/hooks";
-import { getSettingsStatus } from "../../ui/sendMessage.ts";
+import { getSettingsStatus, requestOrThrow } from "../../ui/sendMessage.ts";
 
 /**
  * Bottom-of-popup diagnostics. Pre-docx-ingest this also showed the SW
@@ -51,26 +51,14 @@ async function probeBackend(
   // Prod hides the URL — it's an implementation detail. Dev keeps it
   // visible so the developer can spot a localhost/prod mixup.
   const label = import.meta.env.DEV ? backendUrl : "backend";
-  const url = new URL("/healthz", backendUrl).toString();
   try {
-    const res = await fetch(url, {
-      method: "GET",
-      signal: AbortSignal.timeout(3000),
-    });
+    const res = await requestOrThrow({ kind: "health/check" });
     if (!res.ok) {
       setConn({
         tone: "error",
-        text: `${capitalize(label)} responded ${res.status}`,
-      });
-      return;
-    }
-    const json = (await res.json().catch(() => null)) as
-      | { ok?: boolean }
-      | null;
-    if (!json?.ok) {
-      setConn({
-        tone: "error",
-        text: `${capitalize(label)} reachable but /healthz did not return ok`,
+        text: res.status === null
+          ? `${capitalize(label)} did not respond`
+          : `${capitalize(label)} responded ${res.status}`,
       });
       return;
     }

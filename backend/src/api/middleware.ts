@@ -14,6 +14,7 @@ export const MAX_ID_LEN = 200;
 export const DEFAULT_MAX_BODY_BYTES = 4 * 1024;
 
 export const IdSchema = v.pipe(v.string(), v.minLength(1), v.maxLength(MAX_ID_LEN));
+export const UuidSchema = v.pipe(v.string(), v.uuid());
 
 // Memoized on Request so pre-handler gates + the handler share one session lookup.
 const sessionCache = new WeakMap<Request, Promise<AuthenticatedRequest | null>>();

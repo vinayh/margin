@@ -173,24 +173,28 @@
   }
 
   .title {
-    @apply font-sans font-semibold m-0 mb-[0.15rem] text-[15px] tracking-[-0.005em] leading-[1.15] truncate text-ink;
+    @apply font-sans font-semibold m-0 mb-[0.15rem] text-[15px]
+      tracking-[-0.005em] leading-[1.15] truncate text-ink;
   }
   .subtitle {
     @apply text-muted font-mono text-[11px] m-0 mb-[0.6rem];
   }
 
   .stats {
-    @apply grid grid-cols-2 gap-y-2 gap-x-[0.9rem] m-0 mb-[0.7rem] pt-[0.4rem] border-t border-rule;
+    @apply grid grid-cols-2 gap-y-2 gap-x-[0.9rem] m-0 mb-[0.7rem] pt-[0.4rem]
+      border-t border-rule;
   }
   .stat-label {
-    @apply text-muted font-mono text-[10px] uppercase tracking-[0.06em] m-0 mb-[0.1rem];
+    @apply text-muted font-mono text-[10px] uppercase tracking-[0.06em] m-0
+      mb-[0.1rem];
   }
   .stat-value {
     @apply m-0 tabular-nums text-ink;
   }
 
   .banner {
-    @apply px-[0.65rem] py-[0.55rem] m-0 mb-[0.7rem] border border-rule rounded-md bg-cream-2;
+    @apply px-[0.65rem] py-[0.55rem] m-0 mb-[0.7rem] border border-rule
+      rounded-md bg-cream-2;
   }
 
   .status-badge {

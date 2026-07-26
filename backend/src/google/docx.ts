@@ -2,7 +2,7 @@ import { strFromU8, unzipSync } from "fflate";
 import { XMLParser } from "fast-xml-parser";
 import type { DocRegion } from "../db/schema.ts";
 
-// OOXML (.docx) parser. Pure: bytes in, DocxAnnotations out. See SPEC §9.8.
+// OOXML (.docx) parser. Pure: bytes in, DocxAnnotations out. See SPEC §8.7.
 
 export type DocxSuggestionKind = "suggestion_insert" | "suggestion_delete";
 

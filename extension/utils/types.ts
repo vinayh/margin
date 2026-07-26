@@ -121,9 +121,7 @@ export interface ReviewRequestResult {
   assignees: {
     email: string;
     userId: string;
-    links: { action: ReviewActionKind; url: string; expiresAt: number }[];
     // Non-null when Drive `permissions.create` failed for this assignee.
-    // Magic links are still valid; the reviewer just lacks direct doc access.
     shareError: string | null;
     // Non-null when the configured email transport failed.
     emailError: string | null;
@@ -246,13 +244,4 @@ export interface CommentActionResult {
     status: ProjectionStatus;
     anchorMatchConfidence: number | null;
   } | null;
-}
-
-// Mirror of backend's ProjectSettingsView.
-export interface ProjectSettingsView {
-  notifyOnComment: boolean;
-  notifyOnReviewComplete: boolean;
-  defaultReviewerEmails: string[];
-  defaultOverlayId: string | null;
-  slackWorkspaceRef: string | null;
 }

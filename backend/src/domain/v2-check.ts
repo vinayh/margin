@@ -8,8 +8,8 @@ import { type DocxComment, type DocxSuggestion, parseDocx } from "../google/docx
  * Docs editor format" enabled, do anchored comments survive? Disjoint multi-
  * range comments? Original `w:author` / `w:date` metadata? Tracked-change
  * suggestions as suggesting-mode edits? Outcome shapes Phase 6 architecture
- * (see spec.md §12 Phase 6 V2). This is a one-shot smoke; results land in
- * docs/spec.md §9.9 once the operator runs it.
+ * (see docs/roadmap.md). This is a one-shot smoke; record the result in the
+ * roadmap once the operator runs it.
  *
  * What it does:
  *   1. Builds a small `.docx` with three known anchors (start-of-paragraph,

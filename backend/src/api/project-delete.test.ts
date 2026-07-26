@@ -35,7 +35,7 @@ describe("handleProjectDeletePost auth + cascade", () => {
     const u = await seedUser();
     const { token } = await issueTestSession({ userId: u.id });
     const res = await handleProjectDeletePost(
-      postDelete({ projectId: "missing" }, { auth: `Bearer ${token}` }),
+      postDelete({ projectId: crypto.randomUUID() }, { auth: `Bearer ${token}` }),
     );
     expect(res.status).toBe(404);
   });

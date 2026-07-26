@@ -18,6 +18,7 @@ import {
   sendMessage,
 } from "../../ui/sendMessage.ts";
 import { subscribeSessionTokenChanges } from "../../utils/storage.ts";
+import { PANEL_LIFECYCLE_PORT } from "../../utils/constants.ts";
 import type {
   DocState,
   ProjectDetail,
@@ -101,10 +102,13 @@ export function App() {
     const onUpdated = (
       _tabId: number,
       changeInfo: { url?: string; status?: string },
+      tab: chrome.tabs.Tab,
     ): void => {
       // Only re-boot on URL changes or when the tab finishes loading; skip
       // title / favicon / audible / pinned churn.
-      if (changeInfo.url || changeInfo.status === "complete") schedule();
+      if (tab.active && (changeInfo.url || changeInfo.status === "complete")) {
+        schedule();
+      }
     };
     const onFocusChanged = (windowId: number): void => {
       if (windowId !== browser.windows.WINDOW_ID_NONE) schedule();
@@ -127,10 +131,20 @@ export function App() {
     // already cached when the click fires. Disconnect on unmount also fires
     // automatically when the user closes the panel.
     let port: chrome.runtime.Port | null = null;
+    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+    let stopped = false;
     void browser.windows.getCurrent().then((win) => {
       if (win.id === undefined) return;
-      port = browser.runtime.connect({ name: "margin-panel-lifecycle" });
-      port.postMessage({ kind: "panel/hello", windowId: win.id });
+      const connect = (): void => {
+        if (stopped) return;
+        port = browser.runtime.connect({ name: PANEL_LIFECYCLE_PORT });
+        port.postMessage({ kind: "panel/hello", windowId: win.id });
+        port.onDisconnect.addListener(() => {
+          port = null;
+          if (!stopped) reconnectTimer = setTimeout(connect, 250);
+        });
+      };
+      connect();
     });
 
     return () => {
@@ -139,6 +153,8 @@ export function App() {
       browser.windows.onFocusChanged.removeListener(onFocusChanged);
       unsubscribeToken();
       if (bootTimer.current) clearTimeout(bootTimer.current);
+      stopped = true;
+      if (reconnectTimer) clearTimeout(reconnectTimer);
       port?.disconnect();
     };
   }, [runBoot]);
@@ -203,6 +219,7 @@ function Body({
         <Dashboard
           key={view.detail.project.id}
           detail={view.detail}
+          onDetailChange={(detail) => setView({ kind: "loaded", detail })}
           onOpenDiff={(fromVersionId, toVersionId) =>
             setView({
               kind: "diff",

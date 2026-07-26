@@ -6,15 +6,15 @@ Structured review of Google Docs across drafts, audiences, and orgs. Snapshot a 
 
 ## Build status
 
-- [x] [Phase 1: Core engine](./docs/spec.md#phase-1-core-engine) — backend primitives + CLI
-- [x] [Phase 2: Backend HTTP API + minimal web entry points](./docs/spec.md#phase-2-backend-http-api--minimal-web-entry-points) — `deno task serve`, Better Auth, watcher loops
-- [x] [Phase 3: Extension popup as project surface](./docs/spec.md#phase-3-extension-popup-as-project-surface) — tracked-state lookup + Drive Picker
-- [x] [Phase 4: Extension rich UI + docx-export ingest + magic-link action handlers](./docs/spec.md#phase-4-extension-rich-ui--docx-export-ingest--magic-link-action-handlers) — MVP
-- [ ] [Phase 5: Slack bot](./docs/spec.md#phase-5-slack-bot)
-- [ ] [Phase 6: Cross-org polish + extension visualization](./docs/spec.md#phase-6-cross-org-polish--extension-visualization) — gated on V1/V2 validation
-- [ ] [Phase 7: Workspace add-on, marketplace listings, advanced features](./docs/spec.md#phase-7-workspace-add-on-marketplace-listings-advanced-features)
+- [x] Core engine — backend primitives + CLI
+- [x] Backend HTTP API + minimal web entry points — `deno task serve`, Better Auth, watcher loops
+- [x] Extension popup — tracked-state lookup + Drive Picker
+- [x] Extension side panel + DOCX ingest + review-action handlers — MVP
+- [ ] [Slack coordination](./docs/roadmap.md#slack-coordination)
+- [ ] [Extension visualization](./docs/roadmap.md#extension-visualization)
+- [ ] [Workspace add-on and marketplace listings](./docs/roadmap.md#workspace-add-on-and-listings)
 
-See [`docs/spec.md` §12](./docs/spec.md#12-build-sequence) for per-phase details.
+See the [`docs/roadmap.md`](./docs/roadmap.md) for pending work.
 
 ## Example workflows
 
@@ -28,7 +28,7 @@ See [`docs/spec.md` §12](./docs/spec.md#12-build-sequence) for per-phase detail
 
 ## What works, and what doesn't
 
-For the underlying Google-side constraints that drive these limits, see [`docs/spec.md` §9](./docs/spec.md#9-google-workspace-api-constraints).
+For the underlying Google-side constraints that drive these limits, see [`docs/spec.md` §8](./docs/spec.md#8-google-workspace-api-constraints).
 
 **Works today:**
 
@@ -55,4 +55,4 @@ Deno runtime with scoped per-task permissions, Postgres via `pg` + Drizzle (nati
 
 ## Contributing
 
-See [`docs/CONTRIBUTING.md`](./docs/CONTRIBUTING.md) to get a local dev environment running. Project conventions, repo layout, and the schema-migration workflow live in [`AGENTS.md`](./AGENTS.md). Long-form design, per-phase build plan, and Google-side constraints live in [`docs/spec.md`](./docs/spec.md).
+See [`docs/CONTRIBUTING.md`](./docs/CONTRIBUTING.md) to get a local dev environment running. Project conventions, repo layout, and the schema-migration workflow live in [`AGENTS.md`](./AGENTS.md). Durable product behavior and Google-side constraints live in [`docs/spec.md`](./docs/spec.md); pending work lives in [`docs/roadmap.md`](./docs/roadmap.md).

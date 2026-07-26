@@ -4,7 +4,7 @@ import { project, version } from "../db/schema.ts";
 import { requireUserByEmail } from "./user.ts";
 
 /**
- * Dev-only synthetic project + version seed (SPEC §12 Phase 2 test rig).
+ * Dev-only synthetic project + version seed for the extension test rig.
  *
  * Used exclusively by the chrome-devtools-mcp E2E harness to pre-populate a
  * project pointing at a real doc without paying the Drive validation cost

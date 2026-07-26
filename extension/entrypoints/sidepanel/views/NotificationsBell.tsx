@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 import { Bell, BellRing, Check } from "lucide-preact";
-import { requestOrThrow, sendMessage } from "../../../ui/sendMessage.ts";
+import { requestOrThrow } from "../../../ui/sendMessage.ts";
 import { formatRelative } from "../../../ui/format-time.ts";
 import type { NotificationView } from "../../../utils/messages.ts";
 
@@ -27,12 +27,16 @@ export function NotificationsBell({
   const [state, setState] = useState<State>({ kind: "idle" });
   const containerRef = useRef<HTMLDivElement>(null);
 
-  async function reload(): Promise<void> {
-    setState({ kind: "loading" });
+  async function reload(preserveCurrent = false): Promise<void> {
+    if (!preserveCurrent) setState({ kind: "loading" });
     try {
       const r = await requestOrThrow({ kind: "notifications/list" });
       setState({ kind: "loaded", items: r.items, unread: r.unread });
     } catch (err) {
+      if (preserveCurrent) {
+        console.warn("[margin] notification refresh failed:", err);
+        return;
+      }
       setState({
         kind: "error",
         message: err instanceof Error ? err.message : String(err),
@@ -42,7 +46,7 @@ export function NotificationsBell({
 
   useEffect(() => {
     void reload();
-    const id = setInterval(() => void reload(), 60_000);
+    const id = setInterval(() => void reload(true), 60_000);
     return () => clearInterval(id);
   }, []);
 
@@ -57,20 +61,20 @@ export function NotificationsBell({
   }, [open]);
 
   async function markAllRead(): Promise<void> {
-    await sendMessage({ kind: "notifications/mark-read", all: true });
-    await reload();
+    await requestOrThrow({ kind: "notifications/mark-read", all: true });
+    await reload(true);
   }
 
   async function clickItem(item: NotificationView): Promise<void> {
     if (item.readAt === null) {
-      await sendMessage({
+      await requestOrThrow({
         kind: "notifications/mark-read",
         ids: [item.id],
       });
     }
     setOpen(false);
     if (item.payload.projectId) onOpenProject?.(item.payload.projectId);
-    await reload();
+    await reload(true);
   }
 
   const unread = state.kind === "loaded" ? state.unread : 0;
@@ -87,7 +91,7 @@ export function NotificationsBell({
         onClick={(ev) => {
           ev.stopPropagation();
           setOpen((v) => !v);
-          if (!open) void reload();
+          if (!open) void reload(true);
         }}
       >
         {unread > 0 ? <BellRing /> : <Bell />}

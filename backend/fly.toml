@@ -5,7 +5,7 @@
 # - Postgres lives off-platform (Neon, etc.). DATABASE_URL (pooled) and
 #   DATABASE_URL_DIRECT (unpooled, for migrations) are set via `fly secrets set`.
 # - min_machines_running = 1 keeps the Drive `files.watch` webhook
-#   reachable without cold-start drops (SPEC §9.3). Auto-stop still
+#   reachable without cold-start drops (SPEC §8.3). Auto-stop still
 #   trims any auto-scaled extras when idle.
 # - Health check hits /healthz (served by `deno task serve`).
 # - Secrets (GOOGLE_*, MARGIN_MASTER_KEY, BETTER_AUTH_SECRET,

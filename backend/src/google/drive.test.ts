@@ -2,7 +2,7 @@ import "../../test/setup.ts";
 import { afterEach, describe, it as test } from "@std/testing/bdd";
 import { expect } from "@std/expect";
 import { setFetch } from "../../test/fetch.ts";
-import type { TokenProvider } from "./api.ts";
+import { GoogleApiError, type TokenProvider } from "./api.ts";
 import {
   copyFile,
   createPermission,
@@ -105,11 +105,13 @@ describe("exportDocx", () => {
     );
   });
 
-  test("throws with status + body on a non-OK", async () => {
+  test("throws a redacted error message on a non-OK", async () => {
     captureNext(new Response("server says no", { status: 503 }));
-    await expect(exportDocx(tp, "x")).rejects.toThrow(
-      /exportDocx failed: 503 server says no/,
-    );
+    const err = await exportDocx(tp, "x").catch((caught) => caught);
+    expect(err).toBeInstanceOf(GoogleApiError);
+    expect((err as Error).message).toMatch(/503 .*\/export/);
+    expect((err as Error).message).not.toContain("server says no");
+    expect((err as GoogleApiError).body).toBe("server says no");
   });
 });
 
@@ -193,7 +195,7 @@ describe("stopChannel", () => {
     captureNext(new Response("boom", { status: 500 }));
     await expect(
       stopChannel(tp, { id: "ch-1", resourceId: "res-1" }),
-    ).rejects.toThrow(/stopChannel failed: 500/);
+    ).rejects.toThrow(/500 .*\/channels\/stop/);
   });
 });
 
@@ -260,20 +262,16 @@ describe("listComments", () => {
     expect(calls[0]!.searchParams.get("pageSize")).toBe("100");
   });
 
-  test("passes through includeDeleted + startModifiedTime", async () => {
+  test("passes through includeDeleted", async () => {
     const { reqs } = captureNext(
       new Response(JSON.stringify({ comments: [] }), {
         status: 200,
         headers: { "content-type": "application/json" },
       }),
     );
-    await listComments(tp, "doc-id", {
-      includeDeleted: true,
-      startModifiedTime: "2026-01-01T00:00:00Z",
-    });
+    await listComments(tp, "doc-id", { includeDeleted: true });
     const u = new URL(reqs[0]!.url);
     expect(u.searchParams.get("includeDeleted")).toBe("true");
-    expect(u.searchParams.get("startModifiedTime")).toBe("2026-01-01T00:00:00Z");
   });
 });
 

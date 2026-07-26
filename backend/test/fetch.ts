@@ -1,8 +1,6 @@
 /**
- * `globalThis.fetch` is typed `typeof fetch`, which on Bun carries a static
- * `preconnect` method that test fakes don't supply. Wrapping the assignment
- * lets each test write a plain async function without sprinkling
- * `as unknown as typeof fetch` casts.
+ * Centralize the `typeof fetch` cast so tests can install a plain async fake
+ * without repeating `as unknown as typeof fetch` at every call site.
  */
 export type FetchLike = (
   input: string | URL | Request,

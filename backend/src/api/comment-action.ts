@@ -1,10 +1,5 @@
 import * as v from "valibot";
-import {
-  badRequest,
-  IdSchema,
-  notFound,
-  validatedPost,
-} from "./middleware.ts";
+import { badRequest, notFound, UuidSchema, validatedPost } from "./middleware.ts";
 import {
   CommentActionBadRequestError,
   CommentActionNotFoundError,
@@ -12,7 +7,7 @@ import {
 } from "../domain/comment-action.ts";
 
 const CommentActionBodySchema = v.object({
-  canonicalCommentId: IdSchema,
+  canonicalCommentId: UuidSchema,
   action: v.picklist([
     "accept_projection",
     "reanchor",
@@ -20,12 +15,12 @@ const CommentActionBodySchema = v.object({
     "mark_wontfix",
     "reopen",
   ]),
-  targetVersionId: v.optional(v.nullable(IdSchema)),
+  targetVersionId: v.optional(v.nullable(UuidSchema)),
 });
 
 /**
  * POST /api/extension/comment-action — reconciliation actions on a single
- * canonical comment (SPEC §12 Phase 4). Body:
+ * canonical comment. Body:
  *   { canonicalCommentId, action, targetVersionId? }
  *
  * `action` is one of `accept_projection`, `reanchor`, `mark_resolved`,

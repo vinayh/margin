@@ -1,8 +1,11 @@
-import { handleDriveWatchEvent } from "../domain/watcher.ts";
+import {
+  authenticateDriveWatchChannel,
+  handleAuthenticatedDriveWatchEvent,
+} from "../domain/watcher.ts";
 
 /**
  * Drive `files.watch` push receiver. Google posts an empty body with state in
- * the `X-Goog-*` headers (SPEC §9.3); we always respond 200 OK so Google
+ * the `X-Goog-*` headers (SPEC §8.3); we always respond 200 OK so Google
  * stops retrying — channel-level errors are logged for the operator.
  *
  * Drive retries failed pushes from multiple regions, so the same logical event
@@ -36,13 +39,18 @@ export async function handleDriveWebhook(req: Request): Promise<Response> {
     return new Response("missing X-Goog-Channel-ID", { status: 400 });
   }
 
-  if (messageNumber) {
-    const fresh = rememberEvent(`${channelId}:${messageNumber}`);
-    if (!fresh) return new Response(null, { status: 200 });
-  }
-
   try {
-    await handleDriveWatchEvent({ channelId, channelToken, resourceState });
+    const channel = await authenticateDriveWatchChannel({ channelId, channelToken });
+    if (!channel) return new Response(null, { status: 200 });
+
+    // Authenticate first: an invalid delivery must not reserve the legitimate
+    // event's deduplication key and suppress its later processing.
+    if (messageNumber) {
+      const fresh = rememberEvent(`${channelId}:${messageNumber}`);
+      if (!fresh) return new Response(null, { status: 200 });
+    }
+
+    await handleAuthenticatedDriveWatchEvent(channel, resourceState);
   } catch (err) {
     console.error(`drive webhook error for channel ${channelId}: ${err}`);
   }

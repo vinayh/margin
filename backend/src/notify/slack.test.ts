@@ -2,6 +2,7 @@ import "../../test/setup.ts";
 import { afterEach, describe, it as test } from "@std/testing/bdd";
 import { expect } from "@std/expect";
 import { setFetch } from "../../test/fetch.ts";
+import { UpstreamTransportError } from "../errors.ts";
 import {
   _setSlackTransportForTests,
   getSlackTransport,
@@ -36,10 +37,13 @@ describe("WebhookSlackTransport", () => {
     expect(body).toEqual({ text: "review requested on v2" });
   });
 
-  test("rejects with status + body on non-2xx", async () => {
+  test("rejects without putting the response body in the message", async () => {
     setFetch(async () => new Response("invalid_payload", { status: 400 }));
     const t = new WebhookSlackTransport("https://hooks.slack.com/services/X/Y/Z");
-    await expect(t.send({ text: "hi" })).rejects.toThrow(/slack: 400 invalid_payload/);
+    const err = await t.send({ text: "hi" }).catch((caught) => caught);
+    expect(err).toBeInstanceOf(UpstreamTransportError);
+    expect((err as Error).message).toBe("slack: 400");
+    expect((err as UpstreamTransportError).body).toBe("invalid_payload");
   });
 });
 

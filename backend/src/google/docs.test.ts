@@ -66,22 +66,6 @@ describe("op builders", () => {
       deleteContentRange: { range: { startIndex: 10, endIndex: 20 } },
     });
   });
-
-  test("replaceAllText defaults to matchCase=true", () => {
-    expect(op.replaceAllText("foo", "bar")).toEqual({
-      replaceAllText: {
-        containsText: { text: "foo", matchCase: true },
-        replaceText: "bar",
-      },
-    });
-  });
-
-  test("replaceAllText honours matchCase override", () => {
-    const r = op.replaceAllText("foo", "bar", false) as {
-      replaceAllText: { containsText: { matchCase: boolean } };
-    };
-    expect(r.replaceAllText.containsText.matchCase).toBe(false);
-  });
 });
 
 describe("extractPlainText", () => {

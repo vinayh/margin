@@ -19,7 +19,7 @@ usage:
   deno task margin watcher poll
   deno task margin watcher simulate <channel-id> [--state update] [--token <t>]
 
-Per SPEC §9.3 the address must be an HTTPS endpoint with a domain verified in
+Per SPEC §8.3 the address must be an HTTPS endpoint with a domain verified in
 Google Search Console. The HTTP API serves \`/webhooks/drive\`; \`simulate\`
 lets you exercise the handler locally without a public address.`;
 

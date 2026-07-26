@@ -1,12 +1,12 @@
 import * as v from "valibot";
-import { IdSchema, validatedPost } from "./middleware.ts";
+import { UuidSchema, validatedPost } from "./middleware.ts";
 import { getOwnedProject } from "../domain/project.ts";
 import { createVersion } from "../domain/version.ts";
 
 const MAX_LABEL_LEN = 64;
 
 const VersionCreateBodySchema = v.object({
-  projectId: IdSchema,
+  projectId: UuidSchema,
   label: v.optional(
     v.pipe(v.string(), v.minLength(1), v.maxLength(MAX_LABEL_LEN)),
   ),

@@ -13,7 +13,7 @@ const RegisterBodySchema = v.object({
 
 /**
  * POST /api/picker/register-doc — completes the Drive Picker entry flow
- * (SPEC §9.2). The picker page (or the extension) holds the user's API
+ * (SPEC §8.2). The picker page (or the extension) holds the user's API
  * token and the picked doc id; this endpoint resolves the token to a
  * user, calls `createProject`, and returns the new (or pre-existing)
  * project row.

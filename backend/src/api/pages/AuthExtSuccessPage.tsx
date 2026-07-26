@@ -5,11 +5,12 @@ import { buildBridgeScript } from "./AuthExtSuccessPage.script.ts";
 export interface AuthExtSuccessPageProps {
   extId: string;
   token: string;
+  clientState: string;
   nonce: string;
 }
 
 export function AuthExtSuccessPage(props: AuthExtSuccessPageProps) {
-  const script = buildBridgeScript(props.extId, props.token);
+  const script = buildBridgeScript(props.extId, props.token, props.clientState);
   return (
     <Layout title="Margin — Signed in" inlineScript={script} nonce={props.nonce}>
       <BrandMark />

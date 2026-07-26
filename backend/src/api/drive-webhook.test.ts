@@ -233,11 +233,13 @@ describe("/webhooks/drive", () => {
     // Wrong token — the channel-token check throws in the domain layer; the
     // webhook layer swallows it, returns 200, and the channel row stays
     // pristine (no lastEventAt stamp).
+    const messageNumber = "attacker-must-not-reserve-this";
     const res = await handleDriveWebhook(
       webhookRequest({
         "x-goog-channel-id": channelId,
         "x-goog-channel-token": "wrong-secret",
         "x-goog-resource-state": "update",
+        "x-goog-message-number": messageNumber,
       }),
     );
     expect(res.status).toBe(200);
@@ -248,5 +250,23 @@ describe("/webhooks/drive", () => {
       .where(eq(driveWatchChannel.channelId, channelId))
       .limit(1);
     expect(row[0]?.lastEventAt).toBeNull();
+
+    // A legitimate delivery with the same message number must still run: the
+    // unauthenticated request above never entered the deduplication set.
+    const valid = await handleDriveWebhook(
+      webhookRequest({
+        "x-goog-channel-id": channelId,
+        "x-goog-channel-token": "real-secret",
+        "x-goog-resource-state": "sync",
+        "x-goog-message-number": messageNumber,
+      }),
+    );
+    expect(valid.status).toBe(200);
+    const afterValid = await db
+      .select()
+      .from(driveWatchChannel)
+      .where(eq(driveWatchChannel.channelId, channelId))
+      .limit(1);
+    expect(afterValid[0]?.lastEventAt).toBeInstanceOf(Date);
   });
 });

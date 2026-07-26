@@ -1,5 +1,5 @@
 import * as v from "valibot";
-import { IdSchema, validatedPost } from "./middleware.ts";
+import { UuidSchema, validatedPost } from "./middleware.ts";
 import {
   countUnreadNotifications,
   listNotificationsForUser,
@@ -18,7 +18,7 @@ const NotificationsMarkReadBodySchema = v.object({
   // Either an explicit id list, OR all=true to drain the inbox. Mutually
   // exclusive — body that sets both gets the ids semantics (ids wins).
   ids: v.optional(
-    v.pipe(v.array(IdSchema), v.maxLength(MAX_NOTIFICATION_IDS)),
+    v.pipe(v.array(UuidSchema), v.maxLength(MAX_NOTIFICATION_IDS)),
   ),
   all: v.optional(v.boolean()),
 });

@@ -10,6 +10,7 @@ import {
   MAX_ID_LEN,
   readJsonBody,
   unauthorized,
+  UuidSchema,
 } from "./middleware.ts";
 
 describe("authenticateBearer", () => {
@@ -80,7 +81,10 @@ describe("readJsonBody content-type check", () => {
   });
 
   test("rejects multipart/form-data", async () => {
-    const out = await readJsonBody(jsonBodyReq("multipart/form-data; boundary=---", `{"x":1}`), 1024);
+    const out = await readJsonBody(
+      jsonBodyReq("multipart/form-data; boundary=---", `{"x":1}`),
+      1024,
+    );
     expect(out).toBeInstanceOf(Response);
     expect((out as Response).status).toBe(400);
   });
@@ -113,5 +117,10 @@ describe("id-length parity (backend ↔ extension)", () => {
     const tooLong = "a".repeat(MAX_ID_LEN + 1);
     expect(v.safeParse(IdSchema, tooLong).success).toBe(false);
     expect(v.safeParse(IdSchema, "a".repeat(MAX_ID_LEN)).success).toBe(true);
+  });
+
+  test("UuidSchema rejects bounded strings that are not UUIDs", () => {
+    expect(v.safeParse(UuidSchema, "not-a-uuid").success).toBe(false);
+    expect(v.safeParse(UuidSchema, crypto.randomUUID()).success).toBe(true);
   });
 });

@@ -35,17 +35,6 @@ export async function requestOrThrow<M extends Message>(
 }
 
 /**
- * Convenience wrapper used by popup + side-panel surfaces. Returns null
- * when settings aren't configured or the SW reports an error; callers
- * branch on null rather than catching.
- */
-export async function getSettings(): Promise<Settings | null> {
-  const r = await sendMessage({ kind: "settings/get" });
-  if (r?.kind === "settings/get") return r.settings;
-  return null;
-}
-
-/**
  * Returns both the resolved-and-signed-in `settings` (or null if either
  * field is missing) and the raw `backendUrl` from storage. The popup needs
  * `backendUrl` separately to distinguish the "configured but not signed in"

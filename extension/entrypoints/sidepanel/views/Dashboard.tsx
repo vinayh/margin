@@ -1,5 +1,5 @@
 import { useState } from "preact/hooks";
-import { requestOrThrow, sendMessage } from "../../../ui/sendMessage.ts";
+import { requestOrThrow } from "../../../ui/sendMessage.ts";
 import {
   ArrowLeftRight,
   MessageSquare,
@@ -14,12 +14,12 @@ import type {
   ProjectDetail,
   ProjectReviewRequestDetail,
   ProjectVersionDetail,
-  ReviewActionKind,
   ReviewRequestResult,
 } from "../../../utils/types.ts";
 
 interface Props {
   detail: ProjectDetail;
+  onDetailChange: (detail: ProjectDetail) => void;
   onOpenDiff: (fromVersionId: string, toVersionId: string) => void;
   onOpenComments: (versionId: string, versionLabel: string) => void;
   onOpenSettings: () => void;
@@ -35,6 +35,7 @@ interface Props {
  */
 export function Dashboard({
   detail,
+  onDetailChange,
   onOpenDiff,
   onOpenComments,
   onOpenSettings,
@@ -43,15 +44,17 @@ export function Dashboard({
   const [current, setCurrent] = useState<ProjectDetail>(detail);
 
   async function refreshAll(): Promise<void> {
-    const r = await sendMessage({
+    const r = await requestOrThrow({
       kind: "project/detail",
       projectId: current.project.id,
     });
-    if (r?.kind === "project/detail" && r.detail) setCurrent(r.detail);
+    if (!r.detail) throw new Error("project not found");
+    setCurrent(r.detail);
+    onDetailChange(r.detail);
   }
 
   async function syncVersion(v: ProjectVersionDetail): Promise<void> {
-    await sendMessage({ kind: "doc/sync", docId: v.googleDocId });
+    await requestOrThrow({ kind: "doc/sync", docId: v.googleDocId });
     await refreshAll();
   }
 
@@ -64,7 +67,7 @@ export function Dashboard({
     await refreshAll();
   }
 
-  const [issuedLinks, setIssuedLinks] = useState<
+  const [deliveryResults, setDeliveryResults] = useState<
     Record<string, ReviewRequestResult>
   >({});
 
@@ -78,7 +81,7 @@ export function Dashboard({
       assigneeEmails,
     });
     if (!r.result) throw new Error("no result returned");
-    setIssuedLinks((prev) => ({
+    setDeliveryResults((prev) => ({
       ...prev,
       [r.result!.reviewRequestId]: r.result!,
     }));
@@ -128,7 +131,7 @@ export function Dashboard({
       />
       <ReviewsSection
         reviews={current.reviewRequests}
-        issuedLinks={issuedLinks}
+        deliveryResults={deliveryResults}
       />
       <DerivativesSection derivatives={current.derivatives} />
     </>
@@ -377,25 +380,32 @@ function VersionSyncButton({
   onSync: (v: ProjectVersionDetail) => Promise<void> | void;
 }) {
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   async function click(): Promise<void> {
     setBusy(true);
+    setError(null);
     try {
       await onSync(version);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err));
     } finally {
       setBusy(false);
     }
   }
   return (
-    <button
-      type="button"
-      class={busy ? "icon-button is-busy" : "icon-button"}
-      title={busy ? "Syncing…" : "Sync"}
-      aria-label="Sync"
-      disabled={busy}
-      onClick={() => void click()}
-    >
-      <RefreshCw />
-    </button>
+    <span class="sync-control">
+      <button
+        type="button"
+        class={busy ? "icon-button is-busy" : "icon-button"}
+        title={busy ? "Syncing…" : "Sync"}
+        aria-label="Sync"
+        disabled={busy}
+        onClick={() => void click()}
+      >
+        <RefreshCw />
+      </button>
+      {error ? <span class="muted error" title={error}>!</span> : null}
+    </span>
   );
 }
 
@@ -441,10 +451,10 @@ function DerivativesSection({
 
 function ReviewsSection({
   reviews,
-  issuedLinks,
+  deliveryResults,
 }: {
   reviews: ProjectReviewRequestDetail[];
-  issuedLinks: Record<string, ReviewRequestResult>;
+  deliveryResults: Record<string, ReviewRequestResult>;
 }) {
   return (
     <section class="panel-section">
@@ -467,7 +477,7 @@ function ReviewsSection({
               <ReviewRow
                 key={r.id}
                 review={r}
-                issued={issuedLinks[r.id] ?? null}
+                issued={deliveryResults[r.id] ?? null}
               />
             ))}
           </ul>
@@ -546,16 +556,14 @@ function ReviewRow({
                                 </p>
                               )
                               : null}
-                            <ul class="review-magic-links">
-                              {issuedByUser.get(a.userId)!.links.map((l) => (
-                                <li key={l.action}>
-                                  <code class="muted">
-                                    {ACTION_LABEL[l.action]}:
-                                  </code>
-                                  <code>{l.url}</code>
-                                </li>
-                              ))}
-                            </ul>
+                            {!issuedByUser.get(a.userId)!.shareError &&
+                                !issuedByUser.get(a.userId)!.emailError
+                              ? (
+                                <p class="muted review-delivery-ok">
+                                  Invitation sent.
+                                </p>
+                              )
+                              : null}
                           </>
                         )
                         : null}
@@ -575,13 +583,6 @@ const ASSIGNMENT_STATUS_LABEL: Record<string, string> = {
   reviewed: "Reviewed",
   changes_requested: "Changes requested",
   declined: "Declined",
-};
-
-const ACTION_LABEL: Record<ReviewActionKind, string> = {
-  mark_reviewed: "mark reviewed",
-  request_changes: "request changes",
-  decline: "decline",
-  accept_reconciliation: "accept reconciliation",
 };
 
 function docUrl(googleDocId: string): string {

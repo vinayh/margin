@@ -15,6 +15,7 @@ beforeEach(async () => {
 });
 
 const EXT_ID_OK = "a".repeat(32); // 32 lowercase a-p chars = valid Chrome ext id
+const CLIENT_STATE = "s".repeat(43);
 
 describe("handleAuthExtLaunchTab", () => {
   test("missing ext param → 400", async () => {
@@ -48,13 +49,21 @@ describe("handleAuthExtLaunchTab", () => {
     const res = await handleAuthExtLaunchTab(req);
     expect(res.status).toBe(400);
   });
+
+  test("requires a well-formed client state", async () => {
+    const req = new Request(
+      `http://localhost/api/auth/ext/launch-tab?ext=${EXT_ID_OK}&state=short`,
+    );
+    const res = await handleAuthExtLaunchTab(req);
+    expect(res.status).toBe(400);
+  });
 });
 
 // Test-only nonce mint that mirrors the production /launch-tab path without
 // running Better Auth's social-sign-in (which we'd otherwise need to stub).
 async function mintNonceForTest(ext: string): Promise<string> {
   const mod = await import("./auth-handler.tsx");
-  return mod.__test_mintExtNonce(ext);
+  return mod.__test_mintExtNonce(ext, CLIENT_STATE);
 }
 
 describe("handleAuthExtSuccess", () => {
@@ -91,13 +100,23 @@ describe("handleAuthExtSuccess", () => {
     expect(res2.status).toBe(400);
   });
 
-  test("no session cookie → 401 (after nonce consumed)", async () => {
+  test("no session cookie → 401 without consuming the nonce", async () => {
     const nonce = await mintNonceForTest(EXT_ID_OK);
     const req = new Request(
       `http://localhost/api/auth/ext/success?nonce=${encodeURIComponent(nonce)}`,
     );
     const res = await handleAuthExtSuccess(req);
     expect(res.status).toBe(401);
+
+    const u = await seedUser();
+    const { token } = await issueTestSession({ userId: u.id });
+    const retry = await handleAuthExtSuccess(
+      new Request(
+        `http://localhost/api/auth/ext/success?nonce=${encodeURIComponent(nonce)}`,
+        { headers: { authorization: `Bearer ${token}` } },
+      ),
+    );
+    expect(retry.status).toBe(200);
   });
 
   test("renders both the sendMessage bridge and the fragment fallback", async () => {
@@ -122,6 +141,7 @@ describe("handleAuthExtSuccess", () => {
     // Inline JSON-encoded values, so look for the JSON.stringify shape.
     expect(html).toContain(`"${token}"`);
     expect(html).toContain(`"${EXT_ID_OK}"`);
+    expect(html).toContain(`"${CLIENT_STATE}"`);
     expect(html).toContain("chrome.runtime.sendMessage");
     expect(html).toContain("'auth/token'");
     expect(html).toContain("location.hash");

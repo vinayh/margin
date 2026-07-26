@@ -1,10 +1,5 @@
 import * as v from "valibot";
-import {
-  badRequest,
-  IdSchema,
-  notFound,
-  validatedPost,
-} from "./middleware.ts";
+import { badRequest, notFound, UuidSchema, validatedPost } from "./middleware.ts";
 import { checkRateLimit } from "./rate-limit.ts";
 import {
   createReviewRequest,
@@ -26,7 +21,7 @@ const MAX_EMAIL_LEN = 254;
 const REVIEW_REQUEST_LIMIT_PER_MIN = 10;
 
 const ReviewRequestBodySchema = v.object({
-  versionId: IdSchema,
+  versionId: UuidSchema,
   assigneeEmails: v.pipe(
     v.array(v.pipe(v.string(), v.email(), v.maxLength(MAX_EMAIL_LEN))),
     v.minLength(1, "at least one assignee required"),
@@ -43,10 +38,9 @@ const ReviewRequestBodySchema = v.object({
  * Owner-scoped via `loadOwnedVersion`: 404 when the version doesn't exist or
  * the caller isn't the project owner.
  *
- * Email transport isn't wired in this phase — the response carries the issued
- * `/r/<token>` URLs so the side-panel POC can render them inline (and the
- * audit log records which tokens were minted). Phase 5 / 6 swap the inline
- * render for Slack + email transports.
+ * Redeemable action URLs are sent only through the email transport. The
+ * requester-facing response contains per-assignee share and delivery status,
+ * never the bearer capabilities themselves.
  */
 export function handleReviewRequestPost(req: Request): Promise<Response> {
   return validatedPost(
@@ -65,6 +59,7 @@ export function handleReviewRequestPost(req: Request): Promise<Response> {
             headers: {
               "content-type": "application/json",
               "retry-after": String(gate.resetSeconds),
+              "x-margin-rate-limit-remaining": "0",
             },
           },
         );

@@ -23,7 +23,7 @@ type State =
   | { kind: "error"; message: string };
 
 /**
- * Side-panel "comments on this version" view (SPEC §12 Phase 4 reconciliation
+ * Side-panel "comments on this version" reconciliation view
  * slice). One row per `comment_projection`, sorted by projection status with
  * `orphaned` / `fuzzy` at top so the reconciliation work surfaces first.
  *

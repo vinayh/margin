@@ -14,8 +14,8 @@ import { tokenProviderForProject } from "./project.ts";
 import { requireVersion } from "./version.ts";
 
 /**
- * Reconciliation actions surfaced on the side-panel comments view (SPEC §12
- * Phase 4, "Comment reconciliation actions"). One handler per action so the
+ * Reconciliation actions surfaced on the side-panel comments view. One handler
+ * per action so the
  * route layer stays a thin dispatch, and so the audit-log payload is shaped
  * by the action that was actually taken.
  *

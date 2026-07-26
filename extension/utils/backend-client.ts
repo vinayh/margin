@@ -1,4 +1,4 @@
-import { getSettings, patchSettings } from "./storage.ts";
+import { getBackendUrl, getSettings, patchSettings } from "./storage.ts";
 import type { NotificationView } from "./messages.ts";
 import type {
   CommentActionKind,
@@ -6,7 +6,6 @@ import type {
   DocState,
   ProjectDetail,
   ProjectListEntry,
-  ProjectSettingsView,
   ReviewRequestResult,
   Settings,
   VersionCommentsPayload,
@@ -83,6 +82,19 @@ export async function signOutFromBackend(): Promise<void> {
     }
   }
   await patchSettings({ sessionToken: "" });
+}
+
+export async function checkBackendHealth(): Promise<
+  { ok: boolean; status: number }
+> {
+  const backendUrl = await getBackendUrl();
+  if (!backendUrl) throw new Error("no backend configured");
+  const res = await fetch(new URL("/healthz", backendUrl), {
+    method: "GET",
+    signal: AbortSignal.timeout(3000),
+  });
+  const body = (await res.json().catch(() => null)) as { ok?: boolean } | null;
+  return { ok: res.ok && body?.ok === true, status: res.status };
 }
 
 export interface WhoamiResponse {
@@ -242,19 +254,6 @@ export async function runCommentAction(opts: {
   );
 }
 
-export async function loadProjectSettings(
-  projectId: string,
-): Promise<ProjectSettingsView | null> {
-  const settings = await getSettings();
-  if (!settings) return null;
-  const r = await postJsonOrNull<{ settings: ProjectSettingsView }>(
-    "/api/extension/settings",
-    { projectId },
-    settings,
-  );
-  return r?.settings ?? null;
-}
-
 export async function createReviewRequest(opts: {
   versionId: string;
   assigneeEmails: string[];
@@ -269,18 +268,4 @@ export async function createReviewRequest(opts: {
     opts,
     settings,
   );
-}
-
-export async function updateProjectSettings(
-  projectId: string,
-  patch: Partial<ProjectSettingsView>,
-): Promise<ProjectSettingsView | null> {
-  const settings = await getSettings();
-  if (!settings) return null;
-  const r = await postJsonOrNull<{ settings: ProjectSettingsView }>(
-    "/api/extension/settings",
-    { projectId, patch },
-    settings,
-  );
-  return r?.settings ?? null;
 }

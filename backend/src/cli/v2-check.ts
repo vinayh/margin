@@ -48,6 +48,6 @@ export async function run(_args: string[]): Promise<void> {
   console.log(`  (e) suggestions:          ${r.observations.e_suggestionsRoundTrip}`);
 
   console.log(
-    "\nRecord these findings in docs/spec.md §9.9 (or §12 Phase 6 V2).",
+    "\nRecord these findings in docs/roadmap.md under Extension visualization.",
   );
 }

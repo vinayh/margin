@@ -1,11 +1,11 @@
 import * as v from "valibot";
-import { badRequest, IdSchema, validatedPost } from "./middleware.ts";
+import { badRequest, UuidSchema, validatedPost } from "./middleware.ts";
 import { renameOwnedProject } from "../domain/project.ts";
 
 const MAX_NAME_LEN = 256;
 
 const ProjectRenameBodySchema = v.object({
-  projectId: IdSchema,
+  projectId: UuidSchema,
   name: v.pipe(v.string(), v.minLength(1), v.maxLength(MAX_NAME_LEN)),
 });
 

@@ -1,9 +1,9 @@
 import * as v from "valibot";
-import { IdSchema, validatedPost } from "./middleware.ts";
+import { UuidSchema, validatedPost } from "./middleware.ts";
 import { getProjectDetail } from "../domain/project-detail.ts";
 
 const ProjectDetailBodySchema = v.object({
-  projectId: IdSchema,
+  projectId: UuidSchema,
 });
 
 /**
@@ -22,6 +22,9 @@ const ProjectDetailBodySchema = v.object({
  * `/api/extension/*` (and to keep the project id out of URLs / proxy logs).
  */
 export function handleProjectDetailPost(req: Request): Promise<Response> {
-  return validatedPost(req, ProjectDetailBodySchema, ({ auth, body }) =>
-    getProjectDetail({ projectId: body.projectId, userId: auth.userId }));
+  return validatedPost(
+    req,
+    ProjectDetailBodySchema,
+    ({ auth, body }) => getProjectDetail({ projectId: body.projectId, userId: auth.userId }),
+  );
 }

@@ -1,9 +1,9 @@
 import * as v from "valibot";
-import { IdSchema, validatedPost } from "./middleware.ts";
+import { UuidSchema, validatedPost } from "./middleware.ts";
 import { deleteOwnedProject } from "../domain/project.ts";
 
 const ProjectDeleteBodySchema = v.object({
-  projectId: IdSchema,
+  projectId: UuidSchema,
 });
 
 /**

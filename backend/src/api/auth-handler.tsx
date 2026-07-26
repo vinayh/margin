@@ -33,13 +33,14 @@ function isAllowedExtId(id: string): boolean {
 // FIFO prune covers worst-case spam.
 interface NonceEntry {
   ext: string;
+  clientState: string;
   expiresAt: number;
 }
 const NONCE_TTL_MS = 10 * 60 * 1000;
 const NONCE_MAX_ENTRIES = 4096;
 const pendingExtNonces = new Map<string, NonceEntry>();
 
-function mintExtNonce(ext: string): string {
+function mintExtNonce(ext: string, clientState: string): string {
   const now = Date.now();
   if (pendingExtNonces.size > NONCE_MAX_ENTRIES) {
     for (const [k, v] of pendingExtNonces) {
@@ -54,16 +55,25 @@ function mintExtNonce(ext: string): string {
   }
   const buf = crypto.getRandomValues(new Uint8Array(32));
   const value = Buffer.from(buf).toString("base64url");
-  pendingExtNonces.set(value, { ext, expiresAt: now + NONCE_TTL_MS });
+  pendingExtNonces.set(value, { ext, clientState, expiresAt: now + NONCE_TTL_MS });
   return value;
 }
 
-function consumeExtNonce(value: string): string | null {
+function readExtNonce(value: string): NonceEntry | null {
   const entry = pendingExtNonces.get(value);
   if (!entry) return null;
+  if (entry.expiresAt < Date.now()) {
+    pendingExtNonces.delete(value);
+    return null;
+  }
+  return entry;
+}
+
+function consumeExtNonce(value: string): NonceEntry | null {
+  const entry = readExtNonce(value);
+  if (!entry) return null;
   pendingExtNonces.delete(value);
-  if (entry.expiresAt < Date.now()) return null;
-  return entry.ext;
+  return entry;
 }
 
 // Test seam — wipe pending nonces between integration runs.
@@ -75,8 +85,10 @@ export function _resetExtNoncesForTests(): void {
 // touching Better Auth. Not for production use.
 export const __test_mintExtNonce = mintExtNonce;
 
+const CLIENT_STATE_PATTERN = /^[A-Za-z0-9_-]{32,128}$/;
+
 /**
- * GET /api/auth/ext/launch-tab?ext=<chrome.runtime.id>
+ * GET /api/auth/ext/launch-tab?ext=<chrome.runtime.id>&state=<client nonce>
  *
  * Kicks off Google sign-in via a top-level tab. `chrome.identity.launchWebAuthFlow`
  * can't be used: Chrome 122+ stamps the `chrome-extension://` origin onto the OAuth
@@ -92,8 +104,12 @@ export const __test_mintExtNonce = mintExtNonce;
 export async function handleAuthExtLaunchTab(req: Request): Promise<Response> {
   const url = new URL(req.url);
   const ext = url.searchParams.get("ext");
+  const clientState = url.searchParams.get("state");
   if (!ext || !isAllowedExtId(ext)) {
     return badRequest("missing or unrecognized ?ext extension id");
+  }
+  if (!clientState || !CLIENT_STATE_PATTERN.test(clientState)) {
+    return badRequest("missing or unrecognized ?state value");
   }
 
   // Use the configured public origin, not req.url — Host header is attacker-spoofable
@@ -107,7 +123,7 @@ export async function handleAuthExtLaunchTab(req: Request): Promise<Response> {
   const baseURL = new URL(config.publicBaseUrl);
   baseURL.search = "";
   baseURL.pathname = "/api/auth/ext/success";
-  const launchNonce = mintExtNonce(ext);
+  const launchNonce = mintExtNonce(ext, clientState);
   const successURL = `${baseURL.toString()}?nonce=${encodeURIComponent(launchNonce)}`;
 
   const res = await auth.api.signInSocial({
@@ -156,15 +172,15 @@ export async function handleAuthExtSuccess(req: Request): Promise<Response> {
   if (!launchNonce) {
     return badRequest("missing nonce");
   }
-  const ext = consumeExtNonce(launchNonce);
-  if (!ext) {
+  const pending = readExtNonce(launchNonce);
+  if (!pending) {
     // Either never issued, already consumed, or expired. All three look the
     // same to the caller — opaque enough to deter probing.
     return badRequest("invalid or expired nonce");
   }
   // Defense in depth: the nonce store only ever holds format-validated ids,
   // but re-check before inlining into the bridge script.
-  if (!isAllowedExtId(ext)) {
+  if (!isAllowedExtId(pending.ext) || !CLIENT_STATE_PATTERN.test(pending.clientState)) {
     return badRequest("invalid extension id");
   }
 
@@ -183,14 +199,29 @@ export async function handleAuthExtSuccess(req: Request): Promise<Response> {
     return new Response("session row missing", { status: 500 });
   }
 
+  // Consume only after the callback has a valid authenticated session. A
+  // transient missing-cookie response can then be retried without forcing the
+  // user through the whole OAuth flow again. The second read preserves the
+  // single-use guarantee if two success requests race.
+  const consumed = consumeExtNonce(launchNonce);
+  if (!consumed) return badRequest("invalid or expired nonce");
+
   const n = nonce();
-  return renderPage(<AuthExtSuccessPage extId={ext} token={token} nonce={n} />, {
-    csp: [
-      "default-src 'none'",
-      `script-src 'nonce-${n}'`,
-      "style-src 'self'",
-      "font-src 'self'",
-      "frame-ancestors 'none'",
-    ].join("; "),
-  });
+  return renderPage(
+    <AuthExtSuccessPage
+      extId={consumed.ext}
+      token={token}
+      clientState={consumed.clientState}
+      nonce={n}
+    />,
+    {
+      csp: [
+        "default-src 'none'",
+        `script-src 'nonce-${n}'`,
+        "style-src 'self'",
+        "font-src 'self'",
+        "frame-ancestors 'none'",
+      ].join("; "),
+    },
+  );
 }

@@ -130,7 +130,9 @@ function parseIsoOrNow(iso: string, externalId: string): Date {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) {
     console.warn(
-      `[ingest] unparseable origin timestamp ${JSON.stringify(iso)}; substituting now() (externalId=${externalId})`,
+      `[ingest] unparseable origin timestamp ${
+        JSON.stringify(iso)
+      }; substituting now() (externalId=${externalId})`,
     );
     return new Date();
   }

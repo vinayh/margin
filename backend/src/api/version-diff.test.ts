@@ -110,7 +110,10 @@ describe("handleVersionDiffPost validation", () => {
     const { token } = await issueTestSession({ userId: u.id });
     const res = await handleVersionDiffPost(
       postDiff(
-        { fromVersionId: "nope-a", toVersionId: "nope-b" },
+        {
+          fromVersionId: crypto.randomUUID(),
+          toVersionId: crypto.randomUUID(),
+        },
         { auth: `Bearer ${token}` },
       ),
     );

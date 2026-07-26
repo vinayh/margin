@@ -6,6 +6,7 @@ import {
   DEFAULT_BACKEND_URL,
   type ProjectListEntry,
 } from "../../utils/types.ts";
+import { subscribeSessionTokenChanges } from "../../utils/storage.ts";
 import {
   formatProjectMeta,
   PROJECT_ROW_CONTAINER_CLASS,
@@ -168,33 +169,31 @@ async function confirmAndDelete(
 }
 
 signInBtn.addEventListener("click", async () => {
-  const perm = await ensureBackendOrigin(DEFAULT_BACKEND_URL);
+  const settingsResponse = (await browser.runtime.sendMessage(
+    { kind: "settings/get" } satisfies Message,
+  )) as MessageResponse | undefined;
+  const backendUrl = settingsResponse?.kind === "settings/get"
+    ? settingsResponse.backendUrl ?? DEFAULT_BACKEND_URL
+    : DEFAULT_BACKEND_URL;
+  const perm = await ensureBackendOrigin(backendUrl);
   if (!perm.ok) {
     setStatus(perm.reason, "error");
     return;
   }
   setStatus("Opening Google sign-in in a new tab…", null);
-  const launchUrl = `${DEFAULT_BACKEND_URL}/api/auth/ext/launch-tab?ext=${
-    encodeURIComponent(
-      browser.runtime.id,
-    )
-  }`;
-  await browser.tabs.create({ url: launchUrl });
+  const response = (await browser.runtime.sendMessage(
+    { kind: "auth/start" } satisfies Message,
+  )) as MessageResponse | undefined;
+  if (response?.kind !== "auth/start" || !response.opened) {
+    setStatus(response?.error ?? "could not start sign-in", "error");
+  }
 });
 
 // React to the SW's `auth/token` write so the Options page flips to
 // signed-in without the user reloading the tab.
-browser.storage.onChanged.addListener((changes, areaName) => {
-  if (areaName !== "local" || !changes.settings) return;
-  const after =
-    (changes.settings.newValue as { sessionToken?: string } | undefined)
-      ?.sessionToken ?? "";
-  const before =
-    (changes.settings.oldValue as { sessionToken?: string } | undefined)
-      ?.sessionToken ?? "";
-  if (before === after) return;
-  void renderAuthState(Boolean(after));
-  if (after) setStatus("Signed in.", "ok");
+subscribeSessionTokenChanges(() => {
+  void hydrate();
+  setStatus("Account state updated.", "ok");
 });
 
 signOutBtn.addEventListener("click", async () => {
@@ -203,7 +202,7 @@ signOutBtn.addEventListener("click", async () => {
       kind: "auth/sign-out",
     } satisfies Message,
   )) as MessageResponse | undefined;
-  if (r?.kind === "auth/sign-out" && r.ok) {
+  if (r?.kind === "auth/sign-out" && !r.error && r.ok) {
     setStatus("Signed out.", "ok");
     void renderAuthState(false);
   } else {

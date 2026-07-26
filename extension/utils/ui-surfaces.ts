@@ -50,6 +50,7 @@ export async function openDashboard(opts: {
   useNativeSidebar: boolean;
   windowId?: number;
   tabId?: number;
+  activeDocId?: string;
 }): Promise<number | undefined> {
   if (opts.useNativeSidebar) {
     const api = browser as unknown as SidebarApi;
@@ -81,15 +82,21 @@ export async function openDashboard(opts: {
     // Fall through to the detached-window path if the native API rejected
     // — at least the user sees the dashboard.
   }
-  return await openOrFocusSidepanelWindow();
+  return await openOrFocusSidepanelWindow(opts.activeDocId);
 }
 
-async function openOrFocusSidepanelWindow(): Promise<number | undefined> {
-  const url = browser.runtime.getURL(`/${SIDEPANEL_PATH}`);
+async function openOrFocusSidepanelWindow(
+  activeDocId?: string,
+): Promise<number | undefined> {
+  const baseUrl = browser.runtime.getURL(`/${SIDEPANEL_PATH}`);
+  const url = new URL(baseUrl);
+  if (activeDocId) url.searchParams.set("activeDocId", activeDocId);
   // tabs.query by URL works for the extension's own pages without the "tabs"
   // permission. Derive the host window and prefer popup-type windows so we
   // don't focus the same URL accidentally opened as a normal tab.
-  const matches = await browser.tabs.query({ url });
+  const matches = (await browser.tabs.query({})).filter((tab) =>
+    tab.url?.startsWith(baseUrl)
+  );
   for (const tab of matches) {
     if (tab.windowId === undefined) continue;
     const win = await browser.windows.get(tab.windowId);
@@ -99,7 +106,7 @@ async function openOrFocusSidepanelWindow(): Promise<number | undefined> {
     }
   }
   const created = await browser.windows.create({
-    url,
+    url: url.toString(),
     type: "popup",
     width: FALLBACK_WIDTH,
     height: FALLBACK_HEIGHT,

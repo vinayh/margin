@@ -61,7 +61,7 @@ describe("handleProjectDetailPost lookup", () => {
     const u = await seedUser();
     const { token } = await issueTestSession({ userId: u.id });
     const res = await handleProjectDetailPost(
-      postDetail({ projectId: "nope" }, { auth: `Bearer ${token}` }),
+      postDetail({ projectId: crypto.randomUUID() }, { auth: `Bearer ${token}` }),
     );
     expect(res.status).toBe(404);
   });

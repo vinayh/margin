@@ -60,7 +60,10 @@ describe("handleVersionCommentsPost lookup", () => {
     const u = await seedUser();
     const { token } = await issueTestSession({ userId: u.id });
     const res = await handleVersionCommentsPost(
-      postVersionComments({ versionId: "nope" }, { auth: `Bearer ${token}` }),
+      postVersionComments(
+        { versionId: crypto.randomUUID() },
+        { auth: `Bearer ${token}` },
+      ),
     );
     expect(res.status).toBe(404);
   });

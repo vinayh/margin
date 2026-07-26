@@ -1,6 +1,6 @@
 # Margin: project conventions
 
-Phased build plan in [`docs/spec.md` §12](./docs/spec.md#12-build-sequence); shipped vs. pending is tracked in the [README Build status list](./README.md#build-status).
+Shipped vs. pending is tracked in the [README Build status list](./README.md#build-status) and [`docs/roadmap.md`](./docs/roadmap.md).
 
 ## Repo layout
 
@@ -11,7 +11,7 @@ backend/             Deno backend (runtime + tests + CLI). Run `deno task ...`
                      from inside this dir; everything below is relative to it.
   src/
     config.ts        lazy env-var getters; importing it doesn't require any env var
-    db/              drizzle schema (SPEC §4) + node-postgres client + migrator
+    db/              drizzle schema + node-postgres client + migrator
     auth/            Better Auth server config (Google provider + bearer plugin),
                      envelope encryption, TokenProvider, test-only session helper
     google/          endpoint-shaped REST wrappers (drive/docs/docx + token-refresh
@@ -72,7 +72,7 @@ docs/                internal markdown. Public README + contributor guide
 - `deno task serve` runs the API host (`Deno.serve`, in `src/api/server.ts`). The Fly container runs the same command; deployment lives in [`docs/deployment.md`](./docs/deployment.md).
 - **Route table.** Register new routes in `server.ts`'s table; never branch `pathname` inline. Each route is its own module under `src/api/` and is a thin shell that delegates into `src/domain/`. The dispatcher in `router.ts` matches by `URLPattern` in insertion order — register exact paths BEFORE their `*` parent so the wildcard doesn't swallow a more-specific match.
 - **Auth.** Better Auth (`src/auth/server.ts`) owns the `/api/auth/**` route tree plus the `user`, `session`, `account`, and `verification` tables. `authenticateBearer` in `src/api/middleware.ts` wraps `auth.api.getSession({ headers })` and returns `{ userId, sessionId }`; the bearer plugin accepts the raw `session.token` as `Authorization: Bearer …`. Google refresh tokens are envelope-encrypted in `account.refreshToken` via a `databaseHooks.account` write hook; `TokenProvider` in `src/auth/credentials.ts` decrypts them and refreshes Drive access tokens against Google directly. `GET /api/picker/page` authenticates via the session cookie (top-level navigation, not a CORS XHR).
-- **Extension sign-in.** `GET /api/auth/ext/launch-tab?ext=<chrome.runtime.id>` kicks off Google OAuth via Better Auth's `signInSocial`; the inner `callbackURL` points at `/api/auth/ext/success`, which renders an HTML bridge page that hands the session token to the SW. Chromium uses `chrome.runtime.sendMessage` gated by `externally_connectable.matches`; Firefox parks the token in `location.hash` for the SW's `tabs.onUpdated` to pick up. The SW persists it in `chrome.storage.local`. The `ext` parameter is allow-listed against Chromium/Firefox id formats.
+- **Extension sign-in.** The SW generates an expiring client state and opens `GET /api/auth/ext/launch-tab?ext=<chrome.runtime.id>&state=<state>`, which kicks off Google OAuth via Better Auth's `signInSocial`. The inner `callbackURL` points at `/api/auth/ext/success`, which renders an HTML bridge page that hands the session token and state to the SW. Chromium uses `chrome.runtime.sendMessage` gated by `externally_connectable.matches`; Firefox parks both values in `location.hash` for the SW's `tabs.onUpdated` to pick up. The SW accepts only the expected origin, state, and tab, then persists the token in `chrome.storage.local`. The `ext` parameter is allow-listed against Chromium/Firefox id formats.
 - **CORS.** Allow-list (extension + localhost origins) on cross-origin routes; see `src/api/cors.ts`.
 - **Background loops.** `startBackgroundLoops` (`src/api/background.ts`) launches `renewExpiringChannels` (~30 min) and `pollAllActiveVersions` (~10 min) timers in-process when `MARGIN_PUBLIC_BASE_URL` is set and `MARGIN_RUN_BACKGROUND_LOOPS != 0`. `createVersion` also auto-subscribes a Drive `files.watch` channel best-effort. Pass `{ backgroundLoops: false }` to `startServer` in tests.
 - **Webhooks.** `POST /webhooks/drive` always responds 200 OK so Google stops retrying; channel-level errors get logged.
@@ -86,18 +86,18 @@ docs/                internal markdown. Public README + contributor guide
 
 Build pipeline, popup state machine, Picker mechanics, and toolbar-icon routing live in [`extension/README.md`](./extension/README.md). Conventions to know when working on this surface:
 
-- **Don't build by hand.** Always go through the WXT tasks from `extension/`: `deno task build`, `build:firefox`, `dev`. Run `deno task prepare` after edits that affect TypeScript so `.wxt/wxt.d.ts` regenerates. (Deno is the package manager + task runner; WXT itself executes under Node via the bin's `#!/usr/bin/env node` shebang.)
+- **Don't build by hand.** Always go through the WXT tasks from `extension/`: `deno task build`, `build:firefox`, `build:local`, or `dev`. Production builds expose only `api.margin.pub`; use `build:local` for the localhost E2E rig. Run `deno task prepare` after edits that affect TypeScript so `.wxt/wxt.d.ts` regenerates. (Deno is the package manager + task runner; WXT itself executes under Node via the bin's `#!/usr/bin/env node` shebang.)
 - **Cross-browser API.** Import `{ browser }` from `wxt/browser`; WXT ships its own promisified shim. Don't add `webextension-polyfill` (30 KB) or hand-roll a `chrome ?? browser` picker.
-- **No content script.** Ingest is server-side (`.docx` export, SPEC §9.8); the extension is a pure UI surface (popup, options, side panel). The Drive Picker is hosted on the backend at `/api/picker/page` and opens as a new tab from the popup's *Add to Margin* button.
+- **No content script.** Ingest is server-side (`.docx` export, SPEC §8.7); the extension is a pure UI surface (popup, options, side panel). The Drive Picker is hosted on the backend at `/api/picker/page` and opens as a new tab from the popup's *Add to Margin* button.
 - **Preact only in the popup + side panel.** Options + SW stay plain TS.
 - **Backend calls go through the SW.** All popup → backend traffic uses the `Message` envelope in `utils/messages.ts`. The popup never touches the API token directly. The backend-hosted picker page calls `/api/picker/register-doc` itself with the session cookie.
-- **E2E rig via `chrome-devtools-mcp`** (`.mcp.json` at repo root). Persistent Chrome profile at `.margin-test-chrome/` (gitignored), pre-warmed with the test Google account. Use `--categoryExtensions` + the `install_extension` MCP tool against `extension/dist/chrome-mv3` (Puppeteer-launched Chrome silently ignores `--load-extension`). After install, pre-populate settings via `chrome.storage.local.set` in the SW context, then drive a real click on the Options page's *Test connection* button to grant `http://localhost:8787/*` (Chrome rejects programmatic `permissions.request` without a user gesture).
+- **E2E rig via `chrome-devtools-mcp`** (`.mcp.json` at repo root). Persistent Chrome profile at `.margin-test-chrome/` (gitignored), pre-warmed with the test Google account. Build with `deno task build:local`, then use `--categoryExtensions` + the `install_extension` MCP tool against `extension/dist/chrome-mv3-dev` (Puppeteer-launched Chrome silently ignores `--load-extension`). Drive a real click on the Options page's *Sign in with Google* button so Chrome grants `http://localhost:8787/*` from a user gesture.
 
 ## Schema migrations
 
 - Edit `src/db/schema.ts`, then `node node_modules/drizzle-kit/bin.cjs generate`, then `deno task migrate`. (Use `node` directly, not `deno run npm:drizzle-kit` — Deno's npm compat layer trips the drizzle-kit 1.0-rc internal version check and exits silently.)
 - Migrations apply at runtime via `drizzle-orm/node-postgres/migrator`. The drizzle 1.0 format stores each migration as a directory under `drizzle/<timestamp>_<name>/` containing `migration.sql` + `snapshot.json`.
-- `drizzle-orm`/`drizzle-kit` are pinned at exact `1.0.0-rc.3` (no stable 1.0 yet; see spec §14.1).
+- `drizzle-orm`/`drizzle-kit` are pinned at exact `1.0.0-rc.3` (no stable 1.0 yet).
 - `drizzle.config.ts` runs under Node (drizzle-kit), so it uses `process.env`, not `Deno.env`.
 - The migrator uses `DATABASE_URL_DIRECT` (unpooled) — PgBouncer transaction mode can't host a session-bound migrator. The app uses `DATABASE_URL` (pooled) for ordinary queries.
 - The migrator silently skips a migration file whose journal `when` is `≤ MAX(created_at)` in `__drizzle_migrations`. If a new migration appears not to run, bump its `when` past the checkpoint.
@@ -108,11 +108,11 @@ Build pipeline, popup state machine, Picker mechanics, and toolbar-icon routing 
 
 ## Google integration
 
-- Only `drive.file` for active doc operations. It's per-file (SPEC §9.2): the backend only sees docs Margin created, the user opened with the Workspace Add-on, or the user picked via Drive Picker. Every entry surface needs a "first time you reference a doc, here's how to authorize it" affordance.
+- Only `drive.file` for active doc operations. It's per-file (SPEC §8.2): the backend only sees docs Margin created, the user opened with the Workspace Add-on, or the user picked via Drive Picker. Every entry surface needs a "first time you reference a doc, here's how to authorize it" affordance.
 - Never pass raw access tokens around. Build `tokenProviderForUser(userId)` and pass it to `authedFetch` / `authedJson<T>`; refresh-on-401 is automatic.
 - New Drive/Docs endpoints go in `src/google/{drive,docs}.ts` as endpoint-shaped wrappers, not domain-shaped.
 - The Google OAuth URL builder + code-exchange path lives inside Better Auth's Google provider (`src/auth/server.ts`). `src/google/oauth.ts` is just the token-refresh helper.
-- Before re-litigating a Workspace API limitation, read SPEC §9. The constraints there are settled.
+- Before re-litigating a Workspace API limitation, read SPEC §8. The constraints there are settled.
 
 ## Secrets
 

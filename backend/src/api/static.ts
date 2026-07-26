@@ -1,7 +1,8 @@
 /**
  * Static-asset handler for the backend's compiled CSS (and any other
  * files we drop under `dist/` at build time). Mirrors `fonts.ts`: a
- * tight allow-list keyed by filename, long-cache + immutable.
+ * tight allow-list keyed by filename. The CSS filename is stable, so clients
+ * must revalidate it across deployments rather than cache it as immutable.
  *
  * The Dockerfile's styles stage emits `dist/backend.css`; locally the
  * developer runs `deno run -A npm:@tailwindcss/cli -i src/api/styles/input.css
@@ -32,7 +33,7 @@ export async function handleStaticAsset(req: Request): Promise<Response> {
     status: 200,
     headers: {
       "content-type": entry.contentType,
-      "cache-control": "public, max-age=31536000, immutable",
+      "cache-control": "public, max-age=0, must-revalidate",
     },
   });
 }

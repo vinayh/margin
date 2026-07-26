@@ -1,4 +1,5 @@
 import { config } from "../config.ts";
+import { UpstreamTransportError } from "../errors.ts";
 
 export interface SlackMessage {
   /**
@@ -36,7 +37,7 @@ export class WebhookSlackTransport implements SlackTransport {
     });
     if (!res.ok) {
       const body = await res.text().catch(() => "<no body>");
-      throw new Error(`slack: ${res.status} ${body}`);
+      throw new UpstreamTransportError("slack", res.status, body);
     }
   }
 }

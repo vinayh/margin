@@ -7,15 +7,24 @@ import {
   MessageSchema,
 } from "../utils/messages.ts";
 import { parseDocIdFromUrl } from "../../shared/doc-id.ts";
-import { getBackendUrl, getSettings, patchSettings } from "../utils/storage.ts";
+import {
+  clearPendingAuth,
+  getBackendUrl,
+  getPendingAuth,
+  getSettings,
+  patchSettings,
+  setPendingAuth,
+} from "../utils/storage.ts";
 import { DEFAULT_BACKEND_URL } from "../utils/types.ts";
 import { openDashboard, openOptions } from "../utils/ui-surfaces.ts";
+import { PANEL_LIFECYCLE_PORT } from "../utils/constants.ts";
 import {
   BROWSER_QUIRKS_STORAGE_KEY,
   detectNativeSidebarSupport,
   getBrowserQuirks,
 } from "../utils/browser-detect.ts";
 import {
+  checkBackendHealth,
   createReviewRequest,
   createVersion,
   deleteProject,
@@ -26,13 +35,11 @@ import {
   fetchVersionDiff,
   fetchWhoami,
   listProjects,
-  loadProjectSettings,
   markNotificationsRead,
   renameProject,
   runCommentAction,
   runDocSync,
   signOutFromBackend,
-  updateProjectSettings,
 } from "../utils/backend-client.ts";
 
 // MV3 service worker. Routes popup / side-panel messages to the backend and accepts the
@@ -211,7 +218,6 @@ const DEFAULT_POPUP_PATH = "popup.html";
 const TRACKED_CACHE_TTL_MS = 60_000;
 const trackedCache = new Map<string, { tracked: boolean; ts: number }>();
 // Shared with the side panel; renaming requires updating the panel's connect() call too.
-const PANEL_LIFECYCLE_PORT = "margin-panel-lifecycle";
 const panelOpenWindowIds = new Set<number>();
 // Id of the detached sidepanel popup window (non-native-sidebar browsers).
 // Tracked so the toolbar icon can toggle it closed; cleared by
@@ -311,6 +317,7 @@ function openDashboardForTab(tab: chrome.tabs.Tab): void {
     useNativeSidebar: cachedUseNativeSidebar,
     windowId: tab.windowId,
     tabId: tab.id,
+    activeDocId: tab.url ? parseDocIdFromUrl(tab.url) ?? undefined : undefined,
   })
     .then((detachedWindowId) => {
       // Non-undefined only on the detached-window path; record it so the next
@@ -359,13 +366,14 @@ function closeSidePanelForWindow(windowId: number): void {
 interface ExternalAuthMessage {
   kind: "auth/token";
   token: string;
+  state: string;
 }
 
 function isExternalAuthMessage(msg: unknown): msg is ExternalAuthMessage {
   if (!msg || typeof msg !== "object") return false;
-  const m = msg as { kind?: unknown; token?: unknown };
+  const m = msg as { kind?: unknown; token?: unknown; state?: unknown };
   return m.kind === "auth/token" && typeof m.token === "string" &&
-    m.token.length > 0;
+    m.token.length > 0 && typeof m.state === "string" && m.state.length >= 32;
 }
 
 function originOf(url: string | null | undefined): string | null {
@@ -394,7 +402,14 @@ async function handleExternal(
     );
     return { ok: false, error: "origin not allowed" };
   }
+  if (
+    sender.tab?.id === undefined ||
+    !(await acceptPendingAuth(msg.state, sender.tab.id))
+  ) {
+    return { ok: false, error: "sign-in state not recognized" };
+  }
   await patchSettings({ sessionToken: msg.token });
+  await clearPendingAuth();
   return { ok: true };
 }
 
@@ -416,9 +431,11 @@ async function handleAuthFragment(tabId: number, url: string): Promise<void> {
 
   const params = new URLSearchParams(parsed.hash.slice(1));
   const token = params.get("token");
-  if (!token) return;
+  const state = params.get("state");
+  if (!token || !state || !(await acceptPendingAuth(state, tabId))) return;
 
   await patchSettings({ sessionToken: token });
+  await clearPendingAuth();
   try {
     await browser.tabs.remove(tabId);
   } catch (err) {
@@ -437,8 +454,12 @@ function errorResponseFor(
   switch (kind) {
     case "settings/get":
       return { kind: "settings/get", settings: null, backendUrl: null, error };
+    case "health/check":
+      return { kind: "health/check", ok: false, status: null, error };
+    case "auth/start":
+      return { kind: "auth/start", opened: false, error };
     case "auth/sign-out":
-      return { kind: "auth/sign-out", ok: true, error };
+      return { kind: "auth/sign-out", ok: false, error };
     case "auth/whoami":
       return {
         kind: "auth/whoami",
@@ -471,10 +492,6 @@ function errorResponseFor(
       return { kind: "version/comments", payload: null, error };
     case "comment/action":
       return { kind: "comment/action", result: null, error };
-    case "settings/load":
-      return { kind: "settings/load", settings: null, error };
-    case "settings/update":
-      return { kind: "settings/update", settings: null, error };
     case "review/request":
       return { kind: "review/request", result: null, error };
     default:
@@ -492,6 +509,13 @@ async function handleMessage(message: Message): Promise<MessageResponse> {
       ]);
       return { kind: "settings/get", settings, backendUrl };
     }
+    case "health/check": {
+      const result = await checkBackendHealth();
+      return { kind: "health/check", ...result };
+    }
+    case "auth/start":
+      await startSignIn();
+      return { kind: "auth/start", opened: true };
     case "auth/sign-out": {
       await signOutFromBackend();
       return { kind: "auth/sign-out", ok: true };
@@ -583,17 +607,6 @@ async function handleMessage(message: Message): Promise<MessageResponse> {
       });
       return { kind: "comment/action", result };
     }
-    case "settings/load": {
-      const settings = await loadProjectSettings(message.projectId);
-      return { kind: "settings/load", settings };
-    }
-    case "settings/update": {
-      const settings = await updateProjectSettings(
-        message.projectId,
-        message.patch,
-      );
-      return { kind: "settings/update", settings };
-    }
     case "review/request": {
       const result = await createReviewRequest({
         versionId: message.versionId,
@@ -603,4 +616,49 @@ async function handleMessage(message: Message): Promise<MessageResponse> {
       return { kind: "review/request", result };
     }
   }
+}
+
+const AUTH_STATE_TTL_MS = 10 * 60 * 1000;
+
+function randomAuthState(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  let binary = "";
+  for (const byte of bytes) binary += String.fromCharCode(byte);
+  return btoa(binary).replaceAll("+", "-").replaceAll("/", "_").replace(
+    /=+$/,
+    "",
+  );
+}
+
+async function startSignIn(): Promise<void> {
+  const backendUrl = await getBackendUrl() ?? DEFAULT_BACKEND_URL;
+  const state = randomAuthState();
+  const expiresAt = Date.now() + AUTH_STATE_TTL_MS;
+  await setPendingAuth({ state, tabId: null, expiresAt });
+  try {
+    const launch = new URL("/api/auth/ext/launch-tab", backendUrl);
+    launch.searchParams.set("ext", browser.runtime.id);
+    launch.searchParams.set("state", state);
+    const tab = await browser.tabs.create({ url: launch.toString() });
+    if (tab.id === undefined) {
+      throw new Error("browser did not return a sign-in tab id");
+    }
+    await setPendingAuth({ state, tabId: tab.id, expiresAt });
+  } catch (err) {
+    await clearPendingAuth();
+    throw err;
+  }
+}
+
+async function acceptPendingAuth(
+  state: string,
+  tabId: number,
+): Promise<boolean> {
+  const pending = await getPendingAuth();
+  if (!pending) return false;
+  if (pending.expiresAt < Date.now()) {
+    await clearPendingAuth();
+    return false;
+  }
+  return pending.state === state && pending.tabId === tabId;
 }

@@ -13,7 +13,7 @@ MV3 extension for Chrome / Edge / Firefox. Two surfaces:
 
 Comment ingest is not an extension concern; it lives in the backend (`.docx`
 export,
-[`docs/spec.md` §9.8](../../docs/spec.md#98-docx-export-is-the-canonical-ingest-source)).
+[`docs/spec.md` §8.7](../docs/spec.md#87-docx-export-is-the-canonical-annotation-source)).
 
 ## Build
 
@@ -27,13 +27,15 @@ cd extension
 deno install                   # first time / after package.json bumps
 deno task build                # production build, Chrome/Edge target
 deno task build:firefox        # production build, Firefox target
+deno task build:local          # Chrome build with localhost backend access
 deno task dev                  # dev server with HMR (Chrome/Edge)
 deno task dev:firefox          # dev server with HMR (Firefox)
 deno task zip                  # bundle dist/<target>/ into a publishable .zip
 deno task test                 # unit tests (node --test)
 ```
 
-Outputs to `extension/dist/{chrome-mv3,firefox-mv3}/`. Each output directory is
+Production outputs go to `extension/dist/{chrome-mv3,firefox-mv3}/`; local
+builds use the corresponding `*-dev` directory. Each output directory is
 loadable directly:
 
 - **Chrome / Edge:** `chrome://extensions` → enable Developer Mode → Load
@@ -43,20 +45,18 @@ loadable directly:
 
 ## Configure
 
-1. Open the extension's Options page. Enter the **Backend URL**
-   (`http://localhost:8787` for local dev, or your Fly.io app URL in
-   production), click **Test connection** to confirm `/healthz` responds (Chrome
-   will prompt for the backend origin; approve it), then **Save backend URL**.
-2. Click **Sign in with Google**. The Options page opens a top-level tab at
-   `/api/auth/ext/launch-tab`. Better Auth runs the Google consent flow, lands
-   on the `/api/auth/ext/success` bridge page, and the bridge hands the session
-   token to the SW (Chromium: `chrome.runtime.sendMessage`; Firefox fallback:
-   `location.hash`, picked up by the SW's `tabs.onUpdated` listener). The SW
-   persists it under `chrome.storage.local.settings.sessionToken`; the Options
-   page's `chrome.storage.onChanged` listener flips the UI to "Signed in"
-   without a reload. Once signed in, the Options page reads
-   `POST /api/extension/whoami` (via the SW) to show the account's email / name /
-   avatar alongside the tracked-project list.
+Open the extension's Options page and click **Sign in with Google**. Production
+builds use `https://api.margin.pub`; development builds use
+`http://localhost:8787`. The Options page requests access only to that backend
+origin, then asks the service worker to open a top-level tab at
+`/api/auth/ext/launch-tab`. Better Auth runs the Google consent flow, lands on
+the `/api/auth/ext/success` bridge page, and the bridge hands the session token
+to the SW (Chromium: `chrome.runtime.sendMessage`; Firefox fallback:
+`location.hash`, picked up by the SW's `tabs.onUpdated` listener). The SW
+persists it under `chrome.storage.local.settings.sessionToken`; the Options page
+reacts to that storage change without a reload. Once signed in, the Options page
+reads `POST /api/extension/whoami` through the SW to show the account identity
+and tracked-project list.
 
 ## Popup project surface
 
@@ -124,18 +124,19 @@ picks the value up and reprimes `cachedUseNativeSidebar`.
 Static `host_permissions: ["https://docs.google.com/*"]`: the extension never
 injects into the Docs tab, but the grant is what lets `tabs.query({url: ...})`
 return the active Doc's URL + title (Chrome strips both on Doc pages otherwise).
-User-configured backend origins stay on
-`optional_host_permissions: ["<all_urls>"]` and are requested at sign-in time
-inside a user gesture.
+The production manifest allows only `https://api.margin.pub/*` as an optional
+backend origin. `build:local` adds localhost origins for unpacked development;
+the exact configured backend permission is requested at sign-in time inside a
+user gesture.
 
 ## Doc title
 
 Tracked docs use `DocState.title` from `/api/extension/doc-state`, which is the
 canonical Drive name (`files.get` result, stored on `project.name` /
 `version.name` at register / create time). Untracked docs fall back to
-`cleanDocTitleFallback(tab.title)` in `shared/doc-id.ts`: a locale-agnostic strip
-that drops the trailing `- <suffix>` only when the suffix contains the literal
-word "Google" (the brand is never localized).
+`cleanDocTitleFallback(tab.title)` in `shared/doc-id.ts`: a locale-agnostic
+strip that drops the trailing `- <suffix>` only when the suffix contains the
+literal word "Google" (the brand is never localized).
 
 ## Layout
 

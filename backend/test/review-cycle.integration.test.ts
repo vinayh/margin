@@ -156,31 +156,33 @@ describe("review cycle (live Google)", () => {
 
       // 5. Review request. Sharing the doc back to the owner returns 4xx from
       //    Drive ("can't share to yourself" / "already a writer"), which the
-      //    domain catches per-assignee — magic links still mint.
-      const sent: { to: string; subject: string }[] = [];
+      //    domain catches per-assignee — review links are still emailed but
+      //    are not exposed in the requester-facing result.
+      const sent: { to: string; subject: string; text: string }[] = [];
       const result = await createReviewRequest({
         versionId: ver.id,
         ownerUserId: userId,
         assigneeEmails: [ownerEmail],
         emailTransport: {
           async send(msg) {
-            sent.push({ to: msg.to, subject: msg.subject });
+            sent.push({ to: msg.to, subject: msg.subject, text: msg.text });
           },
         },
       });
       expect(result.assignees).toHaveLength(1);
-      expect(result.assignees[0]!.links).toHaveLength(3);
+      expect(result.assignees[0]).not.toHaveProperty("links");
       expect(result.assignees[0]!.emailError).toBeNull();
       expect(sent).toHaveLength(1);
       expect(sent[0]!.to).toBe(ownerEmail);
 
       // 6. Redeem one magic link → assignment.status flips pending → reviewed.
-      const markReviewedUrl = result.assignees[0]!.links.find(
-        (l) => l.action === "mark_reviewed",
-      )!.url;
+      const markReviewedUrl = sent[0]!.text.match(
+        /https?:\/\/\S+\/r\/\S+\?action=mark_reviewed/,
+      )?.[0];
+      expect(markReviewedUrl).toBeTruthy();
       // URL is `<base>/r/<token>?action=mark_reviewed`; strip the path tail
       // and the query string to recover the raw token.
-      const tokenSegment = markReviewedUrl
+      const tokenSegment = markReviewedUrl!
         .split("/r/")
         .at(-1)!
         .split("?")[0]!;

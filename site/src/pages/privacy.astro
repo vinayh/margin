@@ -11,7 +11,7 @@ import Layout from "../layouts/Layout.astro";
 
     <h1 class="font-display text-[40px] leading-[0.95] mt-10 mb-4">Privacy.</h1>
     <p class="text-[15px] text-muted mb-10">
-      Last updated: 2026-05-10
+      Last updated: 2026-07-26
     </p>
 
     <section class="text-[15px] leading-7 text-ink-2 space-y-4">
@@ -24,8 +24,9 @@ import Layout from "../layouts/Layout.astro";
       <p>
         Per-user Google OAuth refresh tokens (envelope-encrypted with a
         per-row data key wrapped by the server's master key). Better Auth
-        session rows for each signed-in browser. Project metadata, document
-        snapshots you explicitly track, their comments and suggestion threads.
+        session rows for each signed-in browser. Project metadata, hashes and
+        synchronization state, plus comments and suggestion threads. Snapshot
+        documents themselves remain Google Drive files.
       </p>
 
       <h2 class="font-display text-2xl pt-6">What Margin never sees</h2>
@@ -37,9 +38,13 @@ import Layout from "../layouts/Layout.astro";
 
       <h2 class="font-display text-2xl pt-6">Telemetry</h2>
       <p>
-        None. The site has no analytics. The extension talks only to the
-        Margin backend. The backend makes no third-party calls besides
-        Google's Drive and Docs APIs.
+        The site has no analytics and the extension talks only to the Margin
+        backend. To provide the service, the extension and backend handle your
+        account and authentication data, selected Google Doc URLs and content,
+        and review communications. The hosted backend uses Google Drive and
+        Docs, its hosting and Postgres providers, and—when enabled by the
+        operator—Resend for review email and Slack webhooks for notifications.
+        No advertising or behavioral-tracking SDK is included.
       </p>
 
       <p class="pt-10">

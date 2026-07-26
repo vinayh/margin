@@ -7,7 +7,7 @@ import { parseDocx } from "./docx.ts";
 /**
  * Build a `.docx`-shaped zip in memory. We keep these fixtures hand-crafted
  * (not real `.docx` blobs) so each test verifies one specific OOXML shape
- * called out in SPEC §9.8 — exact-anchor coordinates, disjoint multi-range
+ * called out in SPEC §8.7 — exact-anchor coordinates, disjoint multi-range
  * comments, multi-paragraph ranges, suggestion author/timestamp,
  * suggestion-thread reply detection.
  */

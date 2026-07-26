@@ -2,7 +2,7 @@ import type { DriveComment, DriveCommentAuthor } from "../../google/drive.ts";
 import { hashShort } from "./types.ts";
 
 /**
- * For author identity disambiguation (SPEC §9.8). OOXML carries display name
+ * For author identity disambiguation (SPEC §8.7). OOXML carries display name
  * only — two reviewers named "Sam Lee" are indistinguishable in `.docx`. The
  * Drive API exposes `me` (true on the authed user's own comments) and
  * `photoLink` (per-user URL). We hash the photoLink as a stable
@@ -58,7 +58,7 @@ export function resolveIdentity(
 }
 
 /**
- * For Drive-id recovery + reply chain reconstruction (SPEC §9.8 — "Parent-
+ * For Drive-id recovery + reply chain reconstruction (SPEC §8.7 — "Parent-
  * reply linkage … reconstruct by same-anchor + w:date"). OOXML flattens
  * replies; the Drive API preserves the parent→reply tree. We match a
  * `DocxComment` to a Drive comment/reply by `(author display name, date)`,

@@ -7,10 +7,17 @@ import type { Settings } from "./types.ts";
  *
  * Pre-docx-ingest, this module also owned a capture queue, a per-doc seen-id
  * cache, last-error, and a doc-title cache populated by the content script.
- * The docx-export ingest (SPEC §9.8) recovers the same data server-side, so
+ * The docx-export ingest (SPEC §8.7) recovers the same data server-side, so
  * the entire capture pipeline is gone — leaving just settings here.
  */
 const KEY_SETTINGS = "settings";
+const KEY_PENDING_AUTH = "pendingAuth";
+
+export interface PendingAuth {
+  state: string;
+  tabId: number | null;
+  expiresAt: number;
+}
 
 async function get<T>(key: string): Promise<T | undefined> {
   const out = await browser.storage.local.get(key);
@@ -51,6 +58,18 @@ export async function patchSettings(patch: Partial<Settings>): Promise<void> {
     sessionToken: "",
   };
   await set(KEY_SETTINGS, { ...current, ...patch });
+}
+
+export function getPendingAuth(): Promise<PendingAuth | undefined> {
+  return get<PendingAuth>(KEY_PENDING_AUTH);
+}
+
+export async function setPendingAuth(value: PendingAuth): Promise<void> {
+  await set(KEY_PENDING_AUTH, value);
+}
+
+export async function clearPendingAuth(): Promise<void> {
+  await browser.storage.local.remove(KEY_PENDING_AUTH);
 }
 
 /**

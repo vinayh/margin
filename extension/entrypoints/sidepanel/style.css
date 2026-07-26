@@ -8,13 +8,15 @@
     @apply text-ink;
   }
   header {
-    @apply flex items-center gap-2 px-[0.9rem] pt-[0.7rem] pb-[0.55rem] border-b border-rule bg-cream;
+    @apply flex items-center gap-2 px-[0.9rem] pt-[0.7rem] pb-[0.55rem] border-b
+      border-rule bg-cream;
   }
   header strong {
     /* Bagel Fat One glyphs sit lower in their line-box than the icons + button
      * text, so even with `items-center` the visual midline drifts below. Nudge
      * the brand up so its optical center aligns with the bell + Options. */
-    @apply font-display text-[22px] font-normal tracking-[-0.01em] leading-none text-ink relative top-[-3px];
+    @apply font-display text-[22px] font-normal tracking-[-0.01em] leading-none
+      text-ink relative top-[-3px];
   }
   header .header-email {
     @apply flex-1 min-w-0 text-[11px] font-mono truncate;
@@ -26,7 +28,8 @@
 
 @layer components {
   .title {
-    @apply text-[22px] tracking-[-0.01em] leading-[1.15] overflow-visible text-clip whitespace-normal;
+    @apply text-[22px] tracking-[-0.01em] leading-[1.15] overflow-visible
+      text-clip whitespace-normal;
   }
   .project-header {
     @apply flex items-center gap-2;
@@ -40,9 +43,11 @@
   }
 
   .section-heading {
-    @apply text-[15px] font-semibold tracking-[-0.005em] text-ink m-0 mb-2 flex items-baseline gap-[0.4rem];
+    @apply text-[15px] font-semibold tracking-[-0.005em] text-ink m-0 mb-2 flex
+      items-baseline gap-[0.4rem];
     & .count {
-      @apply font-mono text-[11px] font-normal text-muted p-0 bg-transparent rounded-none;
+      @apply font-mono text-[11px] font-normal text-muted p-0 bg-transparent
+        rounded-none;
     }
   }
   .section-heading-row {
@@ -59,7 +64,8 @@
   .review-request-form {
     @apply flex flex-col gap-[0.35rem] mt-[0.4rem];
     & textarea {
-      @apply [font:inherit] font-mono text-[12px] w-full resize-y px-2 py-[0.4rem] border border-rule rounded-[4px] bg-cream text-ink;
+      @apply [font:inherit] font-mono text-[12px] w-full resize-y px-2
+        py-[0.4rem] border border-rule rounded-[4px] bg-cream text-ink;
       &:focus {
         @apply outline-2 outline-accent -outline-offset-1 border-ink;
       }
@@ -67,7 +73,8 @@
   }
 
   .review-row-toggle {
-    @apply bg-transparent border-0 p-0 m-0 cursor-pointer text-left [font:inherit] text-ink;
+    @apply bg-transparent border-0 p-0 m-0 cursor-pointer text-left
+      [font:inherit] text-ink;
     &:hover {
       @apply bg-transparent;
     }
@@ -81,14 +88,14 @@
       @apply flex flex-col gap-[0.2rem];
     }
   }
-  .review-magic-links {
-    @apply list-none p-0 m-0 mt-1 flex flex-col gap-[0.2rem] text-[11px];
-    & code {
-      @apply font-mono break-all text-ink-2;
-    }
+  .review-delivery-ok {
+    @apply mt-[0.2rem] text-[11px] text-good;
   }
   .review-share-error {
     @apply mt-[0.2rem] text-[11px] break-words;
+  }
+  .sync-control {
+    @apply inline-flex items-center gap-1;
   }
 
   table.data {
@@ -98,7 +105,8 @@
       @apply text-left px-2 py-[0.45rem] border-b border-rule align-middle;
     }
     & th {
-      @apply font-mono text-muted font-normal uppercase text-[10px] tracking-[0.06em] py-[0.3rem];
+      @apply font-mono text-muted font-normal uppercase text-[10px]
+        tracking-[0.06em] py-[0.3rem];
     }
     & td.numeric,
     & th.numeric {
@@ -120,7 +128,8 @@
   }
 
   .empty-state {
-    @apply flex flex-col gap-[0.35rem] py-3 px-3 rounded-md border border-rule border-dashed;
+    @apply flex flex-col gap-[0.35rem] py-3 px-3 rounded-md border border-rule
+      border-dashed;
   }
   .empty-state-title {
     @apply m-0 text-[12px] font-medium text-ink;
@@ -141,7 +150,9 @@
     }
   }
   .pending-tag {
-    @apply inline-block ml-2 px-[0.4rem] py-[0.05rem] rounded-full bg-cream border border-rule font-mono text-[9px] uppercase tracking-[0.08em] text-muted align-middle;
+    @apply inline-block ml-2 px-[0.4rem] py-[0.05rem] rounded-full bg-cream
+      border border-rule font-mono text-[9px] uppercase tracking-[0.08em]
+      text-muted align-middle;
     /* Don't dim further — already inside .panel-section-pending. */
     opacity: 1;
   }
@@ -153,10 +164,13 @@
     @apply relative;
   }
   .notifications-badge {
-    @apply absolute -top-[0.15rem] -right-[0.15rem] min-w-[14px] h-[14px] px-[0.2rem] rounded-full bg-bad text-cream text-[9px] font-semibold leading-[14px] text-center;
+    @apply absolute -top-[0.15rem] -right-[0.15rem] min-w-[14px] h-[14px]
+      px-[0.2rem] rounded-full bg-bad text-cream text-[9px] font-semibold
+      leading-[14px] text-center;
   }
   .notifications-pop {
-    @apply absolute right-0 top-full mt-1 w-[280px] max-w-[90vw] z-10 border border-rule rounded-md bg-cream-2 shadow-lg p-2;
+    @apply absolute right-0 top-full mt-1 w-[280px] max-w-[90vw] z-10 border
+      border-rule rounded-md bg-cream-2 shadow-lg p-2;
   }
   .notifications-pop-head {
     @apply flex items-center justify-between mb-1;
@@ -164,7 +178,8 @@
       @apply m-0 text-[12px] font-semibold;
     }
     & button.text-only {
-      @apply text-[11px] text-muted bg-transparent border-0 inline-flex items-center gap-1 cursor-pointer;
+      @apply text-[11px] text-muted bg-transparent border-0 inline-flex
+        items-center gap-1 cursor-pointer;
       &:hover {
         @apply text-ink;
       }
@@ -183,7 +198,8 @@
     }
   }
   .notification-item {
-    @apply w-full text-left bg-transparent border-0 p-2 cursor-pointer flex flex-col gap-[0.15rem];
+    @apply w-full text-left bg-transparent border-0 p-2 cursor-pointer flex
+      flex-col gap-[0.15rem];
     &:hover {
       @apply bg-ink/[3%];
     }
@@ -203,7 +219,8 @@
   }
 
   .filter-input {
-    @apply w-full mb-2 [font:inherit] text-[12px] px-2 py-[0.35rem] border border-rule rounded-[4px] bg-cream text-ink;
+    @apply w-full mb-2 [font:inherit] text-[12px] px-2 py-[0.35rem] border
+      border-rule rounded-[4px] bg-cream text-ink;
     &:focus {
       @apply outline-none border-accent;
     }
@@ -232,10 +249,12 @@
     @apply w-full table-fixed border-collapse mt-[0.6rem] text-[12px];
     & th,
     & td {
-      @apply align-top px-[0.45rem] py-[0.35rem] border-b border-rule [overflow-wrap:anywhere];
+      @apply align-top px-[0.45rem] py-[0.35rem] border-b border-rule
+        [overflow-wrap:anywhere];
     }
     & th {
-      @apply font-mono text-muted font-normal uppercase text-[10px] tracking-[0.06em] text-left;
+      @apply font-mono text-muted font-normal uppercase text-[10px]
+        tracking-[0.06em] text-left;
     }
   }
   .diff-para {
@@ -273,7 +292,9 @@
     @apply bg-bad-bg line-through;
   }
   .diff-tag {
-    @apply inline-block ml-[0.3rem] px-[0.35rem] bg-cream-2 border border-rule rounded-[3px] font-mono text-[10px] text-muted uppercase tracking-[0.06em];
+    @apply inline-block ml-[0.3rem] px-[0.35rem] bg-cream-2 border border-rule
+      rounded-[3px] font-mono text-[10px] text-muted uppercase
+      tracking-[0.06em];
   }
 
   .comments-view {
@@ -301,13 +322,16 @@
     @apply m-0 mb-[0.3rem] text-[11px] text-muted;
   }
   .comment-quote {
-    @apply m-0 mb-[0.35rem] px-[0.55rem] py-1 border-l-2 border-accent text-ink-2 text-[12px] italic [overflow-wrap:anywhere] bg-accent/[8%];
+    @apply m-0 mb-[0.35rem] px-[0.55rem] py-1 border-l-2 border-accent
+      text-ink-2 text-[12px] italic [overflow-wrap:anywhere] bg-accent/[8%];
   }
   .comment-body {
-    @apply m-0 text-[12px] whitespace-pre-wrap [overflow-wrap:anywhere] text-ink;
+    @apply m-0 text-[12px] whitespace-pre-wrap [overflow-wrap:anywhere]
+      text-ink;
   }
   .comment-tag {
-    @apply inline-block px-[0.35rem] bg-cream border border-rule rounded-[3px] font-mono text-[10px] text-muted uppercase tracking-[0.06em];
+    @apply inline-block px-[0.35rem] bg-cream border border-rule rounded-[3px]
+      font-mono text-[10px] text-muted uppercase tracking-[0.06em];
   }
   .comment-actions {
     @apply flex flex-wrap gap-[0.3rem] mt-2;
@@ -330,7 +354,8 @@
     @apply w-2/3;
   }
   @keyframes margin-skeleton-pulse {
-    0%, 100% {
+    0%,
+    100% {
       opacity: 0.55;
     }
     50% {
@@ -357,7 +382,8 @@
     }
     & input[type="text"],
     & textarea {
-      @apply [font:inherit] font-mono text-[12px] px-2 py-[0.4rem] border border-rule rounded-[4px] bg-cream text-ink;
+      @apply [font:inherit] font-mono text-[12px] px-2 py-[0.4rem] border
+        border-rule rounded-[4px] bg-cream text-ink;
       &:focus {
         @apply outline-2 outline-accent -outline-offset-1 border-ink;
       }
@@ -376,7 +402,8 @@
   .danger-zone {
     @apply mt-[1.2rem] pt-[0.8rem] border-t border-rule flex flex-col gap-2;
     & button.danger {
-      @apply self-start inline-flex items-center gap-2 text-bad border-bad bg-bad-bg;
+      @apply self-start inline-flex items-center gap-2 text-bad border-bad
+        bg-bad-bg;
       & svg {
         width: 14px;
         height: 14px;

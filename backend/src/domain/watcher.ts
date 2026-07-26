@@ -37,7 +37,7 @@ function parseExpiration(raw: string | undefined, fallbackMs: number): Date {
   return new Date(fallbackMs);
 }
 
-// address must be a Search-Console-verified HTTPS endpoint (SPEC §9.3). Polling is the safety net.
+// address must be a Search-Console-verified HTTPS endpoint (SPEC §8.3). Polling is the safety net.
 export async function subscribeVersionWatch(opts: {
   versionId: string;
   address: string;
@@ -109,6 +109,24 @@ export async function getDriveWatchChannelByChannelId(
   return rows[0] ?? null;
 }
 
+/**
+ * Resolve and authenticate an inbound Drive channel before the HTTP adapter
+ * performs any request-derived bookkeeping such as deduplication.
+ */
+export async function authenticateDriveWatchChannel(opts: {
+  channelId: string;
+  channelToken?: string;
+}): Promise<DriveWatchChannel | null> {
+  const row = await getDriveWatchChannelByChannelId(opts.channelId);
+  if (!row) return null;
+  // Refuse null tokens (manual seeding, future migration) and compare in
+  // constant time so learning a channel id is insufficient to trigger work.
+  if (!row.token || !opts.channelToken || !constantTimeEqual(opts.channelToken, row.token)) {
+    throw new Error(`channel ${opts.channelId}: token mismatch`);
+  }
+  return row;
+}
+
 // Idempotent: missing row or 404 from Drive both treat as success.
 export async function unsubscribeVersionWatch(channelRowId: string): Promise<void> {
   const row = await getDriveWatchChannel(channelRowId);
@@ -136,26 +154,27 @@ export async function handleDriveWatchEvent(opts: {
   channelToken?: string;
   resourceState?: string;
 }): Promise<IngestResult | null> {
-  const row = await getDriveWatchChannelByChannelId(opts.channelId);
+  const row = await authenticateDriveWatchChannel(opts);
   if (!row) return null;
-  // Defense in depth: refuse when token is null (manual seeding, future migration) so an
-  // attacker who learns a channel id can't trigger ingests. Constant-time compare to
-  // close any timing oracle on the channel token (which is a 256-bit random secret).
-  if (!row.token || !opts.channelToken || !constantTimeEqual(opts.channelToken, row.token)) {
-    throw new Error(`channel ${opts.channelId}: token mismatch`);
-  }
 
+  return handleAuthenticatedDriveWatchEvent(row, opts.resourceState);
+}
+
+export async function handleAuthenticatedDriveWatchEvent(
+  row: DriveWatchChannel,
+  resourceState?: string,
+): Promise<IngestResult | null> {
   await db
     .update(driveWatchChannel)
     .set({ lastEventAt: new Date() })
     .where(eq(driveWatchChannel.id, row.id));
 
-  if (opts.resourceState === "sync") return null;
+  if (resourceState === "sync") return null;
 
   return ingestVersionComments(row.versionId);
 }
 
-// Polling fallback (SPEC §9.3). Idempotent; safe to run on a cron.
+// Polling fallback (SPEC §8.3). Idempotent; safe to run on a cron.
 export interface PollOutcome {
   versionId: string;
   result?: IngestResult;

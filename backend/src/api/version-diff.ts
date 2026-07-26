@@ -1,10 +1,10 @@
 import * as v from "valibot";
-import { badRequest, IdSchema, validatedPost } from "./middleware.ts";
+import { badRequest, UuidSchema, validatedPost } from "./middleware.ts";
 import { getVersionDiffPayload } from "../domain/version-diff.ts";
 
 const VersionDiffBodySchema = v.object({
-  fromVersionId: IdSchema,
-  toVersionId: IdSchema,
+  fromVersionId: UuidSchema,
+  toVersionId: UuidSchema,
 });
 
 /**
@@ -12,7 +12,7 @@ const VersionDiffBodySchema = v.object({
  * for two versions of the same project. Body:
  * `{ fromVersionId, toVersionId }`. Returns the summarized paragraphs for
  * both sides; the side-panel runs the actual diff render client-side
- * (SPEC §12 Phase 4 structured-diff bullet).
+ * used by the side-panel structured diff.
  *
  * Owner-scoped on both versions, and refuses cross-project diffs — both
  * conditions collapse to 404 so the caller can't probe for the existence

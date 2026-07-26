@@ -2,6 +2,7 @@ import "../../test/setup.ts";
 import { afterEach, describe, it as test } from "@std/testing/bdd";
 import { expect } from "@std/expect";
 import { setFetch } from "../../test/fetch.ts";
+import { UpstreamTransportError } from "../errors.ts";
 import {
   _setEmailTransportForTests,
   getEmailTransport,
@@ -47,12 +48,15 @@ describe("ResendEmailTransport", () => {
     });
   });
 
-  test("rejects with status + body on error", async () => {
+  test("rejects without putting the response body in the message", async () => {
     setFetch(async () => new Response("nope", { status: 422 }));
     const t = new ResendEmailTransport("rk_test", "hi@example.com");
-    await expect(
-      t.send({ to: "alice@example.com", subject: "hi", text: "body" }),
-    ).rejects.toThrow(/resend: 422 nope/);
+    const err = await t
+      .send({ to: "alice@example.com", subject: "hi", text: "body" })
+      .catch((caught) => caught);
+    expect(err).toBeInstanceOf(UpstreamTransportError);
+    expect((err as Error).message).toBe("resend: 422");
+    expect((err as UpstreamTransportError).body).toBe("nope");
   });
 });
 

@@ -31,7 +31,7 @@ export const CLEAN_THRESHOLD = 90;
 export const FUZZY_THRESHOLD = 50;
 
 /**
- * Locate the best match for a source anchor in `doc`. SPEC §5 algorithm:
+ * Locate the best match for a source anchor in `doc`. SPEC §4.2 algorithm:
  *  1. Same paragraph hash + exact quoted-text substring → 100 (clean).
  *  2. Exact quoted-text substring in any paragraph → 85–95 depending on context match.
  *  3. Myers-diff (jsdiff) fuzzy fallback within a paragraph → ≤ 80.
@@ -40,7 +40,7 @@ export const FUZZY_THRESHOLD = 50;
  * Region-aware: if the source anchor names a region (header/footer/footnote),
  * we search candidates in that region first and only fall back to the rest of
  * the doc if nothing matches. For Drive comments the Drive API doesn't expose
- * which region they live in (kix anchor is opaque per SPEC §9), so the source
+ * which region they live in (kix anchor is opaque per SPEC §8), so the source
  * region may be undefined — in that case we walk every region.
  */
 export function reanchor(doc: Document, source: CommentAnchor): ReanchorResult {

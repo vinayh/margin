@@ -4,7 +4,6 @@ import type {
   DocState,
   ProjectDetail,
   ProjectListEntry,
-  ProjectSettingsView,
   ReviewRequestResult,
   Settings,
   VersionCommentsPayload,
@@ -26,27 +25,6 @@ const CommentActionKindSchema = v.picklist([
   "reopen",
 ]);
 
-// Patch shape mirrors the backend's ProjectSettingsPatchSchema. Lenient at the
-// SW boundary (the backend re-validates with the canonical schema) — the goal
-// here is to reject obviously malformed inbound messages, not to re-litigate
-// email syntax.
-const SettingsPatchSchema = v.partial(
-  v.object({
-    notifyOnComment: v.boolean(),
-    notifyOnReviewComplete: v.boolean(),
-    defaultReviewerEmails: v.pipe(
-      v.array(v.pipe(v.string(), v.maxLength(MAX_FIELD_LEN))),
-      v.maxLength(MAX_REVIEWERS),
-    ),
-    defaultOverlayId: v.nullable(
-      v.pipe(v.string(), v.maxLength(MAX_FIELD_LEN)),
-    ),
-    slackWorkspaceRef: v.nullable(
-      v.pipe(v.string(), v.maxLength(MAX_FIELD_LEN)),
-    ),
-  }),
-);
-
 /**
  * Inbound-message envelope for `runtime.sendMessage` between popup/side-panel
  * and the SW. Used as both the runtime guard (`v.safeParse`) on inbound calls
@@ -55,10 +33,12 @@ const SettingsPatchSchema = v.partial(
  *
  * Pre-docx-ingest this also carried `capture/submit`, `queue/flush`, and
  * `queue/peek` for the content-script → SW → backend pipeline. Server-side
- * ingest (SPEC §9.8) made those unnecessary.
+ * ingest (SPEC §8.7) made those unnecessary.
  */
 export const MessageSchema = v.variant("kind", [
   v.object({ kind: v.literal("settings/get") }),
+  v.object({ kind: v.literal("health/check") }),
+  v.object({ kind: v.literal("auth/start") }),
   v.object({ kind: v.literal("auth/sign-out") }),
   v.object({ kind: v.literal("auth/whoami") }),
   v.object({ kind: v.literal("doc/state"), docId: Id }),
@@ -87,12 +67,6 @@ export const MessageSchema = v.variant("kind", [
     canonicalCommentId: Id,
     action: CommentActionKindSchema,
     targetVersionId: v.optional(Id),
-  }),
-  v.object({ kind: v.literal("settings/load"), projectId: Id }),
-  v.object({
-    kind: v.literal("settings/update"),
-    projectId: Id,
-    patch: SettingsPatchSchema,
   }),
   v.object({
     kind: v.literal("review/request"),
@@ -135,7 +109,9 @@ export type MessageResponse =
     backendUrl: string | null;
     error?: string;
   }
-  | { kind: "auth/sign-out"; ok: true; error?: string }
+  | { kind: "health/check"; ok: boolean; status: number | null; error?: string }
+  | { kind: "auth/start"; opened: boolean; error?: string }
+  | { kind: "auth/sign-out"; ok: boolean; error?: string }
   | {
     kind: "auth/whoami";
     email: string | null;
@@ -171,16 +147,6 @@ export type MessageResponse =
   | {
     kind: "comment/action";
     result: CommentActionResult | null;
-    error?: string;
-  }
-  | {
-    kind: "settings/load";
-    settings: ProjectSettingsView | null;
-    error?: string;
-  }
-  | {
-    kind: "settings/update";
-    settings: ProjectSettingsView | null;
     error?: string;
   }
   | {

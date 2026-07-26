@@ -22,16 +22,18 @@ jobs:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v6
-      - uses: denoland/setup-deno@v2
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: denoland/setup-deno@f2274c2c340e0c81c8f7dc407b2a477b8935f171 # v2
         with:
           deno-version: v2.x
       - run: deno ci
       - run: deno task typecheck
+      - run: deno lint
+      - run: deno fmt --check
       - run: deno task test:coverage
 
       - name: Upload coverage reports to Codecov
-        uses: codecov/codecov-action@v6
+        uses: codecov/codecov-action@fb8b3582c8e4def4969c97caa2f19720cb33a72f # v6
         with:
           token: ${{ secrets.CODECOV_TOKEN }}
           files: backend/coverage/lcov.info
@@ -53,8 +55,8 @@ jobs:
       run:
         working-directory: backend
     steps:
-      - uses: actions/checkout@v6
-      - uses: denoland/setup-deno@v2
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: denoland/setup-deno@f2274c2c340e0c81c8f7dc407b2a477b8935f171 # v2
         with:
           deno-version: v2.x
       # Install runtime deps only (no devDependencies), then have Deno walk
@@ -78,21 +80,41 @@ jobs:
         env:
           BETTER_AUTH_SECRET: "00000000000000000000000000000000"
           MARGIN_MASTER_KEY: "0000000000000000000000000000000000000000000000000000000000000000"
-          MARGIN_DB_PATH: /tmp/margin-init-check.db
           GOOGLE_CLIENT_ID: fake-ci
           GOOGLE_CLIENT_SECRET: fake-ci
         run: deno eval --ext=ts 'await import("./src/api/server.ts"); console.log("module tree imports OK");'
 
+  extension:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: extension
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: "24"
+      - uses: denoland/setup-deno@f2274c2c340e0c81c8f7dc407b2a477b8935f171 # v2
+        with:
+          deno-version: v2.x
+      - run: deno ci
+      - run: deno task prepare
+      - run: deno task test
+      - run: deno lint
+      - run: deno fmt --check
+      - run: deno task build
+      - run: deno task build:firefox
+
   deploy:
-    needs: [test, prod-resolve]
+    needs: [test, prod-resolve, extension]
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     concurrency:
       group: fly-deploy
       cancel-in-progress: false
     steps:
-      - uses: actions/checkout@v6
-      - uses: superfly/flyctl-actions/setup-flyctl@master
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+      - uses: superfly/flyctl-actions/setup-flyctl@ed8efb33836e8b2096c7fd3ba1c8afe303ebbff1 # v1
       # Pre-start the machine so the rolling deploy doesn't try to verify
       # HTTP health checks against a stopped VM (auto_stop_machines = "stop"
       # + single machine deadlocks the rolling-deploy health-check wait).
